@@ -41,8 +41,16 @@ function updateSubjects() {
 }
 
 function updateTutorialId() {
-    if (boardSelect.value && yearSelect.value && subjectSelect.value) {
-        tutorialIdField.value = `${boardSelect.value}_${yearSelect.value}_${subjectSelect.value}`;
+    const board = boardSelect.value;
+    const year = yearSelect.value;
+    const subject = subjectSelect.value;
+
+    if (board && year && subject && subject !== "Select Subject") {
+        const tutorialId = `${board}_${year}_${subject}`;
+        tutorialIdField.value = tutorialId;
+
+        // Auto-generate tutorial title
+        dom("tutorialTitle").value = `${board} ${year} ${subject}`;
     }
 }
 
