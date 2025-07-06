@@ -93,13 +93,20 @@ function renderEditor() {
 
 
 
-${["A", "B", "C", "D"].map(opt => `
-<div class="free">
-  <label>Option ${opt}:</label>
-  <textarea rows="4" class="option-textarea" oninput="questions[${activeIndex}].opt${opt}=this.value">${q["opt" + opt]}</textarea>
-  <input type="file" onchange="handleOptImage(event,${activeIndex},'${opt}')"/>
-  <div id="opt${opt}Url_${activeIndex}"></div>
-</div>`).join("")}
+${["A", "B", "C", "D"].map((opt, idx) => `
+  <div class="free">
+    <label>Option ${opt}:</label>
+    <textarea rows="4" class="option-textarea" oninput="questions[${activeIndex}].opt${opt}=this.value">${q["opt" + opt]}</textarea>
+    
+    <!-- Fixed label above image upload -->
+    <label style="display:block; margin-top:6px;">Upload Option ${opt} Image:</label>
+    <input type="file" accept="image/*" onchange="handleOptImage(event,${activeIndex},'${opt}', ${idx + 1})"/>
+
+    <div id="opt${opt}Url_${activeIndex}"></div>
+  </div>
+`).join("")}
+
+
 <label>Correct Answer:</label>
 <select onchange="questions[${activeIndex}].correct=this.value">
   <option></option>${["A", "B", "C", "D"].map(o => `<option ${q.correct === o ? "selected" : ""}>${o}</option>`).join("")}
@@ -111,7 +118,7 @@ ${["A", "B", "C", "D"].map(opt => `
 
 function handleQImages(ev, index) {
     const files = [...ev.target.files];
-    const subject = subjectSelect.value;
+    const subject = subjectSelect.value.toLowerCase();
     const year = yearSelect.value;
     const container = dom(`qUrls_${index}`);
 
@@ -193,39 +200,96 @@ function handleQImages(ev, index) {
 }
 
 
-function handleOptImage(ev, i, opt) {
-    const f = ev.target.files[0];
-    const c = subjectSelect.value, y = yearSelect.value;
+function handleOptImage(ev, i, opt, optNumber) {
+    const fileInput = ev.target;
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const subject = subjectSelect.value.toLowerCase();
+    const year = yearSelect.value;
+    const fileName = `${subject}_${year}_${i + 1}_op${optNumber}`;
+    const path = `questions/${subject}/${year}/${fileName}`;
+
     const container = dom(`opt${opt}Url_${i}`);
-    container.replaceChildren(prog);
-    const prog = document.createElement("progress");
-    prog.value = 100;
-    const done = document.createElement("span");
-    done.textContent = " ✅ Uploaded";
-    container.append(done);
-    container.append(prog);
-    window.uploadImageToFirebase = function (file, subject, year, index, suffix, onProgress) {
-        return new Promise((resolve, reject) => {
-            const fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
-            const path = `questions/${subject}/${year}/${fileName}`;
+    container.innerHTML = ""; // Clear all existing elements
+
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.gap = "8px";
+    wrapper.style.marginTop = "6px";
+
+    const progress = document.createElement("progress");
+    progress.value = 0;
+    progress.max = 100;
+    progress.style.width = "100px";
+
+    const status = document.createElement("span");
+    status.textContent = "Uploading...";
+
+    const thumbnail = document.createElement("img");
+    thumbnail.style.display = "none";
+    thumbnail.width = 50;
+    thumbnail.height = 50;
+
+    const link = document.createElement("a");
+    link.target = "_blank";
+    link.style.fontSize = "12px";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "✖";
+    removeBtn.style.cursor = "pointer";
+    removeBtn.style.color = "red";
+
+    wrapper.append(progress, status);
+    container.appendChild(wrapper);
+
+    uploadImageToFirebase(file, subject, year, i, `_op${optNumber}`, percent => {
+        progress.value = percent;
+    }).then(url => {
+        // ✅ Remove input after upload
+        fileInput.remove();
+
+        questions[i].optionImages[opt] = url;
+
+        status.textContent = "✅ Uploaded";
+        thumbnail.src = url;
+        thumbnail.style.display = "block";
+        link.href = url;
+        link.textContent = fileName;
+
+        removeBtn.onclick = () => {
+            if (!confirm("Do you want to remove the uploaded image?")) return;
+
             const storageRef = ref(getStorage(), path);
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            deleteObject(storageRef)
+                .then(() => {
+                    wrapper.remove();
+                    questions[i].optionImages[opt] = null;
 
-            uploadTask.on(
-                "state_changed",
-                (snapshot) => {
-                    const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    if (onProgress) onProgress(Math.round(percent));
-                },
-                (error) => reject(error),
-                () => {
-                    getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
-                }
-            );
-        });
-    };
+                    // ✅ Restore file input after delete
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*";
+                    input.onchange = (e) => handleOptImage(e, i, opt, optNumber);
+                    container.appendChild(input);
 
+                    alert("✅ Image deleted.");
+                })
+                .catch(err => {
+                    console.error("Delete failed:", err);
+                    alert("❌ Could not delete from Firebase.");
+                });
+        };
+
+        wrapper.replaceChildren(thumbnail, link, removeBtn);
+    }).catch(err => {
+        console.error("Upload failed:", err);
+        status.textContent = "❌ Upload failed";
+    });
 }
+
+
 
 function removeImage(type, i, optOrUrl, urlMaybe, btn) {
     if (!confirm("Remove this image?")) return;
