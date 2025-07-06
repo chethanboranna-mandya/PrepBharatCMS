@@ -193,3 +193,9 @@ pre#output {
     cursor: pointer;
     font-weight: bold;
 }
+
+
+input[type="file"] {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}

@@ -170,3 +170,74 @@ function generateJSON() {
 
 // Pre-fill with 60 questions
 for (let i = 0; i < 60; i++) addQuestion();
+
+
+function loadFromFile() {
+    const input = document.getElementById('jsonFileInput');
+    const file = input.files[0];
+    if (!file) {
+        alert('Please select a JSON file.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!Array.isArray(data) || !data[0].questions) {
+                alert("Invalid JSON structure.");
+                return;
+            }
+
+            const tutorial = data[0];
+
+            // Set basic fields
+            document.getElementById("tutorialId").value = tutorial.tutorialId || "";
+            document.getElementById("tutorialTitle").value = tutorial.tutorialTitle || "";
+            document.getElementById("authorityExamId").value = tutorial.authorityExamId || "";
+
+            // Parse board/year/subject from tutorialId
+            const [board, year, subject] = (tutorial.tutorialId || "").split("_");
+            document.getElementById("boardSelect").value = board || "";
+            updateSubjects(); // Re-populate subject dropdown based on board
+            document.getElementById("yearSelect").value = year || "";
+            document.getElementById("subjectSelect").value = subject || "";
+
+            questions.length = 0; // Clear existing
+            tutorial.questions.forEach(q => {
+                const qd = q.questionDetails[0];
+                questions.push({
+                    sentenceId: qd.sentenceId.toString(),
+                    text: qd.text,
+                    optA: qd.possibleAnswers["A"].text,
+                    optB: qd.possibleAnswers["B"].text,
+                    optC: qd.possibleAnswers["C"].text,
+                    optD: qd.possibleAnswers["D"].text,
+                    correct: qd.correctAnswer
+                });
+            });
+
+            // Pad to 60 if fewer
+            while (questions.length < 60) {
+                questions.push({
+                    sentenceId: "",
+                    text: "",
+                    optA: "",
+                    optB: "",
+                    optC: "",
+                    optD: "",
+                    correct: ""
+                });
+            }
+
+            activeIndex = 0;
+            renderQuestionList();
+            renderEditor();
+        } catch (err) {
+            alert("Error reading JSON file.");
+            console.error(err);
+        }
+    };
+
+    reader.readAsText(file);
+}
