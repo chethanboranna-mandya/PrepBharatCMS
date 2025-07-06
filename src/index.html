@@ -1,78 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <title>Tutorial JSON Builder</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-<body>
 <div class="main-horizontal">
-
-  <!-- LEFT: Input + Question Editor -->
   <div class="left-panel">
-    <input type="file" id="jsonFileInput" accept=".json" />
+    <input type="file" id="jsonFileInput" accept=".json"/>
     <button onclick="loadFromFile()">📂 Load JSON</button>
-
     <h2>Tutorial JSON Builder</h2>
-
-    <!-- Meta Info Fields -->
     <div class="row">
-      <div class="field">
-        <label>Board:</label>
-        <select id="boardSelect"><option value="">Select Board</option></select>
-      </div>
-      <div class="field">
-        <label>Year:</label>
-        <select id="yearSelect"></select>
-      </div>
-      <div class="field">
-        <label>Subject:</label>
-        <select id="subjectSelect"><option value="">Select Subject</option></select>
-      </div>
-      <div class="field">
-        <label>Tutorial ID:</label>
-        <input type="text" id="tutorialId" readonly>
-      </div>
+      <div class="field"><label>Board:</label><select id="boardSelect"><option value="">Select Board</option></select></div>
+      <div class="field"><label>Year:</label><select id="yearSelect"></select></div>
+      <div class="field"><label>Subject:</label><select id="subjectSelect"><option value="">Select Subject</option></select></div>
+      <div class="field"><label>Tutorial ID:</label><input type="text" id="tutorialId" readonly/></div>
     </div>
-
-    <label>Tutorial Title:</label>
-    <input type="text" id="tutorialTitle" placeholder="e.g. KCET 2024 Biology Questions">
-
-    <label>Authority Exam ID:</label>
-    <input type="text" id="authorityExamId" placeholder="e.g. kar_kcet">
-
-    <!-- Question layout -->
+    <label>Tutorial Title:</label><input type="text" id="tutorialTitle"/>
+    <label>Authority Exam ID:</label><input type="text" id="authorityExamId"/>
     <div class="container">
       <div class="question-sidebar">
         <div class="question-list" id="questionList"></div>
         <div class="sidebar-buttons">
           <button onclick="addQuestion()">➕ Add</button>
           <button onclick="removeQuestion()">➖ Remove</button>
-          <button onclick="generateJSON()">🧾 JSON</button>
         </div>
       </div>
-
-      <div class="editor-panel">
-        <div id="questionEditor"></div>
-      </div>
+      <div class="editor-panel"><div id="questionEditor"></div></div>
     </div>
   </div>
-
-  <!-- RIGHT: JSON Output -->
-  <!-- RIGHT: JSON Output -->
   <div class="right-panel">
     <div class="json-header">
       <h3>Generated JSON</h3>
-      <button class="generate-btn" onclick="generateJSON()">🧾 Generate JSON</button>
+      <button onclick="generateJSON()">🧾 Generate JSON</button>
     </div>
     <pre id="output"></pre>
   </div>
-
 </div>
+<script src="config.js"></script>
 
-<script src="./config.js"></script>
-<script src="./script.js"></script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import {
+    getStorage,
+    ref,
+    uploadBytesResumable,
+    getDownloadURL,
+    deleteObject // ✅ include deleteObject here
+  } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDkRSU7sVKQXmQo4C-imX0aSeHXHhlH59E",
+    authDomain: "prepbharat.firebaseapp.com",
+    projectId: "prepbharat",
+    storageBucket: "prepbharat.firebasestorage.app",
+    messagingSenderId: "593555148862",
+    appId: "1:593555148862:web:d627edfe32a17c71a5c16f",
+    measurementId: "G-7QGE8KDDTF"
+  };
+  const app = initializeApp(firebaseConfig);
+  const storage = getStorage(app);
+
+  // This is modular version of uploadImageToFirebase
+  window.uploadImageToFirebase = function(file, subject, year, index, suffix, onProgress) {
+    return new Promise((resolve, reject) => {
+      const fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
+      const storageRef = ref(storage, `questions/${subject}/${year}/${fileName}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+              "state_changed",
+              (snapshot) => {
+                const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                if (onProgress) onProgress(Math.round(percent));
+              },
+              (error) => reject(error),
+              () => {
+                getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
+              }
+      );
+    });
+  };
+</script>
+
+<script src="script.js"></script>
 </body>
-
 </html>

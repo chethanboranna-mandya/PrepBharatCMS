@@ -199,3 +199,12 @@ input[type="file"] {
     margin-right: 10px;
     margin-bottom: 10px;
 }
+
+progress {
+    vertical-align: middle;
+}
+
+button {
+    padding: 4px 8px;
+    font-size: 14px;
+}
