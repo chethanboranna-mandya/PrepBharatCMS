@@ -21,9 +21,18 @@ function fillYears() {
 fillBoards();
 fillYears();
 
-boardSelect.onchange = updateSubjects;
-subjectSelect.onchange = updateTutorialId;
-yearSelect.onchange = updateTutorialId;
+boardSelect.onchange = () => {
+    updateSubjects();
+    renderEditor(); // ⬅️ added
+};
+subjectSelect.onchange = () => {
+    updateTutorialId();
+    renderEditor(); // ⬅️ added
+};
+yearSelect.onchange = () => {
+    updateTutorialId();
+    renderEditor(); // ⬅️ added
+};
 
 function updateSubjects() {
     subjectSelect.innerHTML = "<option>Select Subject</option>";
@@ -37,7 +46,16 @@ function updateTutorialId() {
     }
 }
 
-function addQuestion() {
+function addQuestion(showAlert = true) {
+    const board = boardSelect.value;
+    const year = yearSelect.value;
+    const subject = subjectSelect.value;
+
+    if (!board || !year || !subject || subject === "Select Subject") {
+        if (showAlert) alert("Please select Board, Year, and Subject first.");
+        return;
+    }
+
     questions.push({
         sentenceId: "",
         text: "",
@@ -51,6 +69,9 @@ function addQuestion() {
     });
     setActiveQuestion(questions.length - 1);
 }
+
+
+
 
 function removeQuestion() {
     if (questions.length) questions.pop();
@@ -76,44 +97,51 @@ function renderQuestionList() {
 }
 
 function renderEditor() {
-    const q = questions[activeIndex], sbj = subjectSelect.value, yr = yearSelect.value;
-    qEditor.innerHTML = `
+    const sbj = subjectSelect.value;
+    const yr = yearSelect.value;
+    const brd = boardSelect.value;
+
+    const editor = dom("questionEditor");
+
+    if (!sbj || !yr || !brd) {
+        editor.innerHTML = `<div style="color: red; font-weight: bold; padding: 12px;">
+            ❗ Please select <u>Board</u>, <u>Year</u>, and <u>Subject</u> before editing questions.
+        </div>`;
+        return;
+    }
+
+    const q = questions[activeIndex];
+
+    editor.innerHTML = `
 <h4>Question ${activeIndex + 1}</h4>
 <label>Sentence ID:</label><input value="${q.sentenceId}" oninput="questions[${activeIndex}].sentenceId = this.value"/>
 <label>Question Text:</label><textarea rows="8" class="question-textarea" oninput="questions[${activeIndex}].text=this.value">${q.text}</textarea>
 
-<!-- Keep title always on top -->
-<label style="display:block; margin-top:12px; font-weight:bold;">Upload Q Images:</label>
-
-<!-- Container for image previews -->
+<!-- Display uploaded images first -->
 <div id="qUrls_${activeIndex}"></div>
 
-<!-- File selector below the fixed title -->
-<input type="file" id="uploadInput_${activeIndex}" multiple onchange="handleQImages(event,${activeIndex})"/>
-
-
+<!-- Then show the upload file selector once -->
+<h5 style="margin-top: 10px;">Upload Q Images:</h5>
+<input type="file" multiple onchange="handleQImages(event,${activeIndex})"/>
 
 ${["A", "B", "C", "D"].map((opt, idx) => `
-  <div class="free">
-    <label>Option ${opt}:</label>
-    <textarea rows="4" class="option-textarea" oninput="questions[${activeIndex}].opt${opt}=this.value">${q["opt" + opt]}</textarea>
-    
-    <!-- Fixed label above image upload -->
-    <label style="display:block; margin-top:6px;">Upload Option ${opt} Image:</label>
-    <input type="file" accept="image/*" onchange="handleOptImage(event,${activeIndex},'${opt}', ${idx + 1})"/>
-
-    <div id="opt${opt}Url_${activeIndex}"></div>
-  </div>
-`).join("")}
-
+<div class="free">
+  <label>Option ${opt}:</label>
+  <textarea rows="4" class="option-textarea" oninput="questions[${activeIndex}].opt${opt}=this.value">${q["opt" + opt]}</textarea>
+  <div id="opt${opt}Url_${activeIndex}"></div>
+  <input type="file" accept="image/*" onchange="handleOptImage(event,${activeIndex},'${opt}', ${idx + 1})"/>
+</div>`).join("")}
 
 <label>Correct Answer:</label>
 <select onchange="questions[${activeIndex}].correct=this.value">
   <option></option>${["A", "B", "C", "D"].map(o => `<option ${q.correct === o ? "selected" : ""}>${o}</option>`).join("")}
 </select>
-<label>Correct Answer Text:</label><input value="${q.correctText || ""}" oninput="questions[${activeIndex}].correctText=this.value"/>
+
+<label>Correct Answer Text:</label>
+<input value="${q.correctText || ""}" oninput="questions[${activeIndex}].correctText=this.value"/>
 `;
 }
+
 
 
 function handleQImages(ev, index) {
@@ -376,4 +404,5 @@ function loadFromFile() {
     r.readAsText(f);
 }
 
-for (let i = 0; i < 60; i++) addQuestion();
+for (let i = 0; i < 60; i++) addQuestion(false);
+
