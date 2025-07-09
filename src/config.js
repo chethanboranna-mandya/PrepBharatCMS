@@ -62,6 +62,8 @@ const states = {
     "Center": [
         "CSE (IAS, IPS, IFS, etc.)",
         "NEET",
+        "JEE Main",
+        "JEE Advanced",
         "IFoS",
         "ESE (IES)",
         "CMS",
@@ -80,10 +82,95 @@ const states = {
 const boards = {
     "KCET": ["Physics", "Biology", "Chemistry", "Mathematics"],
     "NEET": ["Biology", "Chemistry", "Physics"],
-    "JEE": ["Physics", "Chemistry", "Mathematics"],
+    "JEE Main": ["Physics", "Chemistry", "Mathematics"],
+    "JEE Advanced": ["Physics", "Chemistry", "Mathematics"],
     "MH-CET": ["Physics", "Chemistry", "Biology", "Mathematics"],
     "TN-Board": ["Physics", "Chemistry", "Mathematics", "Biology"]
 };
+
+const conductedByByIdMap = {
+    // Karnataka
+    "kar_kect": "KEA (Karnataka Examinations Authority)",
+    "kar_b_group": "KPSC",
+    "kar_kas": "KPSC",
+    "kar_fda": "KPSC",
+    "kar_jto": "KPSC",
+    "kar_di": "Department of Public Instruction, Karnataka",
+    "kar_as": "Karnataka State Police",
+    "kar_al": "Karnataka State Police",
+    "kar_pdo": "KEA",
+    "kar_acf": "Karnataka Forest Dept / KPSC",
+    "kar_ae": "KPSC",
+    "kar_cto": "Commercial Tax Dept, Karnataka",
+    "kar_li": "Karnataka Labour Department",
+    "kar_kpsc_teacher": "KPSC",
+    "kar_kset": "University of Mysore",
+    "kar_kea_psi": "KEA",
+    "kar_vao": "Revenue Dept, Karnataka",
+    "kar_bmtc": "BMTC",
+    "kar_dc_principal": "Collegiate Education, Karnataka",
+    "kar_psu_board": "KEA",
+    "kar_ksp": "Karnataka State Police",
+    "kar_psi": "Karnataka State Police",
+    "kar_fsl": "FSL, Karnataka",
+    "kar_hc_civil_judge": "High Court of Karnataka",
+    "kar_hc_district_exam": "High Court of Karnataka",
+    "kar_hc_law_clerk": "High Court of Karnataka",
+    "kar_hc_acs": "High Court of Karnataka",
+    "kar_hc_typists": "High Court of Karnataka",
+    "kar_hc_sda": "High Court of Karnataka",
+    "kar_hc_driver": "High Court of Karnataka",
+    "kar_hc_group_d": "High Court of Karnataka",
+    "kar_hc_translator": "High Court of Karnataka",
+    "kar_hc_ra": "High Court of Karnataka",
+    "kar_kfd": "Karnataka Forest Department",
+    "kar_ksrtc": "KSRTC Recruitment",
+    "kar_kptcl": "KPTCL",
+
+    // Tamil Nadu
+    "tnpsc_group_1": "TNPSC",
+    "tnpsc_group_2": "TNPSC",
+    "tnpsc_group_4": "TNPSC",
+    "tnpsc_ces": "TNPSC",
+    "tnpsc_css": "TNPSC",
+    "tnpsc_cgs": "TNPSC",
+    "tnpsc_clis": "TNPSC",
+    "tnpsc_deo": "TNPSC",
+    "tnpsc_technical": "TNPSC",
+
+    // Maharashtra
+    "mpsc_rajyaseva": "MPSC",
+    "mpsc_psi": "MPSC",
+    "mpsc_tax_assistant": "MPSC",
+    "mpsc_mfse": "Maharashtra Fire Services",
+    "mpsc_mase": "Maharashtra Agriculture Dept",
+    "mpsc_mes": "MPSC",
+    "mpsc_jmfc": "MPSC",
+    "mpsc_amvi": "Maharashtra Transport Dept",
+    "mpsc_app": "Directorate of Prosecution, Maharashtra",
+
+    // Center
+    "nta_neet": "NTA (National Testing Agency)",
+    "nta_jee_main": "NTA (National Testing Agency)",
+    "iit_jee_advanced": "IITs via JAB",
+    "upsc_cse": "UPSC",
+    "upsc_ifos": "UPSC",
+    "upsc_ese": "UPSC",
+    "upsc_cms": "UPSC",
+    "upsc_cds": "UPSC",
+    "upsc_nda": "UPSC",
+    "upsc_capf": "UPSC",
+    "upsc_ies": "UPSC",
+    "upsc_cgse": "UPSC",
+    "upsc_epfo": "UPSC",
+    "upsc_scra": "UPSC",
+    "upsc_ldce": "UPSC",
+
+    // Boards
+    "mhcet": "DTE Maharashtra",
+    "tn_board": "Tamil Nadu Board of Secondary Education"
+};
+
 
 
 const examShortNameToIdMap = {
@@ -138,6 +225,9 @@ const examShortNameToIdMap = {
     },
     "Center": {
         "CSE (IAS, IPS, IFS, etc.)": "upsc_cse",
+        "NEET": "nta_neet",
+        "JEE Main": "nta_jee_main",
+        "JEE Advanced": "iit_jee_advanced",
         "IFoS": "upsc_ifos",
         "ESE (IES)": "upsc_ese",
         "CMS": "upsc_cms",
@@ -148,7 +238,8 @@ const examShortNameToIdMap = {
         "CGSE": "upsc_cgse",
         "UPSC EPFO": "upsc_epfo",
         "SCRA": "upsc_scra",
-        "LDCE (Internal)": "upsc_ldce",
-        "NEET":"upsc_neet"
+        "LDCE (Internal)": "upsc_ldce"
     }
+
+
 };

@@ -29,8 +29,10 @@ stateSelect.onchange = () => {
 
 boardSelect.onchange = () => {
     updateSubjects();
-    renderEditor(); // ⬅️ added
+    updateTutorialId(); // ✅ This line ensures 'Conducted By' and Authority ID are updated
+    renderEditor();
 };
+
 subjectSelect.onchange = () => {
     updateTutorialId();
     renderEditor(); // ⬅️ added
@@ -66,29 +68,43 @@ async function updateTutorialId() {
     const subject = subjectSelect.value;
     const state = stateSelect.value;
 
+    const authorityExamIdField = dom("authorityExamId");
+    const conductedByField = dom("conductedBy");
+
+    // Try to get exam ID based on state + board
+    const examId = examShortNameToIdMap[state]?.[board];
+    if (examId) {
+        authorityExamIdField.value = examId;
+
+        // ✅ Set Conducted By based on exam ID
+        const conductor = conductedByByIdMap[examId];
+        conductedByField.value = conductor || "";
+    } else {
+        // fallback to old map if no exam ID
+        conductedByField.value = conductedByMap[board] || "";
+    }
+
+    // ✅ Set tutorialId and tutorialTitle if all values are present
     if (board && year && subject && subject !== "Select Subject") {
         const tutorialId = `${board}_${year}_${subject}`;
         tutorialIdField.value = tutorialId;
         dom("tutorialTitle").value = `${board} ${year} ${subject}`;
 
-        // 🔁 Auto-set authorityExamId if mapping exists
-        const examId = examShortNameToIdMap[state]?.[board];
-        if (examId) {
-            dom("authorityExamId").value = examId;
-        }
-
-        // 🔁 If you still want to try remoteConfig, keep this
         try {
             await remoteConfig.fetchAndActivate();
             const key = `${board}_${year}_${subject}_exam_id`;
             const remoteId = remoteConfig.getString(key);
-            if (remoteId) dom("authorityExamId").value = remoteId;
+            if (remoteId) {
+                authorityExamIdField.value = remoteId;
+                // ✅ Update conducted by based on remoteId
+                const remoteConductor = conductedByByIdMap[remoteId];
+                conductedByField.value = remoteConductor || conductedByField.value;
+            }
         } catch (err) {
             console.error("Remote config fetch failed:", err);
         }
     }
 }
-
 
 
 function addQuestion(showAlert = true) {
