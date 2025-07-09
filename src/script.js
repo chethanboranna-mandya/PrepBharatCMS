@@ -70,25 +70,28 @@ async function updateTutorialId() {
 
     const authorityExamIdField = dom("authorityExamId");
     const conductedByField = dom("conductedBy");
+    const tutorialIdField = dom("tutorialId");
+    const tutorialTitleField = dom("tutorialTitle");
 
-    // Try to get exam ID based on state + board
+    // ✅ Clear tutorial ID and title on board change
+    tutorialIdField.value = "";
+    tutorialTitleField.value = "";
+
+    // ✅ Set authorityExamId from map
     const examId = examShortNameToIdMap[state]?.[board];
     if (examId) {
         authorityExamIdField.value = examId;
-
-        // ✅ Set Conducted By based on exam ID
-        const conductor = conductedByByIdMap[examId];
-        conductedByField.value = conductor || "";
+        conductedByField.value = conductedByByIdMap[examId] || "";
     } else {
-        // fallback to old map if no exam ID
+        authorityExamIdField.value = "";
         conductedByField.value = conductedByMap[board] || "";
     }
 
-    // ✅ Set tutorialId and tutorialTitle if all values are present
+    // ✅ Set tutorialId and title only if all are selected
     if (board && year && subject && subject !== "Select Subject") {
         const tutorialId = `${board}_${year}_${subject}`;
         tutorialIdField.value = tutorialId;
-        dom("tutorialTitle").value = `${board} ${year} ${subject}`;
+        tutorialTitleField.value = `${board} ${year} ${subject}`;
 
         try {
             await remoteConfig.fetchAndActivate();
@@ -96,9 +99,7 @@ async function updateTutorialId() {
             const remoteId = remoteConfig.getString(key);
             if (remoteId) {
                 authorityExamIdField.value = remoteId;
-                // ✅ Update conducted by based on remoteId
-                const remoteConductor = conductedByByIdMap[remoteId];
-                conductedByField.value = remoteConductor || conductedByField.value;
+                conductedByField.value = conductedByByIdMap[remoteId] || conductedByField.value;
             }
         } catch (err) {
             console.error("Remote config fetch failed:", err);
