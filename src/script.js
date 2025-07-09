@@ -394,7 +394,16 @@ function removeImage(type, i, optOrUrl, urlMaybe, btn) {
 }
 
 function generateJSON() {
-    const tId = tutorialIdField.value, ttl = dom("tutorialTitle").value, aid = dom("authorityExamId").value;
+    const tId = tutorialIdField.value;
+    const ttl = dom("tutorialTitle").value;
+    const aid = dom("authorityExamId").value;
+
+    const state = dom("stateSelect").value;
+    const board = dom("boardSelect").value;
+    const conductedBy = dom("conductedBy").value;
+    const year = dom("yearSelect").value;
+    const subject = dom("subjectSelect").value;
+
     const out = questions.map((q, i) => ({
         questionId: (i + 1).toString(),
         questionDetails: [{
@@ -402,22 +411,29 @@ function generateJSON() {
             text: q.text,
             textImages: q.questionImages || [],
             possibleAnswers: {
-                A: {text: q.optA, image: q.optionImages?.A || null},
-                B: {text: q.optB, image: q.optionImages?.B || null},
-                C: {text: q.optC, image: q.optionImages?.C || null},
-                D: {text: q.optD, image: q.optionImages?.D || null},
+                A: { text: q.optA, image: q.optionImages?.A || null },
+                B: { text: q.optB, image: q.optionImages?.B || null },
+                C: { text: q.optC, image: q.optionImages?.C || null },
+                D: { text: q.optD, image: q.optionImages?.D || null },
             },
             correctAnswer: q.correct,
             correctAnswerText: q.correctText || "",
         }]
     }));
+
     const result = [{
         tutorialId: tId,
         tutorialTitle: ttl,
         tutorialDescription: "",
         authorityExamId: aid,
+        state: state,
+        board: board,
+        conductedBy: conductedBy,
+        year: year,
+        subject: subject,
         questions: out
     }];
+
     dom("output").textContent = JSON.stringify(result, null, 2);
 }
 
