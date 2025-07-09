@@ -64,23 +64,31 @@ async function updateTutorialId() {
     const board = boardSelect.value;
     const year = yearSelect.value;
     const subject = subjectSelect.value;
+    const state = stateSelect.value;
 
     if (board && year && subject && subject !== "Select Subject") {
         const tutorialId = `${board}_${year}_${subject}`;
         tutorialIdField.value = tutorialId;
         dom("tutorialTitle").value = `${board} ${year} ${subject}`;
 
-        // Fetch authorityExamId from Remote Config
+        // 🔁 Auto-set authorityExamId if mapping exists
+        const examId = examShortNameToIdMap[state]?.[board];
+        if (examId) {
+            dom("authorityExamId").value = examId;
+        }
+
+        // 🔁 If you still want to try remoteConfig, keep this
         try {
             await remoteConfig.fetchAndActivate();
             const key = `${board}_${year}_${subject}_exam_id`;
-            const authorityExamId = remoteConfig.getString(key);
-            dom("authorityExamId").value = authorityExamId || "";
+            const remoteId = remoteConfig.getString(key);
+            if (remoteId) dom("authorityExamId").value = remoteId;
         } catch (err) {
             console.error("Remote config fetch failed:", err);
         }
     }
 }
+
 
 
 function addQuestion(showAlert = true) {
