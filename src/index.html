@@ -12,10 +12,19 @@
     <button onclick="loadFromFile()">📂 Load JSON</button>
     <h2>Tutorial JSON Builder</h2>
     <div class="row">
-      <div class="field"><label>Board:</label><select id="boardSelect"><option value="">Select Board</option></select></div>
+      <div class="field"><label>State:</label>
+        <select id="stateSelect"><option value="">Select State</option></select></div>
+
+      <div class="field"><label>Board:</label>
+        <select id="boardSelect"><option value="">Select Board</option></select></div>
+
       <div class="field"><label>Year:</label><select id="yearSelect"></select></div>
-      <div class="field"><label>Subject:</label><select id="subjectSelect"><option value="">Select Subject</option></select></div>
-      <div class="field"><label>Tutorial ID:</label><input type="text" id="tutorialId" readonly/></div>
+
+      <div class="field"><label>Subject:</label>
+        <select id="subjectSelect"><option value="">Select Subject</option></select></div>
+
+      <div class="field"><label>Tutorial ID:</label>
+        <input type="text" id="tutorialId" readonly/></div>
     </div>
     <label>Tutorial Title:</label><input type="text" id="tutorialTitle"/>
     <label>Authority Exam ID:</label><input type="text" id="authorityExamId"/>
@@ -30,6 +39,7 @@
       <div class="editor-panel"><div id="questionEditor"></div></div>
     </div>
   </div>
+
   <div class="right-panel">
     <div class="json-header">
       <h3>Generated JSON</h3>

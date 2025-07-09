@@ -1,4 +1,4 @@
-const boardSelect = dom("boardSelect"), subjectSelect = dom("subjectSelect"),
+const stateSelect = dom("stateSelect"), boardSelect = dom("boardSelect"), subjectSelect = dom("subjectSelect"),
     yearSelect = dom("yearSelect"), tutorialIdField = dom("tutorialId");
 const qList = dom("questionList"), qEditor = dom("questionEditor"), questions = [];
 let activeIndex = -1;
@@ -18,8 +18,14 @@ function fillYears() {
     for (let y = 2004; y <= 2025; y++) yearSelect.add(new Option(y, y));
 }
 
+fillStates();
 fillBoards();
 fillYears();
+
+stateSelect.onchange = () => {
+    updateBoards();
+    renderEditor();
+};
 
 boardSelect.onchange = () => {
     updateSubjects();
@@ -34,13 +40,27 @@ yearSelect.onchange = () => {
     renderEditor(); // ⬅️ added
 };
 
+
+function fillStates() {
+    Object.keys(states).forEach(state => {
+        stateSelect.add(new Option(state, state));
+    });
+}
+
+function updateBoards() {
+    boardSelect.innerHTML = "<option value=''>Select Board</option>";
+    const selectedState = stateSelect.value;
+    states[selectedState]?.forEach(b => boardSelect.add(new Option(b, b)));
+    updateSubjects();
+}
+
 function updateSubjects() {
-    subjectSelect.innerHTML = "<option>Select Subject</option>";
+    subjectSelect.innerHTML = "<option value=''>Select Subject</option>";
     boards[boardSelect.value]?.forEach(s => subjectSelect.add(new Option(s, s)));
     updateTutorialId();
 }
 
-function updateTutorialId() {
+async function updateTutorialId() {
     const board = boardSelect.value;
     const year = yearSelect.value;
     const subject = subjectSelect.value;
@@ -48,11 +68,20 @@ function updateTutorialId() {
     if (board && year && subject && subject !== "Select Subject") {
         const tutorialId = `${board}_${year}_${subject}`;
         tutorialIdField.value = tutorialId;
-
-        // Auto-generate tutorial title
         dom("tutorialTitle").value = `${board} ${year} ${subject}`;
+
+        // Fetch authorityExamId from Remote Config
+        try {
+            await remoteConfig.fetchAndActivate();
+            const key = `${board}_${year}_${subject}_exam_id`;
+            const authorityExamId = remoteConfig.getString(key);
+            dom("authorityExamId").value = authorityExamId || "";
+        } catch (err) {
+            console.error("Remote config fetch failed:", err);
+        }
     }
 }
+
 
 function addQuestion(showAlert = true) {
     const board = boardSelect.value;
