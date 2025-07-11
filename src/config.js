@@ -81,11 +81,11 @@ const states = {
 
 const boards = {
     "KCET": ["Physics", "Biology", "Chemistry", "Mathematics"],
-    "NEET": ["Biology", "Chemistry", "Physics"],
-    "JEE Main": ["Physics", "Chemistry", "Mathematics"],
-    "JEE Advanced": ["Physics", "Chemistry", "Mathematics"],
-    "MH-CET": ["Physics", "Chemistry", "Biology", "Mathematics"],
-    "TN-Board": ["Physics", "Chemistry", "Mathematics", "Biology"]
+    "NEET": ["Physics", "Biology", "Chemistry", "Mathematics"],
+    "JEE Main":["Physics", "Biology", "Chemistry", "Mathematics"],
+    "JEE Advanced": ["Physics", "Biology", "Chemistry", "Mathematics"],
+    "MH-CET": ["Physics", "Biology", "Chemistry", "Mathematics"],
+    "TN-Board": ["Physics", "Biology", "Chemistry", "Mathematics"],
 };
 
 const conductedByByIdMap = {
