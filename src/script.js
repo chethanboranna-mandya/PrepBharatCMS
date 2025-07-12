@@ -482,5 +482,35 @@ function loadFromFile() {
     r.readAsText(f);
 }
 
+function previewJSON() {
+    generateJSON(); // Ensure latest content
+    const previewDiv = dom("preview");
+    const rawJson = JSON.parse(dom("output").textContent);
+    const qList = rawJson[0]?.questions || [];
+
+    let html = `<h3>Preview: ${rawJson[0]?.tutorialTitle || ""}</h3>`;
+    qList.forEach((q, i) => {
+        const d = q.questionDetails[0];
+        html += `
+        <div style="margin-bottom: 20px;">
+            <div><b>Q${i + 1}:</b> ${d.text.replace(/^Q\d+\.\s*/, "")}</div>
+            ${d.textImages?.map(url => `<img src="${url}" height="60"/>`).join(" ") || ""}
+            <ul>
+                ${["A", "B", "C", "D"].map(opt => {
+            const optData = d.possibleAnswers[opt];
+            return `<li><b>${opt}:</b> ${optData.text || ""} ${optData.image ? `<img src="${optData.image}" height="40"/>` : ""}</li>`;
+        }).join("")}
+            </ul>
+            <div><b>Answer:</b> ${d.correctAnswer} - ${d.correctAnswerText || ""}</div>
+        </div>
+    `;
+    });
+
+
+    previewDiv.innerHTML = html;
+    MathJax.typesetPromise([previewDiv]);
+}
+
+
 for (let i = 0; i < 60; i++) addQuestion(false);
 
