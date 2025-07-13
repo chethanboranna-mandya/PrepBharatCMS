@@ -179,21 +179,42 @@ function renderEditor() {
 
     editor.innerHTML = `
 <h4>Question ${activeIndex + 1}</h4>
-<label>Sentence ID:</label><input value="${q.sentenceId}" oninput="questions[${activeIndex}].sentenceId = this.value"/>
-<label>Question Text:</label><textarea rows="8" class="question-textarea" oninput="questions[${activeIndex}].text=this.value">${q.text}</textarea>
 
-<!-- Display uploaded images first -->
-<div id="qUrls_${activeIndex}"></div>
+<label>Sentence ID:</label>
+<input value="${q.sentenceId}" oninput="questions[${activeIndex}].sentenceId = this.value"/>
 
-<!-- Then show the upload file selector once -->
-<h5 style="margin-top: 10px;">Upload Q Images:</h5>
+<label>Question Text:</label>
+<textarea rows="8" class="question-textarea" oninput="questions[${activeIndex}].text=this.value">${q.text}</textarea>
+
+<h5 style="margin-top: 10px;">Uploaded Q Images:</h5>
+<div id="qUrls_${activeIndex}">
+    ${q.questionImages.map((url, idx) => `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <img src="${url}" width="50" height="50"/>
+            <a href="${url}" target="_blank">Image ${idx + 1}</a>
+            <button style="color:red; cursor:pointer;" onclick="removeExistingQImage(${activeIndex}, ${idx})">✖</button>
+        </div>
+    `).join("")}
+</div>
+
+<h5 style="margin-top: 10px;">Upload New Q Images:</h5>
 <input type="file" multiple onchange="handleQImages(event,${activeIndex})"/>
 
 ${["A", "B", "C", "D"].map((opt, idx) => `
-<div class="free">
+<div class="free" style="margin-top:12px;">
   <label>Option ${opt}:</label>
   <textarea rows="4" class="option-textarea" oninput="questions[${activeIndex}].opt${opt}=this.value">${q["opt" + opt]}</textarea>
-  <div id="opt${opt}Url_${activeIndex}"></div>
+
+  <div id="opt${opt}Url_${activeIndex}">
+    ${q.optionImages[opt] ? `
+        <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+            <img src="${q.optionImages[opt]}" width="50" height="50"/>
+            <a href="${q.optionImages[opt]}" target="_blank">Option ${opt}</a>
+            <button style="color:red; cursor:pointer;" onclick="removeExistingOptImage(${activeIndex}, '${opt}')">✖</button>
+        </div>
+    ` : ""}
+  </div>
+
   <input type="file" accept="image/*" onchange="handleOptImage(event,${activeIndex},'${opt}', ${idx + 1})"/>
 </div>`).join("")}
 
@@ -207,6 +228,17 @@ ${["A", "B", "C", "D"].map((opt, idx) => `
 `;
 }
 
+function removeExistingQImage(index, imgIdx) {
+    if (!confirm("Remove this question image?")) return;
+    questions[index].questionImages.splice(imgIdx, 1);
+    renderEditor(); // Refresh to reflect changes
+}
+
+function removeExistingOptImage(index, opt) {
+    if (!confirm("Remove this option image?")) return;
+    questions[index].optionImages[opt] = null;
+    renderEditor(); // Refresh to reflect changes
+}
 
 
 function handleQImages(ev, index) {
@@ -492,7 +524,7 @@ function showPreview() {
     const rawJson = JSON.parse(dom("output").textContent);
     const qList = rawJson[0]?.questions || [];
 
-    let html = `<h3>Preview: ${rawJson[0]?.tutorialTitle || ""}</h3>`;
+    let html = `<h3>${rawJson[0]?.tutorialTitle || ""}</h3>`;
     qList.forEach((q, i) => {
         const d = q.questionDetails[0];
         const rendered = convertTablesInText(d.text);
