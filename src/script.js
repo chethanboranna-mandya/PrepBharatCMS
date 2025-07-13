@@ -1,5 +1,8 @@
 const stateSelect = dom("stateSelect"), boardSelect = dom("boardSelect"), subjectSelect = dom("subjectSelect"),
-    yearSelect = dom("yearSelect"), tutorialIdField = dom("tutorialId");
+    yearSelect = dom("yearSelect"),
+    tutorialIdField = dom("tutorialId");
+
+dom("previewButton").addEventListener("click", showPreview);
 const qList = dom("questionList"), qEditor = dom("questionEditor"), questions = [];
 let activeIndex = -1;
 
@@ -482,17 +485,17 @@ function loadFromFile() {
     r.readAsText(f);
 }
 
-function previewJSON() {
+function showPreview() {
     generateJSON();
-    const previewDiv = dom("preview");
+
+    const previewDiv = dom("previewContent"); // ✅ FIXED ID
     const rawJson = JSON.parse(dom("output").textContent);
     const qList = rawJson[0]?.questions || [];
 
     let html = `<h3>Preview: ${rawJson[0]?.tutorialTitle || ""}</h3>`;
     qList.forEach((q, i) => {
         const d = q.questionDetails[0];
-        const rendered = convertTablesInText(d.text);  // 👈 converted here
-        console.log("Converted HTML:", rendered);      // ✅ debug log
+        const rendered = convertTablesInText(d.text);
 
         html += `
         <div style="margin-bottom: 20px;">
@@ -505,13 +508,15 @@ function previewJSON() {
         }).join("")}
             </ul>
             <div><b>Answer:</b> ${d.correctAnswer} - ${d.correctAnswerText || ""}</div>
-        </div>
-    `;
+        </div>`;
     });
 
     previewDiv.innerHTML = html;
     MathJax.typesetPromise([previewDiv]);
+
+    dom("previewPanel").classList.add("open"); // ✅ Ensure preview panel is visible
 }
+
 
 function markdownTableToHtml(markdown) {
     const lines = markdown.trim().split("\n").filter(Boolean);
@@ -599,4 +604,17 @@ function convertTablesInText(text) {
 
 
 for (let i = 0; i < 60; i++) addQuestion(false);
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    dom("previewButton").addEventListener("click", () => {
+        showPreview();
+        document.body.classList.add("panel-open");
+    });
+
+    dom("closePreview").addEventListener("click", () => {
+        dom("previewPanel").classList.remove("open");
+        document.body.classList.remove("panel-open");
+    });
+});
 
