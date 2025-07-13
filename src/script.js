@@ -483,7 +483,7 @@ function loadFromFile() {
 }
 
 function previewJSON() {
-    generateJSON(); // Ensure latest content
+    generateJSON();
     const previewDiv = dom("preview");
     const rawJson = JSON.parse(dom("output").textContent);
     const qList = rawJson[0]?.questions || [];
@@ -491,9 +491,12 @@ function previewJSON() {
     let html = `<h3>Preview: ${rawJson[0]?.tutorialTitle || ""}</h3>`;
     qList.forEach((q, i) => {
         const d = q.questionDetails[0];
+        const rendered = convertTablesInText(d.text);  // 👈 converted here
+        console.log("Converted HTML:", rendered);      // ✅ debug log
+
         html += `
         <div style="margin-bottom: 20px;">
-            <div><b>Q${i + 1}:</b> ${d.text.replace(/^Q\d+\.\s*/, "")}</div>
+           <div>${rendered}</div>
             ${d.textImages?.map(url => `<img src="${url}" height="60"/>`).join(" ") || ""}
             <ul>
                 ${["A", "B", "C", "D"].map(opt => {
@@ -506,10 +509,93 @@ function previewJSON() {
     `;
     });
 
-
     previewDiv.innerHTML = html;
     MathJax.typesetPromise([previewDiv]);
 }
+
+function markdownTableToHtml(markdown) {
+    const lines = markdown.trim().split("\n").filter(Boolean);
+
+    if (lines.length < 2) return "";
+
+    let html = "<table>\n";
+
+    const splitRow = line => {
+        // Preserve empty cells: split and trim, but don't remove blanks
+        return line.split("|").slice(1, -1).map(c => c.trim());
+    };
+
+    const headerCellsRaw = splitRow(lines[0]);
+    const separatorLine = lines[1];
+    const bodyLines = lines.slice(2);
+
+    // Detect merged header row (e.g., 2 cells only in a 4-col table)
+    if (headerCellsRaw.length <= 2) {
+        html += "<thead><tr>";
+        for (const cell of headerCellsRaw) {
+            html += `<th colspan="2">${cell}</th>`;
+        }
+        html += "</tr></thead>\n";
+    } else {
+        html += "<thead><tr>";
+        for (const cell of headerCellsRaw) {
+            html += `<th>${cell}</th>`;
+        }
+        html += "</tr></thead>\n";
+    }
+
+    html += "<tbody>\n";
+    bodyLines.forEach(line => {
+        const cells = splitRow(line);
+        html += "<tr>";
+        for (const cell of cells) {
+            html += `<td>${cell}</td>`;
+        }
+        html += "</tr>\n";
+    });
+    html += "</tbody>\n</table>";
+
+    return html;
+}
+
+
+
+function convertTablesInText(text) {
+    // ✅ Step 1: Replace all <br> (case-insensitive) with real line breaks
+    const cleanText = text.replace(/<br\s*\/?>/gi, "\n");
+
+    const lines = cleanText.split("\n");
+    const output = [];
+    let tableBuffer = [];
+
+    const isTableLine = line =>
+        line.includes("|") && (line.includes("---") || line.includes("|"));
+
+    for (let line of lines) {
+        if (isTableLine(line)) {
+            tableBuffer.push(line);
+        } else {
+            if (tableBuffer.length >= 3) {
+                output.push(markdownTableToHtml(tableBuffer.join("\n")));
+                tableBuffer = [];
+            } else if (tableBuffer.length) {
+                output.push(...tableBuffer);
+                tableBuffer = [];
+            }
+            output.push(line);
+        }
+    }
+
+    if (tableBuffer.length >= 3) {
+        output.push(markdownTableToHtml(tableBuffer.join("\n")));
+    } else {
+        output.push(...tableBuffer);
+    }
+
+    return output.join("<br/>");
+}
+
+
 
 
 for (let i = 0; i < 60; i++) addQuestion(false);
