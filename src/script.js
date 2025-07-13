@@ -184,9 +184,15 @@ function renderEditor() {
 <input value="${q.sentenceId}" oninput="questions[${activeIndex}].sentenceId = this.value"/>
 
 <label>Question Text:</label>
-<textarea rows="8" class="question-textarea" oninput="questions[${activeIndex}].text=this.value">${q.text}</textarea>
+<textarea rows="8" class="question-textarea" 
+          oninput="questions[${activeIndex}].text=this.value; generateJSON();">${q.text}</textarea>
 
 <h5 style="margin-top: 10px;">Uploaded Q Images:</h5>
+<div id="qImagesContainer_${activeIndex}"></div>
+<div style="margin-top:10px;">
+  <input type="file" multiple id="qImagesInput_${activeIndex}" onchange="handleQImages(event, ${activeIndex})"/>
+</div>
+
 <div id="qUrls_${activeIndex}">
     ${q.questionImages.map((url, idx) => `
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
@@ -197,13 +203,12 @@ function renderEditor() {
     `).join("")}
 </div>
 
-<h5 style="margin-top: 10px;">Upload New Q Images:</h5>
-<input type="file" multiple onchange="handleQImages(event,${activeIndex})"/>
-
 ${["A", "B", "C", "D"].map((opt, idx) => `
 <div class="free" style="margin-top:12px;">
   <label>Option ${opt}:</label>
-  <textarea rows="4" class="option-textarea" oninput="questions[${activeIndex}].opt${opt}=this.value">${q["opt" + opt]}</textarea>
+  <textarea rows="4" class="option-textarea" 
+          oninput="questions[${activeIndex}].opt${opt}=this.value; generateJSON();">${q["opt" + opt]}</textarea>
+
 
   <div id="opt${opt}Url_${activeIndex}">
     ${q.optionImages[opt] ? `
@@ -219,12 +224,14 @@ ${["A", "B", "C", "D"].map((opt, idx) => `
 </div>`).join("")}
 
 <label>Correct Answer:</label>
-<select onchange="questions[${activeIndex}].correct=this.value">
+<select onchange="questions[${activeIndex}].correct=this.value; generateJSON();">
   <option></option>${["A", "B", "C", "D"].map(o => `<option ${q.correct === o ? "selected" : ""}>${o}</option>`).join("")}
 </select>
 
 <label>Correct Answer Text:</label>
-<input value="${q.correctText || ""}" oninput="questions[${activeIndex}].correctText=this.value"/>
+<input value="${q.correctText || ""}" 
+       oninput="questions[${activeIndex}].correctText=this.value; generateJSON();"/>
+
 `;
 }
 
@@ -245,14 +252,15 @@ function handleQImages(ev, index) {
     const files = [...ev.target.files];
     const subject = subjectSelect.value.toLowerCase();
     const year = yearSelect.value;
-    const container = dom(`qUrls_${index}`);
 
     if (!questions[index].questionImages) questions[index].questionImages = [];
 
+    const container = dom(`qImagesContainer_${index}`);
+
     files.forEach((file) => {
-        const existingCount = questions[index].questionImages.length;
-        const suffix = `_Q${existingCount + 1}`;
-        const fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
+        const imgIdx = questions[index].questionImages.length;
+        const suffix = `_Q${imgIdx + 1}`;
+        const fileName = `${subject}_${year}_${index + 1}${suffix}`;
 
         const wrapper = document.createElement("div");
         wrapper.style.display = "flex";
@@ -268,52 +276,29 @@ function handleQImages(ev, index) {
         const status = document.createElement("span");
         status.textContent = "Uploading...";
 
-        const thumbnail = document.createElement("img");
-        thumbnail.style.display = "none";
-        thumbnail.width = 50;
-        thumbnail.height = 50;
-
-        const link = document.createElement("a");
-        link.target = "_blank";
-        link.style.fontSize = "12px";
-
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "✖";
-        removeBtn.style.cursor = "pointer";
-        removeBtn.style.color = "red";
-
-        container.appendChild(wrapper);
         wrapper.append(progress, status);
+        container.appendChild(wrapper);
 
         uploadImageToFirebase(file, subject, year, index, suffix, percent => {
             progress.value = percent;
         }).then(url => {
-            // Save URL in question
             questions[index].questionImages.push(url);
-
-            // Update UI
-            status.textContent = "✅ Uploaded";
+            generateJSON();
+            const thumbnail = document.createElement("img");
             thumbnail.src = url;
-            thumbnail.style.display = "block";
+            thumbnail.width = 50;
+            thumbnail.height = 50;
+
+            const link = document.createElement("a");
             link.href = url;
+            link.target = "_blank";
             link.textContent = fileName;
 
-            removeBtn.onclick = () => {
-                if (!confirm("Do you want to remove the uploaded image?")) return;
-                const { storage, ref, deleteObject } = window.firebaseStorage;
-                const storageRef = ref(storage, `questions/${subject}/${year}/${fileName}`);
-
-                deleteObject(storageRef)
-                    .then(() => {
-                        wrapper.remove();
-                        questions[index].questionImages = questions[index].questionImages.filter(u => u !== url);
-                        alert("✅ Image deleted.");
-                    })
-                    .catch(err => {
-                        console.error("Failed to delete:", err);
-                        alert("❌ Could not delete from Firebase.");
-                    });
-            };
+            const removeBtn = document.createElement("button");
+            removeBtn.textContent = "✖";
+            removeBtn.style.cursor = "pointer";
+            removeBtn.style.color = "red";
+            removeBtn.onclick = () => removeQImage(index, imgIdx, fileName, wrapper);
 
             wrapper.replaceChildren(thumbnail, link, removeBtn);
         }).catch(err => {
@@ -322,6 +307,32 @@ function handleQImages(ev, index) {
         });
     });
 
+    // Reset the file input to allow re-selection of the same file
+    ev.target.value = "";
+}
+
+function removeQImage(index, imgIdx, fileName, wrapper) {
+    if (!confirm("Remove this question image?")) return;
+
+    const { storage, ref, deleteObject } = window.firebaseStorage;
+
+    const subject = subjectSelect.value.toLowerCase();
+    const year = yearSelect.value;
+    const path = `questions/${subject}/${year}/${fileName}`;
+
+    const storageRef = ref(storage, path);
+
+    deleteObject(storageRef)
+        .then(() => {
+            questions[index].questionImages.splice(imgIdx, 1);
+            wrapper.remove();
+            generateJSON();
+            alert("✅ Image deleted.");
+        })
+        .catch(err => {
+            console.error("Delete failed:", err);
+            alert("❌ Could not delete from Firebase.");
+        });
 }
 
 
@@ -376,7 +387,7 @@ function handleOptImage(ev, i, opt, optNumber) {
         fileInput.remove();
 
         questions[i].optionImages[opt] = url;
-
+        generateJSON();
         status.textContent = "✅ Uploaded";
         thumbnail.src = url;
         thumbnail.style.display = "block";
@@ -391,7 +402,8 @@ function handleOptImage(ev, i, opt, optNumber) {
             deleteObject(storageRef)
                 .then(() => {
                     wrapper.remove();
-                    questions[i].optionImages[opt] = null;
+                    questions[i].optionImages[opt] = null; // First remove from data
+                    generateJSON(); // Then update JSON output
 
                     // ✅ Restore file input after delete
                     const input = document.createElement("input");
@@ -413,20 +425,6 @@ function handleOptImage(ev, i, opt, optNumber) {
         console.error("Upload failed:", err);
         status.textContent = "❌ Upload failed";
     });
-}
-
-
-
-function removeImage(type, i, optOrUrl, urlMaybe, btn) {
-    if (!confirm("Remove this image?")) return;
-    const container = btn.parentElement.parentElement;
-    if (type === "q") {
-        questions[i].questionImages = questions[i].questionImages.filter(u => u !== optOrUrl);
-    } else {
-        delete questions[i].optionImages[optOrUrl];
-    }
-    container.replaceChildren(prog);
-    renderEditor();
 }
 
 function generateJSON() {
