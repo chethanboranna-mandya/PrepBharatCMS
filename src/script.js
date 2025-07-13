@@ -121,8 +121,12 @@ function addQuestion(showAlert = true) {
         return;
     }
 
+    const questionNumber = questions.length + 1; // 1-based index
+    const boardInitial = board[0].toUpperCase();
+    const sentenceId = `${year}${boardInitial}Q${questionNumber}`;
+
     questions.push({
-        sentenceId: "",
+        sentenceId: sentenceId,
         text: "",
         optA: "",
         optB: "",
@@ -181,7 +185,7 @@ function renderEditor() {
 <h4>Question ${activeIndex + 1}</h4>
 
 <label>Sentence ID:</label>
-<input value="${q.sentenceId}" oninput="questions[${activeIndex}].sentenceId = this.value"/>
+<input value="${q.sentenceId}" readonly style="background:#f3f3f3; color:#555; cursor:not-allowed;"/>
 
 <label>Question Text:</label>
 <textarea rows="8" class="question-textarea" 
@@ -490,16 +494,32 @@ function loadFromFile() {
             subjectSelect.value = s;
             updateTutorialId();
             questions.length = 0;
-            dt.questions.forEach(q => {
+            dt.questions.forEach((q, idx) => {
                 const d = q.questionDetails[0];
+                const questionNumber = idx + 1;
+                const boardInitial = boardSelect.value[0].toUpperCase();
+                const year = yearSelect.value;
+                const correctFormat = `${year}${boardInitial}Q${questionNumber}`;
+
+                // Check if existing sentenceId is already in correct format
+                let existingId = d.sentenceId.toString(); // Convert to string in case it's a number
+
+                // Simple regex check: e.g., 2004BQ1
+                const pattern = new RegExp(`^${year}${boardInitial}Q${questionNumber}$`);
+
+                const sentenceId = pattern.test(existingId) ? existingId : correctFormat;
+
                 questions.push({
-                    sentenceId: d.sentenceId, text: d.text,
+                    sentenceId: sentenceId,   // ✅ Use correct format if needed
+                    text: d.text,
                     optA: d.possibleAnswers.A.text,
                     optB: d.possibleAnswers.B.text,
                     optC: d.possibleAnswers.C.text,
                     optD: d.possibleAnswers.D.text,
-                    correct: d.correctAnswer, correctText: d.correctAnswerText,
-                    questionImages: d.textImages || [], optionImages: {
+                    correct: d.correctAnswer,
+                    correctText: d.correctAnswerText,
+                    questionImages: d.textImages || [],
+                    optionImages: {
                         A: d.possibleAnswers.A.image,
                         B: d.possibleAnswers.B.image,
                         C: d.possibleAnswers.C.image,
@@ -507,6 +527,7 @@ function loadFromFile() {
                     }
                 });
             });
+
             while (questions.length < 60) addQuestion();
             setActiveQuestion(0);
         } catch (err) {
