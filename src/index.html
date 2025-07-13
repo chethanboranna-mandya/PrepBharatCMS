@@ -93,6 +93,15 @@
   const app = initializeApp(firebaseConfig);
   const storage = getStorage(app);
 
+  // ✅ Make firebase functions available globally
+  window.firebaseStorage = {
+    storage,
+    ref,
+    deleteObject,
+    uploadBytesResumable,
+    getDownloadURL
+  };
+
   // This is modular version of uploadImageToFirebase
   window.uploadImageToFirebase = function(file, subject, year, index, suffix, onProgress) {
     return new Promise((resolve, reject) => {

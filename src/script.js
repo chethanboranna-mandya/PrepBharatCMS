@@ -300,8 +300,8 @@ function handleQImages(ev, index) {
 
             removeBtn.onclick = () => {
                 if (!confirm("Do you want to remove the uploaded image?")) return;
-
-                const storageRef = ref(getStorage(), `questions/${subject}/${year}/${fileName}`);
+                const { storage, ref, deleteObject } = window.firebaseStorage;
+                const storageRef = ref(storage, `questions/${subject}/${year}/${fileName}`);
 
                 deleteObject(storageRef)
                     .then(() => {
@@ -309,7 +309,7 @@ function handleQImages(ev, index) {
                         questions[index].questionImages = questions[index].questionImages.filter(u => u !== url);
                         alert("✅ Image deleted.");
                     })
-                    .catch((err) => {
+                    .catch(err => {
                         console.error("Failed to delete:", err);
                         alert("❌ Could not delete from Firebase.");
                     });
@@ -386,7 +386,8 @@ function handleOptImage(ev, i, opt, optNumber) {
         removeBtn.onclick = () => {
             if (!confirm("Do you want to remove the uploaded image?")) return;
 
-            const storageRef = ref(getStorage(), path);
+            const { storage, ref, deleteObject } = window.firebaseStorage;
+            const storageRef = ref(storage, path);
             deleteObject(storageRef)
                 .then(() => {
                     wrapper.remove();
