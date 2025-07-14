@@ -3,7 +3,7 @@ const stateSelect = dom("stateSelect"), boardSelect = dom("boardSelect"), subjec
     tutorialIdField = dom("tutorialId");
 
 dom("previewButton").addEventListener("click", showPreview);
-const qList = dom("questionList"), qEditor = dom("questionEditor"), questions = [];
+let qList = dom("questionList"), qEditor = dom("questionEditor"), questions = [];
 let activeIndex = -1;
 
 function dom(id) {
@@ -122,11 +122,11 @@ function addQuestion(showAlert = true) {
     }
 
     const questionNumber = questions.length + 1; // 1-based index
-    const boardInitial = board[0].toUpperCase();
-    const sentenceId = `${year}${boardInitial}Q${questionNumber}`;
+    const subjectInitial = subject[0].toUpperCase();
+    const sentenceId = `${year}${subjectInitial}Q${questionNumber}`;
 
     questions.push({
-        sentenceId: sentenceId,
+        questionId: sentenceId,
         text: "",
         optA: "",
         optB: "",
@@ -138,8 +138,6 @@ function addQuestion(showAlert = true) {
     });
     setActiveQuestion(questions.length - 1);
 }
-
-
 
 
 function removeQuestion() {
@@ -184,8 +182,8 @@ function renderEditor() {
     editor.innerHTML = `
 <h4>Question ${activeIndex + 1}</h4>
 
-<label>Sentence ID:</label>
-<input value="${q.sentenceId}" readonly style="background:#f3f3f3; color:#555; cursor:not-allowed;"/>
+<label>Question ID:</label>
+<input value="${q.questionId}" readonly style="background:#f3f3f3; color:#555; cursor:not-allowed;"/>
 
 <label>Question Text:</label>
 <textarea rows="8" class="question-textarea" 
@@ -318,7 +316,7 @@ function handleQImages(ev, index) {
 function removeQImage(index, imgIdx, fileName, wrapper) {
     if (!confirm("Remove this question image?")) return;
 
-    const { storage, ref, deleteObject } = window.firebaseStorage;
+    const {storage, ref, deleteObject} = window.firebaseStorage;
 
     const subject = subjectSelect.value.toLowerCase();
     const year = yearSelect.value;
@@ -401,7 +399,7 @@ function handleOptImage(ev, i, opt, optNumber) {
         removeBtn.onclick = () => {
             if (!confirm("Do you want to remove the uploaded image?")) return;
 
-            const { storage, ref, deleteObject } = window.firebaseStorage;
+            const {storage, ref, deleteObject} = window.firebaseStorage;
             const storageRef = ref(storage, path);
             deleteObject(storageRef)
                 .then(() => {
@@ -443,16 +441,16 @@ function generateJSON() {
     const subject = dom("subjectSelect").value;
 
     const out = questions.map((q, i) => ({
-        questionId: (i + 1).toString(),
+        questionIndex: (i + 1).toString(),
+        questionId: q.questionId,
         questionDetails: [{
-            sentenceId: parseInt(q.sentenceId) || 0,
             text: q.text,
             textImages: q.questionImages || [],
             possibleAnswers: {
-                A: { text: q.optA, image: q.optionImages?.A || null },
-                B: { text: q.optB, image: q.optionImages?.B || null },
-                C: { text: q.optC, image: q.optionImages?.C || null },
-                D: { text: q.optD, image: q.optionImages?.D || null },
+                A: {text: q.optA, image: q.optionImages?.A || null},
+                B: {text: q.optB, image: q.optionImages?.B || null},
+                C: {text: q.optC, image: q.optionImages?.C || null},
+                D: {text: q.optD, image: q.optionImages?.D || null},
             },
             correctAnswer: q.correct,
             correctAnswerText: q.correctText || "",
@@ -481,36 +479,39 @@ function loadFromFile() {
         alert("Select a file");
         return;
     }
+
     const r = new FileReader();
     r.onload = e => {
         try {
             const dt = JSON.parse(e.target.result)[0];
             dom("tutorialTitle").value = dt.tutorialTitle;
             dom("authorityExamId").value = dt.authorityExamId;
+
             const [b, y, s] = (dt.tutorialId || "").split("_");
             boardSelect.value = b;
             updateSubjects();
             yearSelect.value = y;
             subjectSelect.value = s;
             updateTutorialId();
+
             questions.length = 0;
+
             dt.questions.forEach((q, idx) => {
                 const d = q.questionDetails[0];
                 const questionNumber = idx + 1;
-                const boardInitial = boardSelect.value[0].toUpperCase();
+                const subjectInitial = subjectSelect.value[0].toUpperCase();
                 const year = yearSelect.value;
-                const correctFormat = `${year}${boardInitial}Q${questionNumber}`;
+                const correctFormat = `${year}${subjectInitial}Q${questionNumber}`;
 
-                // Check if existing sentenceId is already in correct format
-                let existingId = d.sentenceId.toString(); // Convert to string in case it's a number
+                // Use questionId directly
+                let existingId = (q.questionId || "").toString().trim();
 
-                // Simple regex check: e.g., 2004BQ1
-                const pattern = new RegExp(`^${year}${boardInitial}Q${questionNumber}$`);
-
-                const sentenceId = pattern.test(existingId) ? existingId : correctFormat;
+                // Simple regex check: e.g., 2004KQ1
+                const pattern = new RegExp(`^${year}${subjectInitial}Q${questionNumber}$`);
+                const finalId = pattern.test(existingId) && existingId !== "" ? existingId : correctFormat;
 
                 questions.push({
-                    sentenceId: sentenceId,   // ✅ Use correct format if needed
+                    questionId: finalId, // Keep field name 'sentenceId' in memory for compatibility
                     text: d.text,
                     optA: d.possibleAnswers.A.text,
                     optB: d.possibleAnswers.B.text,
@@ -531,11 +532,14 @@ function loadFromFile() {
             while (questions.length < 60) addQuestion();
             setActiveQuestion(0);
         } catch (err) {
+            console.error(err);
             alert("Invalid JSON");
         }
     };
+
     r.readAsText(f);
 }
+
 
 function showPreview() {
     generateJSON();
@@ -616,7 +620,6 @@ function markdownTableToHtml(markdown) {
 }
 
 
-
 function convertTablesInText(text) {
     // ✅ Step 1: Replace all <br> (case-insensitive) with real line breaks
     const cleanText = text.replace(/<br\s*\/?>/gi, "\n");
@@ -653,8 +656,6 @@ function convertTablesInText(text) {
 }
 
 
-
-
 for (let i = 0; i < 60; i++) addQuestion(false);
 
 
@@ -669,4 +670,241 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.classList.remove("panel-open");
     });
 });
+
+function openRawContentLoader() {
+    document.getElementById("rawContentModal").style.display = "block";
+}
+
+function closeRawContentLoader() {
+    document.getElementById("rawContentModal").style.display = "none";
+}
+
+function parseRawContent() {
+    try {
+        const raw = dom("rawContentInput").value.trim();
+
+        if (!raw) {
+            throw `
+❌ No input detected.
+
+Please paste raw questions in the following format:
+
+Example:
+
+1. What is the capital of India?
+1) Delhi
+2) Mumbai
+3) Kolkata
+4) Chennai
+
+2. What is the national flower of India?
+1) Rose
+2) Lotus
+3) Jasmine
+4) Marigold
+`;
+        }
+
+        if (!yearSelect.value || !boardSelect.value) {
+            throw "❌ Please select Year and Board before parsing raw content.";
+        }
+
+        const year = yearSelect.value;
+        const subjectInitial = subjectSelect.value.trim().toUpperCase()[0];
+
+        const blocks = raw.split(/\n\s*\n/);
+        const newQuestions = [];
+
+        blocks.forEach((block, idx) => {
+            const lines = block.trim().split("\n");
+
+            if (lines.length < 5) {
+                throw `
+❌ Error in Question ${idx + 1}: Not enough lines.
+
+Expected:
+
+<number>. <question text>
+1) option A
+2) option B
+3) option C
+4) option D
+`;
+            }
+
+            const qMatch = lines[0].match(/^(\d+)\.\s*(.*)$/);
+            if (!qMatch) {
+                throw `
+❌ Error in Question ${idx + 1}: Invalid question line.
+
+Expected:
+
+<number>. <question text>
+
+Example:
+
+1. What is the capital of India?
+`;
+            }
+
+            const questionNumber = qMatch[1];
+            const questionText = qMatch[2];
+
+            const opts = lines.slice(1).map(line => {
+                const trimmedLine = line.trim();
+                const optMatch = trimmedLine.match(/^\d+\)\s*(.*)$/);
+                if (!optMatch) {
+                    throw `
+❌ Error in Question ${idx + 1}: Invalid option format.
+
+Each option should be:
+
+<number>) <option text>
+
+Example:
+
+1) Delhi
+2) Mumbai
+3) Kolkata
+4) Chennai
+`;
+                }
+                return optMatch[1];
+            });
+
+            if (opts.length !== 4) {
+                throw `
+❌ Error in Question ${idx + 1}: Expected exactly 4 options.
+
+Example:
+
+1) Option A
+2) Option B
+3) Option C
+4) Option D
+`;
+            }
+
+            const sentenceId = `${year}${subjectInitial}Q${questionNumber}`;
+
+            newQuestions.push({
+                questionId: sentenceId,
+                text: questionText,
+                optA: opts[0],
+                optB: opts[1],
+                optC: opts[2],
+                optD: opts[3],
+                correct: "",
+                correctText: "",
+                questionImages: [],
+                optionImages: {A: "", B: "", C: "", D: ""}
+            });
+        });
+
+        // ✅ Replace current questions & generate JSON
+        questions = newQuestions;
+        closeRawContentLoader();
+        setActiveQuestion(0);   // ✅ Load first question into editor
+        renderQuestionList();   // ✅ Render list in left sidebar
+        generateJSON();
+
+        alert("✅ Raw content parsed and loaded successfully.");
+
+    } catch (err) {
+        console.error(err);
+        showParseErrorDialog(err);
+    }
+}
+
+function renderQuestions() {
+    const container = dom("questionsContainer");
+    container.innerHTML = "";
+
+    questions.forEach((q, i) => {
+        const card = document.createElement("div");
+        card.style.border = "1px solid #ccc";
+        card.style.padding = "12px";
+        card.style.marginBottom = "10px";
+        card.style.borderRadius = "8px";
+        card.style.background = "#f9f9f9";
+
+        const title = document.createElement("h4");
+        title.textContent = `Q${i + 1} (${q.questionId}): ${q.text}`;
+
+        const questionIdField = document.createElement("input");
+        questionIdField.value = q.questionId;
+        questionIdField.readOnly = true;
+        questionIdField.style.width = "150px";
+        questionIdField.style.marginBottom = "8px";
+
+        // Options
+        const opts = ["A", "B", "C", "D"];
+        const optionFields = opts.map(opt => {
+            const input = document.createElement("input");
+            input.value = q["opt" + opt];
+            input.style.display = "block";
+            input.style.marginBottom = "6px";
+            input.oninput = (e) => {
+                q["opt" + opt] = e.target.value;
+                generateJSON();
+            };
+            return input;
+        });
+
+        // Correct answer selector
+        const correctSelect = document.createElement("select");
+        correctSelect.innerHTML = `<option value="">Select Correct</option>`;
+        opts.forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt;
+            if (q.correct === opt) option.selected = true;
+            correctSelect.appendChild(option);
+        });
+        correctSelect.onchange = (e) => {
+            q.correct = e.target.value;
+            q.correctText = q["opt" + e.target.value];
+            generateJSON();
+        };
+
+        // Append to card
+        card.appendChild(title);
+        card.appendChild(sentenceIdField);
+        optionFields.forEach(f => card.appendChild(f));
+        card.appendChild(correctSelect);
+
+        // Add to container
+        container.appendChild(card);
+    });
+
+    generateJSON();
+}
+
+
+
+function showParseErrorDialog(message) {
+    const dialog = document.createElement("div");
+    dialog.style.padding = "20px";
+    dialog.style.background = "#fff";
+    dialog.style.border = "2px solid red";
+    dialog.style.borderRadius = "8px";
+    dialog.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+    dialog.style.maxWidth = "600px";
+    dialog.style.margin = "50px auto";
+    dialog.style.whiteSpace = "pre-wrap";
+    dialog.style.fontFamily = "monospace";
+    dialog.style.position = "fixed";
+    dialog.style.top = "50%";
+    dialog.style.left = "50%";
+    dialog.style.transform = "translate(-50%, -50%)";
+    dialog.style.zIndex = "9999";
+
+    dialog.innerHTML = `
+        <h3 style="color:red;">⚠️ Parse Failed</h3>
+        <p>${message}</p>
+        <button style="margin-top: 10px; padding: 6px 12px;" onclick="this.parentElement.remove()">Close</button>
+    `;
+
+    document.body.appendChild(dialog);
+}
 
