@@ -39,10 +39,12 @@ boardSelect.onchange = () => {
 subjectSelect.onchange = () => {
     updateTutorialId();
     renderEditor(); // ⬅️ added
+    regenerateQuestionIds();
 };
 yearSelect.onchange = () => {
     updateTutorialId();
     renderEditor(); // ⬅️ added
+    regenerateQuestionIds();
 };
 
 
@@ -908,3 +910,19 @@ function showParseErrorDialog(message) {
     document.body.appendChild(dialog);
 }
 
+function regenerateQuestionIds() {
+    if (questions.length === 0) return; // Do nothing if no questions
+
+    const subject = subjectSelect.value.trim().toUpperCase();
+    const year = yearSelect.value;
+
+    questions.forEach((q, idx) => {
+        const questionNumber = idx + 1;
+        const subjectInitial = subject[0] || "S";
+        q.questionId = `${year}${subjectInitial}Q${questionNumber}`;
+    });
+
+    renderQuestionList();
+    renderEditor();
+    generateJSON();
+}
