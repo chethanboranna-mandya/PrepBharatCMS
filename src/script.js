@@ -683,140 +683,120 @@ function closeRawContentLoader() {
 
 function parseRawContent() {
     try {
-        const raw = dom("rawContentInput").value.trim();
+        const raw = document.getElementById("rawContentInput").value.trim();
 
         if (!raw) {
-            throw `
-❌ No input detected.
-
-Please paste raw questions in the following format:
-
-Example:
-
-1. What is the capital of India?
-1) Delhi
-2) Mumbai
-3) Kolkata
-4) Chennai
-
-2. What is the national flower of India?
-1) Rose
-2) Lotus
-3) Jasmine
-4) Marigold
-`;
+            throw `❌ No input detected.\n\nPaste questions like:\n\n1. What is ...?\n1) Option A\n2) Option B\n3) Option C\n4) Option D`;
         }
 
-        if (!yearSelect.value || !boardSelect.value) {
-            throw "❌ Please select Year and Board before parsing raw content.";
+        if (!yearSelect.value || !subjectSelect.value) {
+            throw "❌ Please select Year and Subject before parsing.";
         }
 
         const year = yearSelect.value;
         const subjectInitial = subjectSelect.value.trim().toUpperCase()[0];
 
-        const blocks = raw.split(/\n\s*\n/);
+        const lines = raw.split("\n").map(line => line.trim()).filter(Boolean);
+
+        let i = 0;
         const newQuestions = [];
 
-        blocks.forEach((block, idx) => {
-            const lines = block.trim().split("\n");
+        while (i < lines.length) {
 
-            if (lines.length < 5) {
-                throw `
-❌ Error in Question ${idx + 1}: Not enough lines.
+            const questionStartMatch = lines[i].match(/^(\d+)\.\s+(.*)/);
 
-Expected:
+            if (questionStartMatch) {
+                const questionNumber = questionStartMatch[1];
+                let questionText = questionStartMatch[2];
 
-<number>. <question text>
-1) option A
-2) option B
-3) option C
-4) option D
-`;
-            }
+                i++;
 
-            const qMatch = lines[0].match(/^(\d+)\.\s*(.*)$/);
-            if (!qMatch) {
-                throw `
-❌ Error in Question ${idx + 1}: Invalid question line.
+                // Collect question text until first '1)' or 'next question'
+                while (i < lines.length &&
+                !lines[i].match(/^1\)\s+/) &&
+                !lines[i].match(/^\d+\.\s+/)) {
 
-Expected:
-
-<number>. <question text>
-
-Example:
-
-1. What is the capital of India?
-`;
-            }
-
-            const questionNumber = qMatch[1];
-            const questionText = qMatch[2];
-
-            const opts = lines.slice(1).map(line => {
-                const trimmedLine = line.trim();
-                const optMatch = trimmedLine.match(/^\d+\)\s*(.*)$/);
-                if (!optMatch) {
-                    throw `
-❌ Error in Question ${idx + 1}: Invalid option format.
-
-Each option should be:
-
-<number>) <option text>
-
-Example:
-
-1) Delhi
-2) Mumbai
-3) Kolkata
-4) Chennai
-`;
+                    if (!/!\[.*?\]\(.*?\)/.test(lines[i]) && !/choose the correct answer/i.test(lines[i])) {
+                        questionText += ' ' + lines[i];
+                    }
+                    i++;
                 }
-                return optMatch[1];
-            });
 
-            if (opts.length !== 4) {
-                throw `
-❌ Error in Question ${idx + 1}: Expected exactly 4 options.
+                const options = [];
+                const missingOptions = [];
 
-Example:
+                for (let opt = 1; opt <= 4; opt++) {
+                    if (i >= lines.length) {
+                        missingOptions.push(`${opt})`);
+                        continue;
+                    }
 
-1) Option A
-2) Option B
-3) Option C
-4) Option D
-`;
+                    const currentOptionPattern = new RegExp(`^${opt}\\)\\s+`);
+
+                    if (lines[i].match(currentOptionPattern)) {
+                        // Current option line
+                        let optionText = lines[i].replace(`${opt})`, "").trim();
+                        i++;
+
+                        // Collect lines until next option or next question
+                        const nextOptionPattern = new RegExp(`^${opt + 1}\\)\\s+`);
+                        while (i < lines.length &&
+                        !lines[i].match(nextOptionPattern) &&
+                        !lines[i].match(/^\d+\.\s+/)) {
+
+                            if (!/!\[.*?\]\(.*?\)/.test(lines[i])) {
+                                optionText += " " + lines[i];
+                            }
+                            i++;
+                        }
+
+                        options.push(optionText.trim());
+                    } else {
+                        // Option is missing
+                        missingOptions.push(`${opt})`);
+                    }
+                }
+
+                if (missingOptions.length > 0) {
+                    throw `❌ Error in Question ${questionNumber}: Missing option(s): ${missingOptions.join(", ")}`;
+                }
+
+                const sentenceId = `${year}${subjectInitial}Q${questionNumber}`;
+
+                newQuestions.push({
+                    questionId: sentenceId,
+                    text: questionText.trim(),
+                    optA: options[0],
+                    optB: options[1],
+                    optC: options[2],
+                    optD: options[3],
+                    correct: "",
+                    correctText: "",
+                    questionImages: [],
+                    optionImages: { A: "", B: "", C: "", D: "" }
+                });
+
+            } else {
+                i++;
             }
+        }
 
-            const sentenceId = `${year}${subjectInitial}Q${questionNumber}`;
-
-            newQuestions.push({
-                questionId: sentenceId,
-                text: questionText,
-                optA: opts[0],
-                optB: opts[1],
-                optC: opts[2],
-                optD: opts[3],
-                correct: "",
-                correctText: "",
-                questionImages: [],
-                optionImages: {A: "", B: "", C: "", D: ""}
-            });
-        });
-
-        // ✅ Replace current questions & generate JSON
         questions = newQuestions;
         closeRawContentLoader();
-        setActiveQuestion(0);   // ✅ Load first question into editor
-        renderQuestionList();   // ✅ Render list in left sidebar
+        setActiveQuestion(0);
+        renderQuestionList();
         generateJSON();
 
-        alert("✅ Raw content parsed and loaded successfully.");
+        alert(`✅ Loaded ${newQuestions.length} questions successfully.`);
 
     } catch (err) {
         console.error(err);
         showParseErrorDialog(err);
     }
 }
+
+
+
 
 function renderQuestions() {
     const container = dom("questionsContainer");
