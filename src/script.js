@@ -485,7 +485,8 @@ function loadFromFile() {
     const r = new FileReader();
     r.onload = e => {
         try {
-            const dt = JSON.parse(e.target.result)[0];
+            const dt = JSON.parse(e.target.result);
+            window.currentTutorial = dt;
             dom("tutorialTitle").value = dt.tutorialTitle;
             dom("authorityExamId").value = dt.authorityExamId;
 
@@ -905,4 +906,59 @@ function regenerateQuestionIds() {
     renderQuestionList();
     renderEditor();
     generateJSON();
+}
+
+let generateJson = []; // This should reference your actual generated JSON list
+
+function openKeyAnswerLoader() {
+    document.getElementById('keyAnswerModal').style.display = 'block';
+}
+
+function closeKeyAnswerLoader() {
+    document.getElementById('keyAnswerModal').style.display = 'none';
+}
+
+function parseKeyAnswers() {
+    const keyInput = document.getElementById("keyAnswerInput").value;
+
+    try {
+        const keyAnswers = JSON.parse(keyInput);
+        const tutorial = window.currentTutorial; // ✅ Your main tutorial JSON must be loaded here.
+
+        if (!tutorial || !tutorial.questions) {
+            alert("No tutorial data loaded. Please load the tutorial first.");
+            return;
+        }
+
+        // Map keys for faster lookup
+        const answerMap = {};
+        keyAnswers.answers.forEach(item => {
+            answerMap[item.questionIndex] = {
+                correctAnswer: item.correctAnswer,
+                correctAnswerText: item.correctAnswerText
+            };
+        });
+
+        // Loop through the tutorial questions and update correctAnswer, correctAnswerText
+        tutorial.questions.forEach(q => {
+            const key = q.questionIndex;
+            if (answerMap[key]) {
+                q.questionDetails.forEach(detail => {
+                    detail.correctAnswer = answerMap[key].correctAnswer;
+                    detail.correctAnswerText = answerMap[key].correctAnswerText;
+                });
+            }
+        });
+
+        alert("Key answers have been successfully mapped to the questions!");
+
+        // Optional: Update the JSON output panel if needed
+        const output = document.getElementById("output");
+        if (output) {
+            output.textContent = JSON.stringify(tutorial, null, 2);
+        }
+
+    } catch (e) {
+        alert("Invalid JSON: " + e.message);
+    }
 }
