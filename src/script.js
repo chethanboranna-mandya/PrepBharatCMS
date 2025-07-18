@@ -556,17 +556,17 @@ function showPreview() {
         const rendered = convertTablesInText(d.text);
 
         html += `
-        <div style="margin-bottom: 20px;">
-           <div>${rendered}</div>
-            ${d.textImages?.map(url => `<img src="${url}" height="60"/>`).join(" ") || ""}
-            <ul>
-                ${["A", "B", "C", "D"].map(opt => {
+    <div style="margin-bottom: 20px;">
+       <div><b>Q${q.questionIndex}.</b> ${rendered}</div>
+        ${d.textImages?.map(url => `<img src="${url}" height="60"/>`).join(" ") || ""}
+        <ul>
+            ${["A", "B", "C", "D"].map(opt => {
             const optData = d.possibleAnswers[opt];
             return `<li><b>${opt}:</b> ${optData.text || ""} ${optData.image ? `<img src="${optData.image}" height="40"/>` : ""}</li>`;
         }).join("")}
-            </ul>
-            <div><b>Answer:</b> ${d.correctAnswer} - ${d.correctAnswerText || ""}</div>
-        </div>`;
+        </ul>
+        <div><b>Answer:</b> ${d.correctAnswer} - ${d.correctAnswerText || ""}</div>
+    </div>`;
     });
 
     previewDiv.innerHTML = html;
