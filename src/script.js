@@ -89,7 +89,7 @@ async function updateTutorialId() {
         conductedByField.value = conductedByByIdMap[examId] || "";
     } else {
         authorityExamIdField.value = "";
-        conductedByField.value = conductedByMap[board] || "";
+        conductedByField.value = conductedByByIdMap[board] || "";
     }
 
     // ✅ Set tutorialId and title only if all are selected
@@ -485,7 +485,7 @@ function loadFromFile() {
     const r = new FileReader();
     r.onload = e => {
         try {
-            const dt = JSON.parse(e.target.result);
+            const dt = JSON.parse(e.target.result)[0];
             window.currentTutorial = dt;
             dom("tutorialTitle").value = dt.tutorialTitle;
             dom("authorityExamId").value = dt.authorityExamId;
@@ -940,13 +940,18 @@ function parseKeyAnswers() {
         });
 
         // Loop through the tutorial questions and update correctAnswer, correctAnswerText
-        tutorial.questions.forEach(q => {
+        tutorial.questions.forEach((q, idx) => {
             const key = q.questionIndex;
             if (answerMap[key]) {
-                q.questionDetails.forEach(detail => {
-                    detail.correctAnswer = answerMap[key].correctAnswer;
-                    detail.correctAnswerText = answerMap[key].correctAnswerText;
-                });
+                const detail = q.questionDetails[0];
+                detail.correctAnswer = answerMap[key].correctAnswer;
+                detail.correctAnswerText = answerMap[key].correctAnswerText;
+
+                // 🔧 Update the in-memory 'questions' array
+                if (questions[idx]) {
+                    questions[idx].correct = answerMap[key].correctAnswer;
+                    questions[idx].correctText = answerMap[key].correctAnswerText;
+                }
             }
         });
 
@@ -957,6 +962,10 @@ function parseKeyAnswers() {
         if (output) {
             output.textContent = JSON.stringify(tutorial, null, 2);
         }
+
+        // ✅ Refresh the editor and regenerate JSON
+        renderEditor();
+        generateJSON();
 
     } catch (e) {
         alert("Invalid JSON: " + e.message);
