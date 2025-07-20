@@ -923,35 +923,54 @@ function parseKeyAnswers() {
 
     try {
         const keyAnswers = JSON.parse(keyInput);
-        const tutorial = window.currentTutorial; // ✅ Your main tutorial JSON must be loaded here.
+        const tutorial = window.currentTutorial; // ✅ Ensure tutorial is loaded
 
         if (!tutorial || !tutorial.questions) {
             alert("No tutorial data loaded. Please load the tutorial first.");
             return;
         }
 
-        // Map keys for faster lookup
+        // Create a lookup map for fast access
         const answerMap = {};
         keyAnswers.answers.forEach(item => {
-            answerMap[item.questionIndex] = {
-                correctAnswer: item.correctAnswer,
-                correctAnswerText: item.correctAnswerText
-            };
+            answerMap[item.questionIndex] = item.correctAnswer;
         });
 
-        // Loop through the tutorial questions and update correctAnswer, correctAnswerText
         tutorial.questions.forEach((q, idx) => {
             const key = q.questionIndex;
-            if (answerMap[key]) {
-                const detail = q.questionDetails[0];
-                detail.correctAnswer = answerMap[key].correctAnswer;
-                detail.correctAnswerText = answerMap[key].correctAnswerText;
+            const correctAnswer = answerMap[key];
 
-                // 🔧 Update the in-memory 'questions' array
-                if (questions[idx]) {
-                    questions[idx].correct = answerMap[key].correctAnswer;
-                    questions[idx].correctText = answerMap[key].correctAnswerText;
-                }
+            if (!correctAnswer) {
+                console.warn(`No answer found for questionIndex ${key}`);
+                return; // Skip if key answer is missing
+            }
+
+            const detail = q.questionDetails && q.questionDetails[0];
+            if (!detail || !detail.possibleAnswers) {
+                console.warn(`Skipping questionIndex ${key} due to missing questionDetails or possibleAnswers.`);
+                return;
+            }
+
+            // Get possible answers object (A/B/C/D)
+            const possibleAnswers = detail.possibleAnswers;
+
+            // Determine correctAnswerText based on correctAnswer key
+            let correctAnswerText;
+
+            if (possibleAnswers && possibleAnswers[correctAnswer]) {
+                correctAnswerText = possibleAnswers[correctAnswer].text;
+            } else {
+                correctAnswerText = "Unknown Option";
+            }
+
+            // Set the correct answer and text in questionDetails
+            detail.correctAnswer = correctAnswer;
+            detail.correctAnswerText = correctAnswerText;
+
+            // Update in-memory 'questions' array if available
+            if (questions && questions[idx]) {
+                questions[idx].correct = correctAnswer;
+                questions[idx].correctText = correctAnswerText;
             }
         });
 
@@ -963,11 +982,14 @@ function parseKeyAnswers() {
             output.textContent = JSON.stringify(tutorial, null, 2);
         }
 
-        // ✅ Refresh the editor and regenerate JSON
+        // ✅ Refresh editor and regenerate JSON
         renderEditor();
         generateJSON();
 
     } catch (e) {
         alert("Invalid JSON: " + e.message);
+        console.error(e);
     }
 }
+
+
