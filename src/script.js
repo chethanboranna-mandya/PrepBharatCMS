@@ -157,6 +157,14 @@ function setActiveQuestion(i) {
     if (dom("previewPanel").classList.contains("open")) {
         scrollToPreviewQuestion(i);
     }
+
+    // ✅ Scroll to the matching JSON question
+    setTimeout(() => {
+        const target = document.getElementById(`jsonQ${activeIndex}`);
+        if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }, 100);
 }
 
 
@@ -438,7 +446,7 @@ function handleOptImage(ev, i, opt, optNumber) {
     });
 }
 
-function generateJSON() {
+function generateJSON(activeIndex = -1) {
     const tId = tutorialIdField.value;
     const ttl = dom("tutorialTitle").value;
     const aid = dom("authorityExamId").value;
@@ -479,12 +487,45 @@ function generateJSON() {
         questions: out
     }];
 
-    dom("output").textContent = JSON.stringify(result, null, 2);
-    // ✅ Automatically refresh preview
+    // Generate HTML output with div wrappers per question
+    let html = '';
+
+    const jsonData = JSON.parse(JSON.stringify(result, null, 2));
+
+    const questionsArray = jsonData[0].questions;
+
+    // Loop through each question to wrap with divs
+    questionsArray.forEach((q, i) => {
+        const questionJson = JSON.stringify(q, null, 2)
+            .replace(/ /g, '&nbsp;')
+            .replace(/\n/g, '<br/>');
+
+        html += `<div id="jsonQ${i}" style="margin-bottom:10px; border-bottom:1px solid #ddd; padding:4px;">${questionJson}</div>`;
+    });
+
+    dom("output").innerHTML = html;
+
+    // Auto-scroll to active question if provided
+    if (activeIndex >= 0) {
+        setTimeout(() => {
+            const target = document.getElementById(`jsonQ${activeIndex}`);
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }, 100);
+    }
+
+    // Update preview if open
     if (dom("previewPanel").classList.contains("open")) {
         updatePreviewForActiveQuestion();
     }
 }
+
+function selectQuestion(index) {
+    activeIndex = index;
+    generateJSON(activeIndex);
+}
+
 
 function loadFromFile() {
     const f = dom('jsonFileInput').files[0];
