@@ -151,7 +151,14 @@ function setActiveQuestion(i) {
     activeIndex = i;
     renderQuestionList();
     renderEditor();
+    updatePreviewForActiveQuestion();
+
+    // Scroll to the corresponding question in preview if preview is open
+    if (dom("previewPanel").classList.contains("open")) {
+        scrollToPreviewQuestion(i);
+    }
 }
+
 
 function renderQuestionList() {
     qList.innerHTML = "";
@@ -473,6 +480,10 @@ function generateJSON() {
     }];
 
     dom("output").textContent = JSON.stringify(result, null, 2);
+    // ✅ Automatically refresh preview
+    if (dom("previewPanel").classList.contains("open")) {
+        updatePreviewForActiveQuestion();
+    }
 }
 
 function loadFromFile() {
@@ -543,38 +554,72 @@ function loadFromFile() {
     r.readAsText(f);
 }
 
+function scrollToPreviewQuestion(index) {
+    const target = document.getElementById(`previewQ${index}`);
+    if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+}
 
 function showPreview() {
-    generateJSON();
+    const previewDiv = dom("previewContent");
+    const ttl = dom("tutorialTitle").value;
 
-    const previewDiv = dom("previewContent"); // ✅ FIXED ID
-    const rawJson = JSON.parse(dom("output").textContent);
-    const qList = rawJson[0]?.questions || [];
+    let html = `<h3>${ttl}</h3>`;
 
-    let html = `<h3>${rawJson[0]?.tutorialTitle || ""}</h3>`;
-    qList.forEach((q, i) => {
-        const d = q.questionDetails[0];
-        const rendered = convertTablesInText(d.text);
+    questions.forEach((q, i) => {
+        const text = convertTablesInText(q.text);
 
         html += `
-    <div style="margin-bottom: 20px;">
-       <div><b>Q${q.questionIndex}.</b> ${rendered}</div>
-        ${d.textImages?.map(url => `<img src="${url}" height="60"/>`).join(" ") || ""}
-        <ul>
-            ${["A", "B", "C", "D"].map(opt => {
-            const optData = d.possibleAnswers[opt];
-            return `<li><b>${opt}:</b> ${optData.text || ""} ${optData.image ? `<img src="${optData.image}" height="40"/>` : ""}</li>`;
+            <div id="previewQ${i}" style="margin-bottom: 20px; padding: 8px; border-bottom: 1px solid #ddd;">
+                <div><b>Q${i + 1}.</b> ${text}</div>
+                ${q.questionImages?.map(url => `<img src="${url}" height="60" style="margin:4px;"/>`).join(" ") || ""}
+                <ul>
+                    ${["A", "B", "C", "D"].map(opt => {
+            const optText = q["opt" + opt] || "";
+            const optImg = q.optionImages?.[opt];
+            return `<li><b>${opt}:</b> ${optText} ${optImg ? `<img src="${optImg}" height="40" style="margin-left:6px;"/>` : ""}</li>`;
         }).join("")}
-        </ul>
-        <div><b>Answer:</b> ${d.correctAnswer} - ${d.correctAnswerText || ""}</div>
-    </div>`;
+                </ul>
+                <div><b>Answer:</b> ${q.correct || ""} - ${q.correctText || ""}</div>
+            </div>`;
     });
 
     previewDiv.innerHTML = html;
-    MathJax.typesetPromise([previewDiv]);
 
-    dom("previewPanel").classList.add("open"); // ✅ Ensure preview panel is visible
+    MathJax.typesetPromise([previewDiv]).then(() => {
+        dom("previewPanel").classList.add("open");
+        scrollToPreviewQuestion(activeIndex); // ✅ Scroll after render
+    });
 }
+
+
+function updatePreviewForActiveQuestion() {
+    const q = questions[activeIndex];
+    const container = document.getElementById(`previewQ${activeIndex}`);
+    if (!container) return; // If preview is not open yet, skip
+
+    const text = convertTablesInText(q.text);
+
+    let html = `
+        <div><b>Q${activeIndex + 1}.</b> ${text}</div>
+        ${q.questionImages?.map(url => `<img src="${url}" height="60" style="margin:4px;"/>`).join(" ") || ""}
+        <ul>
+            ${["A", "B", "C", "D"].map(opt => {
+        const optText = q["opt" + opt] || "";
+        const optImg = q.optionImages?.[opt];
+        return `<li><b>${opt}:</b> ${optText} ${optImg ? `<img src="${optImg}" height="40" style="margin-left:6px;"/>` : ""}</li>`;
+    }).join("")}
+        </ul>
+        <div><b>Answer:</b> ${q.correct || ""} - ${q.correctText || ""}</div>
+    `;
+
+    container.innerHTML = html;
+
+    MathJax.typesetPromise([container]);
+}
+
+
 
 
 function markdownTableToHtml(markdown) {
