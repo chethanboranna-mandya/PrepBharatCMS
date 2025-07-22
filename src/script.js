@@ -153,18 +153,12 @@ function setActiveQuestion(i) {
     renderEditor();
     updatePreviewForActiveQuestion();
 
-    // Scroll to the corresponding question in preview if preview is open
     if (dom("previewPanel").classList.contains("open")) {
         scrollToPreviewQuestion(i);
     }
 
-    // ✅ Scroll to the matching JSON question
-    setTimeout(() => {
-        const target = document.getElementById(`jsonQ${activeIndex}`);
-        if (target) {
-            target.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-    }, 100);
+    // Refresh JSON view with active question scroll
+    generateJSON(activeIndex);
 }
 
 
@@ -464,10 +458,10 @@ function generateJSON(activeIndex = -1) {
             text: q.text,
             textImages: q.questionImages || [],
             possibleAnswers: {
-                A: {text: q.optA, image: q.optionImages?.A || null},
-                B: {text: q.optB, image: q.optionImages?.B || null},
-                C: {text: q.optC, image: q.optionImages?.C || null},
-                D: {text: q.optD, image: q.optionImages?.D || null},
+                A: { text: q.optA, image: q.optionImages?.A || null },
+                B: { text: q.optB, image: q.optionImages?.B || null },
+                C: { text: q.optC, image: q.optionImages?.C || null },
+                D: { text: q.optD, image: q.optionImages?.D || null },
             },
             correctAnswer: q.correct,
             correctAnswerText: q.correctText || "",
@@ -487,43 +481,49 @@ function generateJSON(activeIndex = -1) {
         questions: out
     }];
 
-    // Generate HTML output with div wrappers per question
-    let html = '';
+    // Generate raw JSON string (for export & saving)
+    const jsonStr = JSON.stringify(result, null, 2);
 
-    const jsonData = JSON.parse(JSON.stringify(result, null, 2));
+    // Render for UI: Add spans ONLY to questionIndex lines for scrolling
+    const lines = jsonStr.split('\n');
 
-    const questionsArray = jsonData[0].questions;
-
-    // Loop through each question to wrap with divs
-    questionsArray.forEach((q, i) => {
-        const questionJson = JSON.stringify(q, null, 2)
-            .replace(/ /g, '&nbsp;')
-            .replace(/\n/g, '<br/>');
-
-        html += `<div id="jsonQ${i}" style="margin-bottom:10px; border-bottom:1px solid #ddd; padding:4px;">${questionJson}</div>`;
+    const htmlLines = lines.map(line => {
+        const match = /"questionIndex":\s?"(\d+)"/.exec(line);
+        if (match) {
+            const idx = match[1];
+            return `<span id="jsonQ${idx}">${line}</span>`;
+        }
+        return line;
     });
 
-    dom("output").innerHTML = html;
+    // Render to output using <pre> or <output>
+    dom("output").innerHTML = htmlLines.join('<br/>');
 
-    // Auto-scroll to active question if provided
+    // Auto-scroll to active question
     if (activeIndex >= 0) {
         setTimeout(() => {
-            const target = document.getElementById(`jsonQ${activeIndex}`);
+            const target = document.getElementById(`jsonQ${activeIndex + 1}`);
             if (target) {
-                target.scrollIntoView({ behavior: "smooth", block: "center" });
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }, 100);
     }
 
-    // Update preview if open
+    // Update preview if needed
     if (dom("previewPanel").classList.contains("open")) {
         updatePreviewForActiveQuestion();
     }
+
+    // Store clean JSON separately for export (no spans!)
+    window.latestExportJSON = jsonStr;
 }
 
-function selectQuestion(index) {
-    activeIndex = index;
-    generateJSON(activeIndex);
+function downloadJSON() {
+    const blob = new Blob([window.latestExportJSON], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "tutorial.json";
+    link.click();
 }
 
 
@@ -598,7 +598,7 @@ function loadFromFile() {
 function scrollToPreviewQuestion(index) {
     const target = document.getElementById(`previewQ${index}`);
     if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 }
 
