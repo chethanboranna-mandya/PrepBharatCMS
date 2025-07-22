@@ -312,3 +312,17 @@ output {
     padding: 10px;
     box-sizing: border-box;
 }
+
+.json-header button {
+    margin-left: 8px;
+    padding: 8px 12px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.json-header button:hover {
+    background-color: #45a049;
+}

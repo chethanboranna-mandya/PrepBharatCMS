@@ -516,6 +516,8 @@ function generateJSON(activeIndex = -1) {
 
     // Store clean JSON separately for export (no spans!)
     window.latestExportJSON = jsonStr;
+    window.lastGeneratedJSONString = JSON.stringify(result, null, 2);
+
 }
 
 function downloadJSON() {
@@ -601,6 +603,24 @@ function scrollToPreviewQuestion(index) {
         target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 }
+
+function copyJSON() {
+    // Get the JSON string without HTML decorations
+    const json = lastGeneratedJSONString || '';
+
+    if (!json) {
+        alert("Please generate JSON first!");
+        return;
+    }
+
+    navigator.clipboard.writeText(json).then(() => {
+        alert("JSON copied to clipboard!");
+    }).catch(err => {
+        console.error("Copy failed", err);
+        alert("Failed to copy JSON.");
+    });
+}
+
 
 function showPreview() {
     const previewDiv = dom("previewContent");
