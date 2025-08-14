@@ -197,6 +197,13 @@ function renderEditor() {
 <label>Question ID:</label>
 <input value="${q.questionId}" readonly style="background:#f3f3f3; color:#555; cursor:not-allowed;"/>
 
+<label>Type:</label>
+<select onchange="questions[${activeIndex}].type=this.value; generateJSON();">
+  ${["mcq", "integer", "truefalse", "fillblank"].map(t =>
+        `<option value="${t}" ${q.type === t ? "selected" : ""}>${t}</option>`
+    ).join("")}
+</select>
+
 <label>Question Text:</label>
 <textarea rows="8" class="question-textarea" 
           oninput="questions[${activeIndex}].text=this.value; generateJSON();">${q.text}</textarea>
@@ -223,7 +230,6 @@ ${["A", "B", "C", "D"].map((opt, idx) => `
   <textarea rows="4" class="option-textarea" 
           oninput="questions[${activeIndex}].opt${opt}=this.value; generateJSON();">${q["opt" + opt]}</textarea>
 
-
   <div id="opt${opt}Url_${activeIndex}">
     ${q.optionImages[opt] ? `
         <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
@@ -245,9 +251,9 @@ ${["A", "B", "C", "D"].map((opt, idx) => `
 <label>Correct Answer Text:</label>
 <input value="${q.correctText || ""}" 
        oninput="questions[${activeIndex}].correctText=this.value; generateJSON();"/>
-
 `;
 }
+
 
 function removeExistingQImage(index, imgIdx) {
     if (!confirm("Remove this question image?")) return;
@@ -455,6 +461,7 @@ function generateJSON(activeIndex = -1) {
     const out = questions.map((q, i) => ({
         questionIndex: (i + 1).toString(),
         questionId: q.questionId,
+        type: q.type || "mcq", // ✅ Added type (default mcq if missing)
         questionDetails: [{
             text: q.text,
             textImages: q.questionImages || [],
@@ -518,8 +525,8 @@ function generateJSON(activeIndex = -1) {
     // Store clean JSON separately for export (no spans!)
     window.latestExportJSON = jsonStr;
     window.lastGeneratedJSONString = JSON.stringify(result, null, 2);
-
 }
+
 
 function downloadJSON() {
     const blob = new Blob([window.latestExportJSON], { type: "application/json" });
@@ -815,8 +822,6 @@ function parseMultiSubjectJsonSeparate() {
             throw "❌ JSON format error: 'results' array not found.";
         }
 
-
-
         inputData.results.forEach(subjectBlock => {
             const subjectName = subjectBlock._id;
             const year = subjectBlock.questions?.[0]?.year?.toString() || "";
@@ -827,6 +832,7 @@ function parseMultiSubjectJsonSeparate() {
                 const qId = `${year}${subjectInitial}Q${qIndex}`;
 
                 const enQ = q.question.en;
+
                 const possibleAnswers = {};
                 enQ.options.forEach(opt => {
                     possibleAnswers[opt.identifier] = {
@@ -835,9 +841,19 @@ function parseMultiSubjectJsonSeparate() {
                     };
                 });
 
+                // Auto-detect type or default to mcq
+                let questionType = enQ.type || "mcq";
+                if (!enQ.type) {
+                    const optionCount = Object.keys(possibleAnswers).length;
+                    if (optionCount === 2) questionType = "truefalse";
+                    else if (optionCount === 4) questionType = "mcq";
+                    else questionType = "other";
+                }
+
                 return {
                     questionIndex: qIndex,
                     questionId: qId,
+                    type: questionType, // ✅ Always present
                     questionDetails: [
                         {
                             text: stripHtml(enQ.content || ""),
@@ -867,17 +883,16 @@ function parseMultiSubjectJsonSeparate() {
             ];
 
             outputsPerSubject[subjectName] = JSON.stringify(outputArray, null, 2);
-            questionsBySubject[subjectName] = transformedQuestions; // store parsed data
-            if (!activeSubject) activeSubject = subjectName; // first subject as default
+            questionsBySubject[subjectName] = transformedQuestions;
+            if (!activeSubject) activeSubject = subjectName;
             if (Object.keys(outputsPerSubject).length > 0) {
                 setActiveTab(Object.keys(outputsPerSubject)[0]);
             }
-
         });
 
         // ✅ Create Tabs
         const tabsContainer = document.getElementById("subjectTabs");
-        tabsContainer.innerHTML = ""; // clear old tabs
+        tabsContainer.innerHTML = "";
 
         Object.keys(outputsPerSubject).forEach((subjectName, idx) => {
             const tabBtn = document.createElement("button");
@@ -890,13 +905,11 @@ function parseMultiSubjectJsonSeparate() {
             };
             tabsContainer.appendChild(tabBtn);
 
-            // auto-load first subject
             if (idx === 0) {
                 document.getElementById("output").textContent = outputsPerSubject[subjectName];
             }
         });
 
-        // Highlight first tab by default
         if (Object.keys(outputsPerSubject).length > 0) {
             setActiveTab(Object.keys(outputsPerSubject)[0]);
         }
@@ -1035,7 +1048,6 @@ function stripHtml(html) {
 }
 
 
-
 function parseRawContent() {
     try {
         const raw = document.getElementById("rawContentInput").value.trim();
@@ -1066,7 +1078,7 @@ function parseRawContent() {
 
                 i++;
 
-                // Collect question text until first '1)' or 'next question'
+                // Collect question text until first '1)' or next question
                 while (i < lines.length &&
                 !lines[i].match(/^1\)\s+/) &&
                 !lines[i].match(/^\d+\.\s+/)) {
@@ -1118,6 +1130,14 @@ function parseRawContent() {
 
                 const sentenceId = `${year}${subjectInitial}Q${questionNumber}`;
 
+                // ✅ Detect type
+                let questionType = "mcq";
+                if (questionText.includes("____")) {
+                    questionType = "fillblank"; // fill in the blank
+                } else if (options.length === 2) {
+                    questionType = "truefalse";
+                }
+
                 newQuestions.push({
                     questionId: sentenceId,
                     text: questionText.trim(),
@@ -1127,6 +1147,7 @@ function parseRawContent() {
                     optD: options[3],
                     correct: "",
                     correctText: "",
+                    type: questionType, // ✅ Added type
                     questionImages: [],
                     optionImages: { A: "", B: "", C: "", D: "" }
                 });
