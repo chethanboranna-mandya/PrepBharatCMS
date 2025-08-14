@@ -18,6 +18,7 @@
     <input type="file" id="jsonFileInput" accept=".json"/>
     <button onclick="loadFromFile()">📂 Load JSON</button>
     <button onclick="openRawContentLoader()">📄 Load Raw Content</button>
+    <button onclick="openJsonContentLoader()">📄 Load Json Content</button>
     <button onclick="openKeyAnswerLoader()">🔑 Load Key Answers</button>
     <h2>Tutorial JSON Builder</h2>
     <div class="row">
@@ -64,7 +65,10 @@
     </div>
     <div class="resizable-wrapper">
       <!-- JSON Output -->
-      <div id="output" class="json-box" style="white-space: pre-wrap; font-family: monospace; overflow: auto; height: 100%;"></div>
+
+      <div id="subjectTabs" style="margin-bottom: 10px;"></div>
+      <pre id="output" style="border:1px solid #ccc; padding:10px; background:#f9f9f9; max-height:400px; overflow:auto;"></pre>
+
     </div>
   </div>
 
@@ -162,6 +166,17 @@
   <div style="margin-top:10px;">
     <button onclick="parseRawContent()">Parse</button>
     <button onclick="closeRawContentLoader()">Cancel</button>
+  </div>
+</div>
+
+
+<!-- Popover Window (Modal) for Raw Paste -->
+<div id="rawJsonModal" style="display:none; position:fixed; top:10%; left:10%; width:80%; background:#fff; border:1px solid #ccc; padding:20px; z-index:1000;">
+  <h3>Paste Json here</h3>
+  <textarea id="rawJsonInput" style="width:100%; height:300px;"></textarea>
+  <div style="margin-top:10px;">
+    <button onclick="parseMultiSubjectJsonSeparate()">Parse</button>
+    <button onclick="closeJsonContentLoader()">Cancel</button>
   </div>
 </div>
 

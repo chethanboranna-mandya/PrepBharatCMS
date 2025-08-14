@@ -161,18 +161,19 @@ function setActiveQuestion(i) {
     generateJSON(activeIndex);
 }
 
-
 function renderQuestionList() {
     qList.innerHTML = "";
     questions.forEach((_, i) => {
         const btn = document.createElement("button");
         btn.textContent = i + 1;
         btn.dataset.idx = i;
+        btn.className = "q-list-btn";
         if (i === activeIndex) btn.classList.add("active");
         btn.onclick = () => setActiveQuestion(i);
         qList.appendChild(btn);
     });
 }
+
 
 function renderEditor() {
     const sbj = subjectSelect.value;
@@ -623,26 +624,33 @@ function copyJSON() {
 
 
 function showPreview() {
+    if (!activeSubject || !questionsBySubject[activeSubject]) {
+        alert("❌ No questions available for preview.");
+        return;
+    }
+
     const previewDiv = dom("previewContent");
-    const ttl = dom("tutorialTitle").value;
+    const ttl = `${activeSubject} Preview`;
+
+    const questions = questionsBySubject[activeSubject]; // ✅ now it's an array
 
     let html = `<h3>${ttl}</h3>`;
 
     questions.forEach((q, i) => {
-        const text = convertTablesInText(q.text);
+        const details = q.questionDetails?.[0] || {};
+        const text = convertTablesInText(details.text || "");
 
         html += `
             <div id="previewQ${i}" style="margin-bottom: 20px; padding: 8px; border-bottom: 1px solid #ddd;">
                 <div><b>Q${i + 1}.</b> ${text}</div>
-                ${q.questionImages?.map(url => `<img src="${url}" height="60" style="margin:4px;"/>`).join(" ") || ""}
+                ${(q.questionImages || []).map(url => `<img src="${url}" height="60" style="margin:4px;"/>`).join(" ")}
                 <ul>
                     ${["A", "B", "C", "D"].map(opt => {
-            const optText = q["opt" + opt] || "";
-            const optImg = q.optionImages?.[opt];
-            return `<li><b>${opt}:</b> ${optText} ${optImg ? `<img src="${optImg}" height="40" style="margin-left:6px;"/>` : ""}</li>`;
+            const optText = details.possibleAnswers?.[opt]?.text || "";
+            return `<li><b>${opt}:</b> ${optText}</li>`;
         }).join("")}
                 </ul>
-                <div><b>Answer:</b> ${q.correct || ""} - ${q.correctText || ""}</div>
+                <div><b>Answer:</b> ${details.correctAnswer || ""} - ${details.correctAnswerText || ""}</div>
             </div>`;
     });
 
@@ -650,7 +658,6 @@ function showPreview() {
 
     MathJax.typesetPromise([previewDiv]).then(() => {
         dom("previewPanel").classList.add("open");
-        scrollToPreviewQuestion(activeIndex); // ✅ Scroll after render
     });
 }
 
@@ -682,39 +689,29 @@ function updatePreviewForActiveQuestion() {
 
 
 
-
 function markdownTableToHtml(markdown) {
-    const lines = markdown.trim().split("\n").filter(Boolean);
+    const cleanMarkdown = markdown.replace(/<br\s*\/?>/gi, '').trim();
+    const lines = cleanMarkdown.split('\n').map(line => line.trim()).filter(Boolean);
 
     if (lines.length < 2) return "";
 
-    let html = "<table>\n";
-
     const splitRow = line => {
-        // Preserve empty cells: split and trim, but don't remove blanks
         return line.split("|").slice(1, -1).map(c => c.trim());
     };
 
+    const isSeparator = line => /^(\|\s*:?-+:?\s*)+\|$/.test(line);
     const headerCellsRaw = splitRow(lines[0]);
     const separatorLine = lines[1];
+    if (!isSeparator(separatorLine)) return "";
+
     const bodyLines = lines.slice(2);
 
-    // Detect merged header row (e.g., 2 cells only in a 4-col table)
-    if (headerCellsRaw.length <= 2) {
-        html += "<thead><tr>";
-        for (const cell of headerCellsRaw) {
-            html += `<th colspan="2">${cell}</th>`;
-        }
-        html += "</tr></thead>\n";
-    } else {
-        html += "<thead><tr>";
-        for (const cell of headerCellsRaw) {
-            html += `<th>${cell}</th>`;
-        }
-        html += "</tr></thead>\n";
+    let html = "<table>\n<thead><tr>";
+    for (const cell of headerCellsRaw) {
+        html += `<th>${cell}</th>`;
     }
+    html += "</tr></thead>\n<tbody>\n";
 
-    html += "<tbody>\n";
     bodyLines.forEach(line => {
         const cells = splitRow(line);
         html += "<tr>";
@@ -723,10 +720,12 @@ function markdownTableToHtml(markdown) {
         }
         html += "</tr>\n";
     });
-    html += "</tbody>\n</table>";
 
+    html += "</tbody>\n</table>";
     return html;
 }
+
+
 
 
 function convertTablesInText(text) {
@@ -787,6 +786,255 @@ function openRawContentLoader() {
 function closeRawContentLoader() {
     document.getElementById("rawContentModal").style.display = "none";
 }
+
+function openJsonContentLoader() {
+    document.getElementById("rawJsonModal").style.display = "block";
+}
+
+function closeJsonContentLoader() {
+    document.getElementById("rawJsonModal").style.display = "none";
+}
+
+let outputsPerSubject = {};   // { subjectName: jsonString }
+let questionsBySubject = {};  // { subjectName: parsedQuestionsArray }
+let activeSubject = null;
+
+function parseMultiSubjectJsonSeparate() {
+    try {
+        const raw = document.getElementById("rawJsonInput").value.trim();
+        if (!raw) throw "❌ No input detected.\n\nPaste JSON content from file.";
+
+        let inputData;
+        try {
+            inputData = JSON.parse(raw);
+        } catch {
+            throw "❌ Invalid JSON format. Please check your pasted content.";
+        }
+
+        if (!Array.isArray(inputData.results)) {
+            throw "❌ JSON format error: 'results' array not found.";
+        }
+
+
+
+        inputData.results.forEach(subjectBlock => {
+            const subjectName = subjectBlock._id;
+            const year = subjectBlock.questions?.[0]?.year?.toString() || "";
+            const subjectInitial = subjectName.toUpperCase()[0];
+
+            const transformedQuestions = subjectBlock.questions.map((q, idx) => {
+                const qIndex = (idx + 1).toString();
+                const qId = `${year}${subjectInitial}Q${qIndex}`;
+
+                const enQ = q.question.en;
+                const possibleAnswers = {};
+                enQ.options.forEach(opt => {
+                    possibleAnswers[opt.identifier] = {
+                        text: opt.content?.trim() || "",
+                        image: null
+                    };
+                });
+
+                return {
+                    questionIndex: qIndex,
+                    questionId: qId,
+                    questionDetails: [
+                        {
+                            text: stripHtml(enQ.content || ""),
+                            textImages: [],
+                            possibleAnswers,
+                            correctAnswer: enQ.correct_options?.[0] || "",
+                            correctAnswerText:
+                                possibleAnswers[enQ.correct_options?.[0]]?.text || ""
+                        }
+                    ]
+                };
+            });
+
+            const outputArray = [
+                {
+                    tutorialId: `${subjectName}_${year}`.replace(/\s+/g, "_"),
+                    tutorialTitle: `${subjectName} ${year}`,
+                    tutorialDescription: "",
+                    authorityExamId: "kar_kcet",
+                    state: "Karnataka",
+                    board: "KCET",
+                    conductedBy: "KEA (Karnataka Examinations Authority)",
+                    year,
+                    subject: subjectName,
+                    questions: transformedQuestions
+                }
+            ];
+
+            outputsPerSubject[subjectName] = JSON.stringify(outputArray, null, 2);
+            questionsBySubject[subjectName] = transformedQuestions; // store parsed data
+            if (!activeSubject) activeSubject = subjectName; // first subject as default
+            if (Object.keys(outputsPerSubject).length > 0) {
+                setActiveTab(Object.keys(outputsPerSubject)[0]);
+            }
+
+        });
+
+        // ✅ Create Tabs
+        const tabsContainer = document.getElementById("subjectTabs");
+        tabsContainer.innerHTML = ""; // clear old tabs
+
+        Object.keys(outputsPerSubject).forEach((subjectName, idx) => {
+            const tabBtn = document.createElement("button");
+            tabBtn.textContent = subjectName;
+            tabBtn.className = "subject-tab";
+            tabBtn.style.marginRight = "8px";
+            tabBtn.onclick = () => {
+                document.getElementById("output").textContent = outputsPerSubject[subjectName];
+                setActiveTab(subjectName);
+            };
+            tabsContainer.appendChild(tabBtn);
+
+            // auto-load first subject
+            if (idx === 0) {
+                document.getElementById("output").textContent = outputsPerSubject[subjectName];
+            }
+        });
+
+        // Highlight first tab by default
+        if (Object.keys(outputsPerSubject).length > 0) {
+            setActiveTab(Object.keys(outputsPerSubject)[0]);
+        }
+
+        alert(`✅ Generated ${Object.keys(outputsPerSubject).length} separate subject JSONs.`);
+
+    } catch (err) {
+        console.error(err);
+        showParseErrorDialog(err);
+    }
+}
+
+// Helper to highlight active tab
+function setDropdownSelectionsFromMeta(meta) {
+    const year = meta.year || "";
+    const subject = meta.subject || "";
+    const board = meta.board || "KCET";
+    const state = meta.state || "Karnataka";
+
+    // Auto-set dropdowns
+    stateSelect.value = state;
+    populateBoards(boardSelect, state);
+    boardSelect.value = board;
+    populateSubjects(subjectSelect, board);
+    subjectSelect.value = subject;
+    yearSelect.value = year;
+
+    // Find Authority Exam ID from config.js mapping
+    let examId = "";
+    if (examShortNameToIdMap[state] && examShortNameToIdMap[state][board]) {
+        examId = examShortNameToIdMap[state][board];
+    }
+
+    // Conducted By
+    let conductedBy = "";
+    if (examId && conductedByByIdMap[examId]) {
+        conductedBy = conductedByByIdMap[examId];
+    }
+
+    // Tutorial ID & Title
+    tutorialIdField.value = meta.tutorialId || `${subject}_${year}`;
+    dom("tutorialTitle").value = meta.tutorialTitle || `${subject} ${year}`;
+    dom("authorityExamId").value = examId || meta.authorityExamId || "";
+    dom("conductedBy").value = conductedBy || meta.conductedBy || "";
+}
+
+function loadQuestionsForSubject(subjectName) {
+    // Get transformed questions from parse step
+    const rawQuestions = questionsBySubject[subjectName] || [];
+    questions = convertKCETToEditorFormat(rawQuestions); // ✅ store converted format
+    activeIndex = 0;
+
+    // Render question numbers in left panel
+    renderQuestionList();
+    renderEditor(); // ✅ ensures editor shows immediately
+}
+
+
+function convertKCETToEditorFormat(rawQList) {
+    return rawQList.map(q => {
+        const d = q.questionDetails?.[0] || {};
+        return {
+            questionId: q.questionId,
+            text: d.text || "",
+            optA: d.possibleAnswers?.A?.text || "",
+            optB: d.possibleAnswers?.B?.text || "",
+            optC: d.possibleAnswers?.C?.text || "",
+            optD: d.possibleAnswers?.D?.text || "",
+            correct: d.correctAnswer || "",
+            correctText: d.correctAnswerText || "",
+            questionImages: d.textImages || [],
+            optionImages: {
+                A: d.possibleAnswers?.A?.image || "",
+                B: d.possibleAnswers?.B?.image || "",
+                C: d.possibleAnswers?.C?.image || "",
+                D: d.possibleAnswers?.D?.image || ""
+            }
+        };
+    });
+}
+
+
+function setActiveTab(subjectName) {
+    activeSubject = subjectName;
+
+    // Highlight active tab
+    document.querySelectorAll(".subject-tab").forEach(btn => {
+        btn.style.background = (btn.textContent === subjectName) ? "#007bff" : "";
+        btn.style.color = (btn.textContent === subjectName) ? "white" : "";
+    });
+
+    // Parse stored JSON for this subject
+    const jsonData = JSON.parse(outputsPerSubject[subjectName] || "[]");
+    if (!jsonData.length) return;
+
+    // ✅ Set dropdowns & meta fields
+    setDropdownSelectionsFromMeta(jsonData[0]);
+
+    // ✅ Load JSON into text area
+    document.getElementById("output").textContent = outputsPerSubject[subjectName] || "";
+
+    // ✅ Load questions into left panel
+    loadQuestionsForSubject(subjectName);
+}
+
+
+function populateBoards(boardSelectEl, stateName) {
+    boardSelectEl.innerHTML = ""; // clear old
+    if (!states[stateName]) return;
+    states[stateName].forEach(board => {
+        const opt = document.createElement("option");
+        opt.value = board;
+        opt.textContent = board;
+        boardSelectEl.appendChild(opt);
+    });
+}
+
+function populateSubjects(subjectSelectEl, boardName) {
+    subjectSelectEl.innerHTML = ""; // clear old
+    if (!boards[boardName]) return;
+    boards[boardName].forEach(subj => {
+        const opt = document.createElement("option");
+        opt.value = subj;
+        opt.textContent = subj;
+        subjectSelectEl.appendChild(opt);
+    });
+}
+
+
+
+// Small helper to strip HTML tags
+function stripHtml(html) {
+    const temp = document.createElement("div");
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || "";
+}
+
+
 
 function parseRawContent() {
     try {
