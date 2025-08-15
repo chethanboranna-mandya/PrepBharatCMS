@@ -853,7 +853,7 @@ function parseMultiSubjectJsonSeparate() {
                 return {
                     questionIndex: qIndex,
                     questionId: qId,
-                    type: questionType, // ✅ Always present
+                    type: questionType,
                     questionDetails: [
                         {
                             text: stripHtml(enQ.content || ""),
@@ -883,7 +883,10 @@ function parseMultiSubjectJsonSeparate() {
             ];
 
             outputsPerSubject[subjectName] = JSON.stringify(outputArray, null, 2);
-            questionsBySubject[subjectName] = transformedQuestions;
+
+            // ✅ Store already converted format so switching tabs doesn't reconvert
+            questionsBySubject[subjectName] = convertKCETToEditorFormat(transformedQuestions);
+
             if (!activeSubject) activeSubject = subjectName;
             if (Object.keys(outputsPerSubject).length > 0) {
                 setActiveTab(Object.keys(outputsPerSubject)[0]);
@@ -900,7 +903,6 @@ function parseMultiSubjectJsonSeparate() {
             tabBtn.className = "subject-tab";
             tabBtn.style.marginRight = "8px";
             tabBtn.onclick = () => {
-                document.getElementById("output").textContent = outputsPerSubject[subjectName];
                 setActiveTab(subjectName);
             };
             tabsContainer.appendChild(tabBtn);
@@ -957,15 +959,44 @@ function setDropdownSelectionsFromMeta(meta) {
 }
 
 function loadQuestionsForSubject(subjectName) {
-    // Get transformed questions from parse step
-    const rawQuestions = questionsBySubject[subjectName] || [];
-    questions = convertKCETToEditorFormat(rawQuestions); // ✅ store converted format
+    // ✅ Load only from questionsBySubject (already contains edits)
+    questions = [...(questionsBySubject[subjectName] || [])];
     activeIndex = 0;
-
-    // Render question numbers in left panel
     renderQuestionList();
-    renderEditor(); // ✅ ensures editor shows immediately
+    renderEditor();
 }
+
+function setActiveTab(subjectName) {
+    // 1️⃣ Save edits from current tab into memory
+    if (activeSubject && activeSubject !== subjectName) {
+        questionsBySubject[activeSubject] = [...questions]; // preserve edits
+    }
+
+    // 2️⃣ Switch active subject
+    activeSubject = subjectName;
+
+    // 3️⃣ Highlight active tab
+    document.querySelectorAll(".subject-tab").forEach(btn => {
+        btn.style.background = (btn.textContent === subjectName) ? "#007bff" : "";
+        btn.style.color = (btn.textContent === subjectName) ? "white" : "";
+    });
+
+    // 4️⃣ Restore editor content from memory
+    loadQuestionsForSubject(subjectName);
+
+    // 5️⃣ Set dropdowns from original meta (not touching questions)
+    if (outputsPerSubject[subjectName]) {
+        const jsonData = JSON.parse(outputsPerSubject[subjectName]);
+        if (jsonData.length) setDropdownSelectionsFromMeta(jsonData[0]);
+    }
+
+    // 6️⃣ Output panel shows the current saved state (including edits)
+    document.getElementById("output").textContent = JSON.stringify({
+        ...JSON.parse(outputsPerSubject[subjectName])[0],
+        questions: questionsBySubject[subjectName]
+    }, null, 2);
+}
+
 
 
 function convertKCETToEditorFormat(rawQList) {
@@ -990,31 +1021,6 @@ function convertKCETToEditorFormat(rawQList) {
         };
     });
 }
-
-
-function setActiveTab(subjectName) {
-    activeSubject = subjectName;
-
-    // Highlight active tab
-    document.querySelectorAll(".subject-tab").forEach(btn => {
-        btn.style.background = (btn.textContent === subjectName) ? "#007bff" : "";
-        btn.style.color = (btn.textContent === subjectName) ? "white" : "";
-    });
-
-    // Parse stored JSON for this subject
-    const jsonData = JSON.parse(outputsPerSubject[subjectName] || "[]");
-    if (!jsonData.length) return;
-
-    // ✅ Set dropdowns & meta fields
-    setDropdownSelectionsFromMeta(jsonData[0]);
-
-    // ✅ Load JSON into text area
-    document.getElementById("output").textContent = outputsPerSubject[subjectName] || "";
-
-    // ✅ Load questions into left panel
-    loadQuestionsForSubject(subjectName);
-}
-
 
 function populateBoards(boardSelectEl, stateName) {
     boardSelectEl.innerHTML = ""; // clear old
