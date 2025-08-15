@@ -917,7 +917,7 @@ function parseMultiSubjectJsonSeparate() {
         }
 
         alert(`✅ Generated ${Object.keys(outputsPerSubject).length} separate subject JSONs.`);
-
+        closeJsonContentLoader();
     } catch (err) {
         console.error(err);
         showParseErrorDialog(err);
