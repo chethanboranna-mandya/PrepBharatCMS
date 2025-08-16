@@ -47,6 +47,59 @@ yearSelect.onchange = () => {
     regenerateQuestionIds();
 };
 
+function saveCurrentSubjectState() {
+    if (!activeSubject) {
+        console.warn("No active subject to save");
+        return;
+    }
+    // Deep copy to avoid reference issues
+    questionsBySubject[activeSubject] = JSON.parse(JSON.stringify(questions));
+    console.log(`Saved questions for ${activeSubject}:`, questionsBySubject[activeSubject]); // Debug log
+
+    // Generate JSON matching expected structure
+    const tId = tutorialIdField.value || `KCET_${yearSelect.value || '2025'}_${activeSubject}`;
+    const ttl = dom("tutorialTitle").value || `KCET ${yearSelect.value || '2025'} ${activeSubject}`;
+    const aid = dom("authorityExamId").value || "kar_kect"; // Use expected "kar_kect"
+    const state = stateSelect.value || "Karnataka";
+    const board = boardSelect.value || "KCET";
+    const conductedBy = dom("conductedBy").value || "KEA (Karnataka Examinations Authority)";
+    const year = yearSelect.value || "2025";
+    const subject = activeSubject;
+
+    const out = questions.map((q, i) => ({
+        questionIndex: (i + 1).toString(),
+        questionId: q.questionId,
+        questionDetails: [{
+            text: q.text || "",
+            textImages: q.questionImages || [],
+            possibleAnswers: {
+                A: { text: q.optA || "", image: q.optionImages?.A || null },
+                B: { text: q.optB || "", image: q.optionImages?.B || null },
+                C: { text: q.optC || "", image: q.optionImages?.C || null },
+                D: { text: q.optD || "", image: q.optionImages?.D || null },
+            },
+            correctAnswer: q.correct || "",
+            correctAnswerText: q.correctText || ""
+        }]
+    }));
+
+    const result = [{
+        tutorialId: tId,
+        tutorialTitle: ttl,
+        tutorialDescription: "",
+        authorityExamId: aid,
+        state: state,
+        board: board,
+        conductedBy: conductedBy,
+        year: year,
+        subject: subject,
+        questions: out
+    }];
+
+    outputsPerSubject[activeSubject] = JSON.stringify(result, null, 2);
+    console.log(`Updated JSON for ${activeSubject}:`, outputsPerSubject[activeSubject]); // Debug log
+}
+
 
 function fillStates() {
     Object.keys(states).forEach(state => {
@@ -123,7 +176,7 @@ function addQuestion(showAlert = true) {
         return;
     }
 
-    const questionNumber = questions.length + 1; // 1-based index
+    const questionNumber = questions.length + 1;
     const subjectInitial = subject[0].toUpperCase();
     const sentenceId = `${year}${subjectInitial}Q${questionNumber}`;
 
@@ -135,16 +188,22 @@ function addQuestion(showAlert = true) {
         optC: "",
         optD: "",
         correct: "",
+        correctText: "",
+        type: "mcq", // Default type
         questionImages: [],
-        optionImages: {}
+        optionImages: { A: "", B: "", C: "", D: "" }
     });
     setActiveQuestion(questions.length - 1);
+    saveCurrentSubjectState(); // Save after adding
 }
 
 
 function removeQuestion() {
-    if (questions.length) questions.pop();
-    setActiveQuestion(Math.max(questions.length - 1, 0));
+    if (questions.length) {
+        questions.pop();
+        setActiveQuestion(Math.max(questions.length - 1, 0));
+        saveCurrentSubjectState(); // Save after removing
+    }
 }
 
 function setActiveQuestion(i) {
@@ -179,13 +238,21 @@ function renderEditor() {
     const sbj = subjectSelect.value;
     const yr = yearSelect.value;
     const brd = boardSelect.value;
-
     const editor = dom("questionEditor");
 
-    if (!sbj || !yr || !brd) {
+    if (!sbj || !yr || !brd || !activeSubject) {
         editor.innerHTML = `<div style="color: red; font-weight: bold; padding: 12px;">
             ❗ Please select <u>Board</u>, <u>Year</u>, and <u>Subject</u> before editing questions.
         </div>`;
+        console.log("Editor blocked: Missing subject, year, board, or activeSubject"); // Debug log
+        return;
+    }
+
+    if (!questions.length || activeIndex < 0) {
+        editor.innerHTML = `<div style="color: orange; font-weight: bold; padding: 12px;">
+            ⚠️ No questions available for ${sbj}. Add a question to start editing.
+        </div>`;
+        console.log(`No questions for ${sbj}, activeIndex: ${activeIndex}`); // Debug log
         return;
     }
 
@@ -195,10 +262,10 @@ function renderEditor() {
 <h4>Question ${activeIndex + 1}</h4>
 
 <label>Question ID:</label>
-<input value="${q.questionId}" readonly style="background:#f3f3f3; color:#555; cursor:not-allowed;"/>
+<input value="${q.questionId || ''}" readonly style="background:#f3f3f3; color:#555; cursor:not-allowed;"/>
 
 <label>Type:</label>
-<select onchange="questions[${activeIndex}].type=this.value; generateJSON();">
+<select onchange="questions[${activeIndex}].type=this.value; saveCurrentSubjectState(); debouncedGenerateJSON();">
   ${["mcq", "integer", "truefalse", "fillblank"].map(t =>
         `<option value="${t}" ${q.type === t ? "selected" : ""}>${t}</option>`
     ).join("")}
@@ -206,7 +273,7 @@ function renderEditor() {
 
 <label>Question Text:</label>
 <textarea rows="8" class="question-textarea" 
-          oninput="questions[${activeIndex}].text=this.value; generateJSON();">${q.text}</textarea>
+          oninput="questions[${activeIndex}].text=this.value; saveCurrentSubjectState(); debouncedGenerateJSON();">${q.text || ''}</textarea>
 
 <h5 style="margin-top: 10px;">Uploaded Q Images:</h5>
 <div id="qImagesContainer_${activeIndex}"></div>
@@ -215,23 +282,23 @@ function renderEditor() {
 </div>
 
 <div id="qUrls_${activeIndex}">
-    ${q.questionImages.map((url, idx) => `
+    ${q.questionImages?.map((url, idx) => `
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
             <img src="${url}" width="50" height="50"/>
             <a href="${url}" target="_blank">Image ${idx + 1}</a>
             <button style="color:red; cursor:pointer;" onclick="removeExistingQImage(${activeIndex}, ${idx})">✖</button>
         </div>
-    `).join("")}
+    `).join("") || ""}
 </div>
 
 ${["A", "B", "C", "D"].map((opt, idx) => `
 <div class="free" style="margin-top:12px;">
   <label>Option ${opt}:</label>
   <textarea rows="4" class="option-textarea" 
-          oninput="questions[${activeIndex}].opt${opt}=this.value; generateJSON();">${q["opt" + opt]}</textarea>
+          oninput="questions[${activeIndex}].opt${opt}=this.value; saveCurrentSubjectState(); debouncedGenerateJSON();">${q["opt" + opt] || ''}</textarea>
 
   <div id="opt${opt}Url_${activeIndex}">
-    ${q.optionImages[opt] ? `
+    ${q.optionImages?.[opt] ? `
         <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
             <img src="${q.optionImages[opt]}" width="50" height="50"/>
             <a href="${q.optionImages[opt]}" target="_blank">Option ${opt}</a>
@@ -244,27 +311,38 @@ ${["A", "B", "C", "D"].map((opt, idx) => `
 </div>`).join("")}
 
 <label>Correct Answer:</label>
-<select onchange="questions[${activeIndex}].correct=this.value; generateJSON();">
+<select onchange="questions[${activeIndex}].correct=this.value; saveCurrentSubjectState(); debouncedGenerateJSON();">
   <option></option>${["A", "B", "C", "D"].map(o => `<option ${q.correct === o ? "selected" : ""}>${o}</option>`).join("")}
 </select>
 
 <label>Correct Answer Text:</label>
 <input value="${q.correctText || ""}" 
-       oninput="questions[${activeIndex}].correctText=this.value; generateJSON();"/>
+       oninput="questions[${activeIndex}].correctText=this.value; saveCurrentSubjectState(); debouncedGenerateJSON();"/>
 `;
+    console.log(`Rendered editor for ${sbj}, question ${activeIndex + 1}:`, q); // Debug log
 }
 
+
+function debounce(func, wait = 300) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+const debouncedGenerateJSON = debounce(generateJSON);
 
 function removeExistingQImage(index, imgIdx) {
     if (!confirm("Remove this question image?")) return;
     questions[index].questionImages.splice(imgIdx, 1);
-    renderEditor(); // Refresh to reflect changes
+    renderEditor();
+    saveCurrentSubjectState(); // Save after image removal
 }
-
 function removeExistingOptImage(index, opt) {
     if (!confirm("Remove this option image?")) return;
     questions[index].optionImages[opt] = null;
-    renderEditor(); // Refresh to reflect changes
+    renderEditor();
+    saveCurrentSubjectState(); // Save after image removal
 }
 
 
@@ -303,6 +381,7 @@ function handleQImages(ev, index) {
             progress.value = percent;
         }).then(url => {
             questions[index].questionImages.push(url);
+            saveCurrentSubjectState();
             generateJSON();
             const thumbnail = document.createElement("img");
             thumbnail.src = url;
@@ -407,6 +486,7 @@ function handleOptImage(ev, i, opt, optNumber) {
         fileInput.remove();
 
         questions[i].optionImages[opt] = url;
+        saveCurrentSubjectState();
         generateJSON();
         status.textContent = "✅ Uploaded";
         thumbnail.src = url;
@@ -448,31 +528,29 @@ function handleOptImage(ev, i, opt, optNumber) {
 }
 
 function generateJSON(activeIndex = -1) {
-    const tId = tutorialIdField.value;
-    const ttl = dom("tutorialTitle").value;
-    const aid = dom("authorityExamId").value;
-
-    const state = dom("stateSelect").value;
-    const board = dom("boardSelect").value;
-    const conductedBy = dom("conductedBy").value;
-    const year = dom("yearSelect").value;
-    const subject = dom("subjectSelect").value;
+    const tId = tutorialIdField.value || `KCET_${yearSelect.value || '2025'}_${subjectSelect.value || 'Unknown'}`;
+    const ttl = dom("tutorialTitle").value || `KCET ${yearSelect.value || '2025'} ${subjectSelect.value || 'Unknown'}`;
+    const aid = dom("authorityExamId").value || "kar_kect"; // Match expected JSON
+    const state = stateSelect.value || "Karnataka";
+    const board = boardSelect.value || "KCET";
+    const conductedBy = dom("conductedBy").value || "KEA (Karnataka Examinations Authority)";
+    const year = yearSelect.value || "2025";
+    const subject = subjectSelect.value || "Unknown";
 
     const out = questions.map((q, i) => ({
         questionIndex: (i + 1).toString(),
         questionId: q.questionId,
-        type: q.type || "mcq", // ✅ Added type (default mcq if missing)
         questionDetails: [{
-            text: q.text,
+            text: q.text || "",
             textImages: q.questionImages || [],
             possibleAnswers: {
-                A: { text: q.optA, image: q.optionImages?.A || null },
-                B: { text: q.optB, image: q.optionImages?.B || null },
-                C: { text: q.optC, image: q.optionImages?.C || null },
-                D: { text: q.optD, image: q.optionImages?.D || null },
+                A: { text: q.optA || "", image: q.optionImages?.A || null },
+                B: { text: q.optB || "", image: q.optionImages?.B || null },
+                C: { text: q.optC || "", image: q.optionImages?.C || null },
+                D: { text: q.optD || "", image: q.optionImages?.D || null },
             },
-            correctAnswer: q.correct,
-            correctAnswerText: q.correctText || "",
+            correctAnswer: q.correct || "",
+            correctAnswerText: q.correctText || ""
         }]
     }));
 
@@ -489,12 +567,16 @@ function generateJSON(activeIndex = -1) {
         questions: out
     }];
 
-    // Generate raw JSON string (for export & saving)
+    // Generate raw JSON string
     const jsonStr = JSON.stringify(result, null, 2);
 
-    // Render for UI: Add spans ONLY to questionIndex lines for scrolling
-    const lines = jsonStr.split('\n');
+    // Update outputsPerSubject for the active subject
+    if (activeSubject) {
+        outputsPerSubject[activeSubject] = jsonStr;
+    }
 
+    // Render for UI with questionIndex spans
+    const lines = jsonStr.split('\n');
     const htmlLines = lines.map(line => {
         const match = /"questionIndex":\s?"(\d+)"/.exec(line);
         if (match) {
@@ -504,7 +586,6 @@ function generateJSON(activeIndex = -1) {
         return line;
     });
 
-    // Render to output using <pre> or <output>
     dom("output").innerHTML = htmlLines.join('<br/>');
 
     // Auto-scroll to active question
@@ -522,9 +603,14 @@ function generateJSON(activeIndex = -1) {
         updatePreviewForActiveQuestion();
     }
 
-    // Store clean JSON separately for export (no spans!)
+    // Store clean JSON for export
     window.latestExportJSON = jsonStr;
-    window.lastGeneratedJSONString = JSON.stringify(result, null, 2);
+    window.lastGeneratedJSONString = jsonStr;
+
+    // Save to questionsBySubject
+    if (activeSubject) {
+        questionsBySubject[activeSubject] = JSON.parse(JSON.stringify(questions));
+    }
 }
 
 
@@ -547,7 +633,7 @@ function loadFromFile() {
     const r = new FileReader();
     r.onload = e => {
         try {
-            const dt = JSON.parse(e.target.result)[0];
+            const dt = JSON.parse(e.target.result)[0]; // Expect array
             window.currentTutorial = dt;
             dom("tutorialTitle").value = dt.tutorialTitle;
             dom("authorityExamId").value = dt.authorityExamId;
@@ -560,6 +646,7 @@ function loadFromFile() {
             updateTutorialId();
 
             questions.length = 0;
+            activeSubject = s;
 
             dt.questions.forEach((q, idx) => {
                 const d = q.questionDetails[0];
@@ -568,15 +655,12 @@ function loadFromFile() {
                 const year = yearSelect.value;
                 const correctFormat = `${year}${subjectInitial}Q${questionNumber}`;
 
-                // Use questionId directly
                 let existingId = (q.questionId || "").toString().trim();
-
-                // Simple regex check: e.g., 2004KQ1
                 const pattern = new RegExp(`^${year}${subjectInitial}Q${questionNumber}$`);
                 const finalId = pattern.test(existingId) && existingId !== "" ? existingId : correctFormat;
 
                 questions.push({
-                    questionId: finalId, // Keep field name 'sentenceId' in memory for compatibility
+                    questionId: finalId,
                     text: d.text,
                     optA: d.possibleAnswers.A.text,
                     optB: d.possibleAnswers.B.text,
@@ -584,18 +668,23 @@ function loadFromFile() {
                     optD: d.possibleAnswers.D.text,
                     correct: d.correctAnswer,
                     correctText: d.correctAnswerText,
+                    type: q.type || "mcq",
                     questionImages: d.textImages || [],
                     optionImages: {
-                        A: d.possibleAnswers.A.image,
-                        B: d.possibleAnswers.B.image,
-                        C: d.possibleAnswers.C.image,
-                        D: d.possibleAnswers.D.image
+                        A: d.possibleAnswers.A.image || "",
+                        B: d.possibleAnswers.B.image || "",
+                        C: d.possibleAnswers.C.image || "",
+                        D: d.possibleAnswers.D.image || ""
                     }
                 });
             });
 
-            while (questions.length < 60) addQuestion();
+            // Save to questionsBySubject
+            questionsBySubject[s] = JSON.parse(JSON.stringify(questions));
+            outputsPerSubject[s] = JSON.stringify([dt], null, 2);
+
             setActiveQuestion(0);
+            saveCurrentSubjectState();
         } catch (err) {
             console.error(err);
             alert("Invalid JSON");
@@ -631,7 +720,7 @@ function copyJSON() {
 
 
 function showPreview() {
-    if (!activeSubject || !questionsBySubject[activeSubject]) {
+    if (!activeSubject || !questions.length) {
         alert("❌ No questions available for preview.");
         return;
     }
@@ -639,25 +728,28 @@ function showPreview() {
     const previewDiv = dom("previewContent");
     const ttl = `${activeSubject} Preview`;
 
-    const questions = questionsBySubject[activeSubject]; // ✅ now it's an array
-
     let html = `<h3>${ttl}</h3>`;
 
     questions.forEach((q, i) => {
-        const details = q.questionDetails?.[0] || {};
-        const text = convertTablesInText(details.text || "");
+        const text = convertTablesInText(q.text || "");
+        const optA = q.optA || "";
+        const optB = q.optB || "";
+        const optC = q.optC || "";
+        const optD = q.optD || "";
+        const correct = q.correct || "";
+        const correctText = q.correctText || "";
 
         html += `
             <div id="previewQ${i}" style="margin-bottom: 20px; padding: 8px; border-bottom: 1px solid #ddd;">
                 <div><b>Q${i + 1}.</b> ${text}</div>
                 ${(q.questionImages || []).map(url => `<img src="${url}" height="60" style="margin:4px;"/>`).join(" ")}
                 <ul>
-                    ${["A", "B", "C", "D"].map(opt => {
-            const optText = details.possibleAnswers?.[opt]?.text || "";
-            return `<li><b>${opt}:</b> ${optText}</li>`;
-        }).join("")}
+                    <li><b>A:</b> ${optA}</li>
+                    <li><b>B:</b> ${optB}</li>
+                    <li><b>C:</b> ${optC}</li>
+                    <li><b>D:</b> ${optD}</li>
                 </ul>
-                <div><b>Answer:</b> ${details.correctAnswer || ""} - ${details.correctAnswerText || ""}</div>
+                <div><b>Answer:</b> ${correct} - ${correctText}</div>
             </div>`;
     });
 
@@ -665,9 +757,11 @@ function showPreview() {
 
     MathJax.typesetPromise([previewDiv]).then(() => {
         dom("previewPanel").classList.add("open");
+        document.body.classList.add("panel-open");
+    }).catch(err => {
+        console.error("MathJax rendering failed:", err);
     });
 }
-
 
 function updatePreviewForActiveQuestion() {
     const q = questions[activeIndex];
@@ -809,7 +903,7 @@ let activeSubject = null;
 function parseMultiSubjectJsonSeparate() {
     try {
         const raw = document.getElementById("rawJsonInput").value.trim();
-        if (!raw) throw "❌ No input detected.\n\nPaste JSON content from file.";
+        if (!raw) throw "❌ No input detected.\nPaste JSON content from file.";
 
         let inputData;
         try {
@@ -822,96 +916,83 @@ function parseMultiSubjectJsonSeparate() {
             throw "❌ JSON format error: 'results' array not found.";
         }
 
-        inputData.results.forEach(subjectBlock => {
-            const subjectName = subjectBlock._id;
-            const year = subjectBlock.questions?.[0]?.year?.toString() || "";
-            const subjectInitial = subjectName.toUpperCase()[0];
+        // Clear existing data
+        outputsPerSubject = {};
+        questionsBySubject = {};
+        activeSubject = "";
 
+        inputData.results.forEach(subjectBlock => {
+            const subjectName = subjectBlock._id || "Unknown";
+            const firstQ = subjectBlock.questions?.[0] || {};
+            const year = firstQ.year?.toString() || "2025";
+            const subjectInitial = subjectName[0]?.toUpperCase() || "";
+            const state = "Karnataka";
+            const board = "KCET";
+            const conductedBy = "KEA (Karnataka Examinations Authority)";
+
+            // Build KCET-format questions
             const transformedQuestions = subjectBlock.questions.map((q, idx) => {
                 const qIndex = (idx + 1).toString();
                 const qId = `${year}${subjectInitial}Q${qIndex}`;
-
-                const enQ = q.question.en;
-
+                const enQ = q.question?.en || {};
                 const possibleAnswers = {};
-                enQ.options.forEach(opt => {
+                (enQ.options || []).forEach(opt => {
                     possibleAnswers[opt.identifier] = {
                         text: opt.content?.trim() || "",
                         image: null
                     };
                 });
 
-                // Auto-detect type or default to mcq
-                let questionType = enQ.type || "mcq";
-                if (!enQ.type) {
-                    const optionCount = Object.keys(possibleAnswers).length;
-                    if (optionCount === 2) questionType = "truefalse";
-                    else if (optionCount === 4) questionType = "mcq";
-                    else questionType = "other";
-                }
-
                 return {
                     questionIndex: qIndex,
                     questionId: qId,
-                    type: questionType,
-                    questionDetails: [
-                        {
-                            text: stripHtml(enQ.content || ""),
-                            textImages: [],
-                            possibleAnswers,
-                            correctAnswer: enQ.correct_options?.[0] || "",
-                            correctAnswerText:
-                                possibleAnswers[enQ.correct_options?.[0]]?.text || ""
-                        }
-                    ]
+                    questionDetails: [{
+                        text: stripHtml(enQ.content || ""),
+                        textImages: [],
+                        possibleAnswers,
+                        correctAnswer: enQ.correct_options?.[0] || "",
+                        correctAnswerText: possibleAnswers[enQ.correct_options?.[0]]?.text || ""
+                    }]
                 };
             });
 
-            const outputArray = [
-                {
-                    tutorialId: `${subjectName}_${year}`.replace(/\s+/g, "_"),
-                    tutorialTitle: `${subjectName} ${year}`,
-                    tutorialDescription: "",
-                    authorityExamId: "kar_kcet",
-                    state: "Karnataka",
-                    board: "KCET",
-                    conductedBy: "KEA (Karnataka Examinations Authority)",
-                    year,
-                    subject: subjectName,
-                    questions: transformedQuestions
-                }
-            ];
+            // Wrap in tutorial structure (array to match expected JSON)
+            const outputArray = [{
+                tutorialId: `KCET_${year}_${subjectName}`.replace(/\s+/g, "_"),
+                tutorialTitle: `KCET ${year} ${subjectName}`,
+                tutorialDescription: "",
+                authorityExamId: "kar_kect", // Match expected JSON
+                state,
+                board,
+                conductedBy,
+                year,
+                subject: subjectName,
+                questions: transformedQuestions
+            }];
 
+            // Save per-subject JSON
             outputsPerSubject[subjectName] = JSON.stringify(outputArray, null, 2);
-
-            // ✅ Store already converted format so switching tabs doesn't reconvert
+            // Prepare editor-friendly questions
             questionsBySubject[subjectName] = convertKCETToEditorFormat(transformedQuestions);
-
             if (!activeSubject) activeSubject = subjectName;
-            if (Object.keys(outputsPerSubject).length > 0) {
-                setActiveTab(Object.keys(outputsPerSubject)[0]);
-            }
         });
 
-        // ✅ Create Tabs
+        // Build subject tabs
         const tabsContainer = document.getElementById("subjectTabs");
         tabsContainer.innerHTML = "";
-
         Object.keys(outputsPerSubject).forEach((subjectName, idx) => {
             const tabBtn = document.createElement("button");
             tabBtn.textContent = subjectName;
             tabBtn.className = "subject-tab";
             tabBtn.style.marginRight = "8px";
-            tabBtn.onclick = () => {
-                setActiveTab(subjectName);
-            };
+            tabBtn.onclick = () => setActiveTab(subjectName);
             tabsContainer.appendChild(tabBtn);
-
             if (idx === 0) {
                 document.getElementById("output").textContent = outputsPerSubject[subjectName];
             }
         });
 
+        // Load first subject
         if (Object.keys(outputsPerSubject).length > 0) {
             setActiveTab(Object.keys(outputsPerSubject)[0]);
         }
@@ -923,6 +1004,11 @@ function parseMultiSubjectJsonSeparate() {
         showParseErrorDialog(err);
     }
 }
+
+
+
+
+
 
 // Helper to highlight active tab
 function setDropdownSelectionsFromMeta(meta) {
@@ -967,34 +1053,54 @@ function loadQuestionsForSubject(subjectName) {
 }
 
 function setActiveTab(subjectName) {
-    // 1️⃣ Save edits from current tab into memory
+    // Save current subject's state before switching
     if (activeSubject && activeSubject !== subjectName) {
-        questionsBySubject[activeSubject] = [...questions]; // preserve edits
+        saveCurrentSubjectState();
     }
 
-    // 2️⃣ Switch active subject
+    // Update active subject
     activeSubject = subjectName;
+    console.log(`Switching to subject: ${subjectName}`); // Debug log
 
-    // 3️⃣ Highlight active tab
+    // Highlight active tab
     document.querySelectorAll(".subject-tab").forEach(btn => {
-        btn.style.background = (btn.textContent === subjectName) ? "#007bff" : "";
-        btn.style.color = (btn.textContent === subjectName) ? "white" : "";
+        btn.style.background = btn.textContent === subjectName ? "#007bff" : "";
+        btn.style.color = btn.textContent === subjectName ? "white" : "";
     });
 
-    // 4️⃣ Restore editor content from memory
+    // Initialize storage for new subject if it doesn't exist
+    if (!questionsBySubject[subjectName]) {
+        questionsBySubject[subjectName] = [];
+        console.log(`Initialized empty questions for ${subjectName}`); // Debug log
+    }
+    if (!outputsPerSubject[subjectName]) {
+        const defaultJson = [{
+            tutorialId: `KCET_${yearSelect.value || '2025'}_${subjectName}`,
+            tutorialTitle: `KCET ${yearSelect.value || '2025'} ${subjectName}`,
+            tutorialDescription: "",
+            authorityExamId: "kar_kect", // Match expected JSON
+            state: stateSelect.value || "Karnataka",
+            board: boardSelect.value || "KCET",
+            conductedBy: conductedByByIdMap[examShortNameToIdMap[stateSelect.value || "Karnataka"]?.[boardSelect.value || "KCET"]] || "KEA (Karnataka Examinations Authority)",
+            year: yearSelect.value || "2025",
+            subject: subjectName,
+            questions: []
+        }];
+        outputsPerSubject[subjectName] = JSON.stringify(defaultJson, null, 2);
+        console.log(`Initialized JSON for ${subjectName}:`, outputsPerSubject[subjectName]); // Debug log
+    }
+
+    // Load questions
     loadQuestionsForSubject(subjectName);
 
-    // 5️⃣ Set dropdowns from original meta (not touching questions)
+    // Set dropdowns & meta fields
     if (outputsPerSubject[subjectName]) {
         const jsonData = JSON.parse(outputsPerSubject[subjectName]);
         if (jsonData.length) setDropdownSelectionsFromMeta(jsonData[0]);
     }
 
-    // 6️⃣ Output panel shows the current saved state (including edits)
-    document.getElementById("output").textContent = JSON.stringify({
-        ...JSON.parse(outputsPerSubject[subjectName])[0],
-        questions: questionsBySubject[subjectName]
-    }, null, 2);
+    // Update output panel
+    document.getElementById("output").textContent = outputsPerSubject[subjectName] || "";
 }
 
 
