@@ -316,8 +316,10 @@ ${["A", "B", "C", "D"].map((opt, idx) => `
 </select>
 
 <label>Correct Answer Text:</label>
-<input value="${q.correctText || ""}" 
-       oninput="questions[${activeIndex}].correctText=this.value; saveCurrentSubjectState(); debouncedGenerateJSON();"/>
+<textarea rows="3" class="answer-textarea"
+   oninput="questions[${activeIndex}].correctText=this.value; saveCurrentSubjectState(); debouncedGenerateJSON();"
+   style="width:100%; resize:vertical;">${q.correctText || ''}</textarea>
+
 `;
     console.log(`Rendered editor for ${sbj}, question ${activeIndex + 1}:`, q); // Debug log
 }
