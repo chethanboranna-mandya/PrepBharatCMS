@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Web Interface</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Web Interface Test</h1>
+    
+    <div class="test-section info">
+        <h3>Test Instructions</h3>
+        <p>1. Open the main interface: <a href="sophisticated-md-to-json.html" target="_blank">sophisticated-md-to-json.html</a></p>
+        <p>2. Upload the file: <code>comprehensive_test.md</code></p>
+        <p>3. Click "Parse Markdown"</p>
+        <p>4. Click "Preview Questions"</p>
+        <p>5. Verify that all 75 questions are found and properly categorized by subject</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Expected Results</h3>
+        <ul>
+            <li><strong>Physics (1-25):</strong> 25 questions</li>
+            <li><strong>Chemistry (26-50):</strong> 25 questions</li>
+            <li><strong>Mathematics (51-75):</strong> 25 questions</li>
+            <li><strong>Total:</strong> 75 questions</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test File Content Preview</h3>
+        <p>The test file contains questions in the format:</p>
+        <pre>1. Question text with math notation $x^2 + 3x + 2$
+(1) Option A
+(2) Option B
+(3) Option C
+(4) Option D
+Ans. (1)</pre>
+    </div>
+    
+    <div class="test-section">
+        <h3>Key Features to Test</h3>
+        <ul>
+            <li>✅ Question detection (number. format)</li>
+            <li>✅ MathJax preservation in JSON and UI</li>
+            <li>✅ Subject classification (Physics, Chemistry, Mathematics)</li>
+            <li>✅ Option extraction (A, B, C, D format)</li>
+            <li>✅ Answer extraction (Ans. format)</li>
+            <li>✅ JSON generation and display</li>
+            <li>✅ Subject-based tabs</li>
+            <li>✅ Side-by-side JSON and UI panels</li>
+        </ul>
+    </div>
+</body>
+</html>

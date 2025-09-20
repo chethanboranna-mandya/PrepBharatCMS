@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sophisticated Markdown to JSON Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+        }
+
+
+        .subject-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            background: white;
+            border-radius: 10px 10px 0 0;
+            overflow-x: auto;
+        }
+
+        .subject-tab {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-bottom: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #666;
+            white-space: nowrap;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .subject-tab:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        .subject-tab:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        .subject-tab.active {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+        }
+
+        .subject-tab:hover:not(.active) {
+            background: #e8f4fd;
+            color: #4facfe;
+        }
+
+        .subject-content {
+            display: none;
+            background: white;
+            border-radius: 0 0 10px 10px;
+            border: 1px solid #e9ecef;
+            border-top: none;
+            min-height: 70vh;
+        }
+
+        .subject-content.active {
+            display: block;
+        }
+
+        .subject-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 70vh;
+        }
+
+        .json-panel {
+            padding: 30px;
+            border-right: 2px solid #f0f0f0;
+            background: #fafafa;
+            overflow-y: auto;
+        }
+
+        .ui-panel {
+            padding: 30px;
+            background: white;
+            overflow-y: auto;
+        }
+
+        .upload-section {
+            background: white;
+            border: 3px dashed #4facfe;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #00f2fe;
+            background: #f8fcff;
+        }
+
+        .upload-section.dragover {
+            border-color: #00f2fe;
+            background: #e8f4fd;
+            transform: scale(1.02);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .preview-section {
+            margin-top: 20px;
+        }
+
+        .preview-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .preview-content {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .json-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .subject-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .subject-tab {
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-bottom: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .subject-tab:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .subject-tab:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .subject-tab.active {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+        }
+
+        .subject-tab:hover:not(.active) {
+            background: #e8f4fd;
+            color: #4facfe;
+        }
+
+        .subject-content {
+            display: none;
+        }
+
+        .subject-content.active {
+            display: block;
+        }
+
+        .questions-container {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .question-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .question-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .question-number {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .question-subject {
+            background: #e8f4fd;
+            color: #4facfe;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .question-text {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .options-container {
+            margin-bottom: 15px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .option-item:hover {
+            background: #e9ecef;
+        }
+
+        .option-letter {
+            background: #4facfe;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+
+        .option-text {
+            flex: 1;
+            line-height: 1.4;
+            font-size: 0.95rem;
+        }
+
+        .correct-option {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .correct-option .option-letter {
+            background: #28a745;
+        }
+
+        .solution-container {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 0 6px 6px 0;
+            margin-top: 15px;
+        }
+
+        .solution-title {
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .solution-text {
+            line-height: 1.5;
+            color: #333;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .json-viewer {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            white-space: pre;
+            word-wrap: break-word;
+            word-break: break-all;
+            overflow-wrap: break-word;
+            font-variant-ligatures: none;
+        }
+        
+        /* Prevent MathJax from processing JSON content */
+        .json-viewer * {
+            font-family: 'Courier New', monospace !important;
+        }
+        
+        .json-viewer .MathJax {
+            display: none !important;
+        }
+
+        .no-questions {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .subject-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .question-preview {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .question-number {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .question-subject {
+            background: #e8f4fd;
+            color: #4facfe;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .question-text {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .options {
+            margin-bottom: 15px;
+        }
+
+        .option {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .option-letter {
+            background: #4facfe;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .option-text {
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .solution {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 0 6px 6px 0;
+            margin-top: 15px;
+        }
+
+        .solution-title {
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-item {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .image-caption {
+            padding: 10px;
+            font-size: 0.9rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .left-panel {
+                border-right: none;
+                border-bottom: 2px solid #f0f0f0;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+    
+    <script>
+        window.MathJax = {
+            tex: { 
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Sophisticated Markdown to JSON Converter</h1>
+            <p>Intelligently parse markdown files to extract questions, options, solutions, and images</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📄</div>
+                <h3>Upload Markdown File</h3>
+                <p>Drag and drop your .md file here or click to browse</p>
+                <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    📁 Choose File
+                </button>
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <h4>📋 File Information</h4>
+                <div id="fileDetails"></div>
+            </div>
+
+            <div class="controls">
+                <button class="btn" id="parseBtn" onclick="parseMarkdown()" disabled>
+                    🔍 Parse Markdown
+                </button>
+                <button class="btn secondary" id="previewBtn" onclick="previewQuestions()" disabled>
+                    👁️ Preview Questions
+                </button>
+                <button class="btn success" id="generateBtn" onclick="generateJSON()" disabled>
+                    📄 Generate JSON
+                </button>
+                <button class="btn secondary" id="downloadBtn" onclick="downloadJSON()" disabled>
+                    💾 Download JSON
+                </button>
+            </div>
+
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalQuestions">0</div>
+                    <div class="stat-label">Questions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalImages">0</div>
+                    <div class="stat-label">Images</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalSubjects">0</div>
+                    <div class="stat-label">Subjects</div>
+                </div>
+            </div>
+
+            <!-- Subject Tabs -->
+            <div class="subject-tabs" id="subjectTabs" style="display: none;">
+                <!-- Tabs will be populated by JavaScript -->
+            </div>
+
+            <!-- Subject Content -->
+            <div id="subjectContent" style="display: none;">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+
+            <div class="image-gallery" id="imageGallery" style="display: none;">
+                <h4 style="margin-bottom: 15px; color: #333;">🖼️ Extracted Images</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Processing markdown file...</p>
+    </div>
+
+    <script src="sophisticated-md-parser.js?v=5"></script>
+    <script>
+        let currentFile = null;
+        let parsedData = null;
+        let jsonOutput = null;
+
+        // Initialize the parser
+        const parser = new SophisticatedMarkdownParser();
+
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileDetails = document.getElementById('fileDetails');
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop handling
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.md') && !file.name.toLowerCase().endsWith('.txt')) {
+                showError('Please select a markdown (.md) or text (.txt) file.');
+                return;
+            }
+
+            currentFile = file;
+            fileDetails.innerHTML = `
+                <p><strong>📁 File Name:</strong> ${file.name}</p>
+                <p><strong>📏 File Size:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                <p><strong>📅 Last Modified:</strong> ${new Date(file.lastModified).toLocaleString()}</p>
+            `;
+            fileInfo.classList.add('show');
+            
+            // Enable parse button
+            document.getElementById('parseBtn').disabled = false;
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.left-panel').insertBefore(errorDiv, document.querySelector('.controls'));
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.querySelector('.left-panel').insertBefore(successDiv, document.querySelector('.controls'));
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        function showLoading(show = true) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        async function parseMarkdown() {
+            if (!currentFile) {
+                showError('Please select a file first.');
+                return;
+            }
+
+            showLoading(true);
+            
+            try {
+                const content = await readFileContent(currentFile);
+                console.log('Content length:', content.length);
+                console.log('Content preview:', content.substring(0, 500));
+                
+                parsedData = parser.parseMarkdownContent(content);
+                console.log('Parsed data:', parsedData);
+                
+                // Debug: Log subject classification
+                console.log('Subject classification debug:');
+                parsedData.questions.forEach((question, index) => {
+                    console.log(`Q${question.questionIndex}: ${question.subject} - ${question.questionDetails[0].text.substring(0, 50)}...`);
+                });
+                
+                // Update stats
+                updateStats(parsedData);
+                
+                // Enable buttons
+                document.getElementById('previewBtn').disabled = false;
+                document.getElementById('generateBtn').disabled = false;
+                
+                showSuccess(`Successfully parsed ${parsedData.questions.length} questions!`);
+                
+            } catch (error) {
+                console.error('Error parsing markdown:', error);
+                showError('Error parsing markdown file: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+
+        function updateStats(data) {
+            const subjects = [...new Set(data.questions.map(q => q.subject))];
+            const totalImages = data.questions.reduce((sum, q) => sum + (q.questionDetails[0].textImages?.length || 0), 0);
+            
+            document.getElementById('totalQuestions').textContent = data.questions.length;
+            document.getElementById('totalImages').textContent = totalImages;
+            document.getElementById('totalSubjects').textContent = subjects.length;
+            document.getElementById('stats').style.display = 'grid';
+        }
+
+        function previewQuestions() {
+            if (!parsedData) {
+                showError('Please parse the markdown file first.');
+                return;
+            }
+
+            const subjectTabs = document.getElementById('subjectTabs');
+            const subjectContent = document.getElementById('subjectContent');
+            
+            // Group questions by subject
+            const questionsBySubject = groupQuestionsBySubject(parsedData.questions);
+            
+            // Generate subject tabs
+            generateSubjectTabs(questionsBySubject, subjectTabs);
+            
+            // Generate subject content
+            generateSubjectContent(questionsBySubject, subjectContent);
+            
+            // Show the subject tabs and content
+            subjectTabs.style.display = 'flex';
+            subjectContent.style.display = 'block';
+            
+            // Re-render MathJax only on the UI panel, not the JSON viewer
+            if (window.MathJax) {
+                const uiPanels = subjectContent.querySelectorAll('.ui-panel');
+                MathJax.typesetPromise(uiPanels);
+            }
+        }
+
+        function groupQuestionsBySubject(questions) {
+            const grouped = {};
+            questions.forEach(question => {
+                const subject = question.subject || 'Mixed';
+                if (!grouped[subject]) {
+                    grouped[subject] = [];
+                }
+                grouped[subject].push(question);
+            });
+            return grouped;
+        }
+
+
+        function generateSubjectTabs(questionsBySubject, container) {
+            const subjects = Object.keys(questionsBySubject);
+            let html = '';
+            
+            subjects.forEach((subject, index) => {
+                const activeClass = index === 0 ? 'active' : '';
+                html += `
+                    <div class="subject-tab ${activeClass}" onclick="switchSubject('${subject}')">
+                        ${subject} (${questionsBySubject[subject].length})
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function generateSubjectContent(questionsBySubject, container) {
+            const subjects = Object.keys(questionsBySubject);
+            let html = '';
+            
+            subjects.forEach((subject, index) => {
+                const activeClass = index === 0 ? 'active' : '';
+                const questions = questionsBySubject[subject];
+                
+                html += `
+                    <div class="subject-content ${activeClass}" id="subject-${subject}">
+                        <div class="subject-panel">
+                            <div class="json-panel">
+                                <h4>📊 JSON Output - ${subject}</h4>
+                                <div class="json-viewer" id="json-${subject}" data-mathjax-ignore="true"></div>
+                            </div>
+                            <div class="ui-panel">
+                                <h4>👁️ Question Preview - ${subject}</h4>
+                                <div class="questions-container">
+                                    ${questions.map(question => generateQuestionItem(question)).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Now set the JSON content using textContent to avoid HTML parsing issues
+            subjects.forEach(subject => {
+                const questions = questionsBySubject[subject];
+                const subjectJSON = generateSubjectJSON(questions, subject);
+                const jsonElement = document.getElementById(`json-${subject}`);
+                if (jsonElement) {
+                    try {
+                        const jsonString = JSON.stringify(subjectJSON, null, 2);
+                        jsonElement.textContent = jsonString;
+                    } catch (error) {
+                        console.error('Error stringifying JSON for subject:', subject, error);
+                        jsonElement.textContent = 'Error generating JSON for this subject';
+                    }
+                }
+            });
+        }
+
+        function generateSubjectJSON(questions, subject) {
+            return {
+                subject: subject,
+                totalQuestions: questions.length,
+                questions: questions.map(question => ({
+                    questionIndex: question.questionIndex,
+                    subject: question.subject,
+                    questionDetails: question.questionDetails,
+                    solution: question.solution,
+                    images: question.images || []
+                }))
+            };
+        }
+
+        function switchSubject(subject) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.subject-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all content
+            document.querySelectorAll('.subject-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(`subject-${subject}`).classList.add('active');
+        }
+
+        function generateQuestionItem(question) {
+            const options = question.questionDetails[0].possibleAnswers;
+            const correctAnswer = question.questionDetails[0].correctAnswer;
+            const solution = question.solution;
+            
+            let optionsHtml = '';
+            Object.entries(options).forEach(([letter, option]) => {
+                const isCorrect = letter === correctAnswer;
+                const optionClass = isCorrect ? 'option-item correct-option' : 'option-item';
+                optionsHtml += `
+                    <div class="${optionClass}">
+                        <div class="option-letter">${letter}</div>
+                        <div class="option-text">${option.text}</div>
+                    </div>
+                `;
+            });
+            
+            let solutionHtml = '';
+            if (solution) {
+                solutionHtml = `
+                    <div class="solution-container">
+                        <div class="solution-title">Solution:</div>
+                        <div class="solution-text">${solution}</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="question-item">
+                    <div class="question-header">
+                        <div class="question-number">Q${question.questionIndex}</div>
+                        <div class="question-subject">${question.subject}</div>
+                    </div>
+                    <div class="question-text">${question.questionDetails[0].text}</div>
+                    <div class="options-container">
+                        ${optionsHtml}
+                    </div>
+                    ${solutionHtml}
+                </div>
+            `;
+        }
+
+        function generateQuestionPreview(question, index) {
+            const options = question.questionDetails[0].possibleAnswers;
+            const correctAnswer = question.questionDetails[0].correctAnswer;
+            const solution = question.solution;
+            const images = question.questionDetails[0].textImages || [];
+            
+            let optionsHtml = '';
+            Object.entries(options).forEach(([letter, option]) => {
+                const isCorrect = letter === correctAnswer;
+                optionsHtml += `
+                    <div class="option" style="${isCorrect ? 'background: #d4edda; border-left: 4px solid #28a745;' : ''}">
+                        <div class="option-letter" style="${isCorrect ? 'background: #28a745;' : ''}">${letter}</div>
+                        <div class="option-text">${option.text}</div>
+                    </div>
+                `;
+            });
+            
+            let imagesHtml = '';
+            if (images.length > 0) {
+                imagesHtml = `
+                    <div style="margin: 10px 0;">
+                        <strong>Images:</strong>
+                        ${images.map(img => `<div style="margin: 5px 0; color: #666;">📷 ${img.alt || 'Image'}: ${img.src}</div>`).join('')}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="question-preview">
+                    <div class="question-header">
+                        <div class="question-number">Q${index}</div>
+                        <div class="question-subject">${question.subject}</div>
+                    </div>
+                    <div class="question-text">${question.questionDetails[0].text}</div>
+                    ${imagesHtml}
+                    <div class="options">
+                        ${optionsHtml}
+                    </div>
+                    ${solution ? `
+                        <div class="solution">
+                            <div class="solution-title">Solution:</div>
+                            <div>${solution}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function generateJSON() {
+            if (!parsedData) {
+                showError('Please parse the markdown file first.');
+                return;
+            }
+
+            try {
+                jsonOutput = parser.generateJSON(parsedData.examInfo, parsedData.questions);
+                
+                // Display images
+                displayImages(parsedData.questions);
+                
+                // Enable download button
+                document.getElementById('downloadBtn').disabled = false;
+                
+                // Show the subject tabs and content
+                previewQuestions();
+                
+                showSuccess('JSON generated successfully!');
+                
+            } catch (error) {
+                console.error('Error generating JSON:', error);
+                showError('Error generating JSON: ' + error.message);
+            }
+        }
+
+        function displayImages(questions) {
+            const imageGallery = document.getElementById('imageGallery');
+            const allImages = [];
+            
+            questions.forEach(question => {
+                const images = question.questionDetails[0].textImages || [];
+                images.forEach(img => {
+                    allImages.push({
+                        ...img,
+                        questionId: question.questionId
+                    });
+                });
+            });
+            
+            if (allImages.length > 0) {
+                let imagesHtml = '<h4 style="margin-bottom: 15px; color: #333;">🖼️ Extracted Images</h4>';
+                imagesHtml += '<div class="image-gallery">';
+                
+                allImages.forEach((img, index) => {
+                    imagesHtml += `
+                        <div class="image-item">
+                            <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; color: #666;">
+                                📷 Image ${index + 1}
+                            </div>
+                            <div class="image-caption">
+                                <div><strong>Source:</strong> ${img.src}</div>
+                                <div><strong>Question:</strong> ${img.questionId}</div>
+                                <button class="download-btn" onclick="downloadImage('${img.src}', '${img.questionId}_${index + 1}')">
+                                    💾 Download
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                imagesHtml += '</div>';
+                imageGallery.innerHTML = imagesHtml;
+                imageGallery.style.display = 'block';
+            }
+        }
+
+        function downloadJSON() {
+            if (!jsonOutput) {
+                showError('Please generate JSON first.');
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(jsonOutput, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `questions_${parsedData.examInfo.year}_${parsedData.examInfo.subject}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showSuccess('JSON file downloaded successfully!');
+        }
+
+        function downloadImage(src, filename) {
+            // For demonstration, we'll create a placeholder download
+            // In a real implementation, you'd need to fetch and download the actual image
+            const blob = new Blob([`Image source: ${src}`], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showSuccess(`Image reference saved as ${filename}.txt`);
+        }
+    </script>
+</body>
+</html>

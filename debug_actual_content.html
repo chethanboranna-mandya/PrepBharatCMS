@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Actual Content</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-line { margin: 5px 0; padding: 5px; background: #f0f0f0; border-radius: 3px; }
+        .section-change { background: #e8f4fd; border-left: 4px solid #4facfe; }
+        .question-found { background: #d4edda; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; max-height: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Debug Actual Content</h1>
+    
+    <div>
+        <h3>Upload your markdown file to debug:</h3>
+        <input type="file" id="fileInput" accept=".md,.txt">
+        <button onclick="debugFile()">Debug File</button>
+    </div>
+    
+    <div id="fileContent" style="display: none;">
+        <h3>File Content (first 1000 chars):</h3>
+        <pre id="contentPreview"></pre>
+    </div>
+    
+    <div id="debugOutput"></div>
+    
+    <div id="results"></div>
+
+    <script src="sophisticated-md-parser.js"></script>
+    <script>
+        function debugFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                
+                // Show file content preview
+                document.getElementById('contentPreview').textContent = content.substring(0, 1000);
+                document.getElementById('fileContent').style.display = 'block';
+                
+                // Debug the content
+                debugContent(content);
+            };
+            reader.readAsText(file);
+        }
+        
+        function debugContent(content) {
+            const debugOutput = document.getElementById('debugOutput');
+            const results = document.getElementById('results');
+            
+            debugOutput.innerHTML = '';
+            results.innerHTML = '';
+            
+            // Override console.log to capture debug output
+            const originalLog = console.log;
+            
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                const debugLine = document.createElement('div');
+                debugLine.className = 'debug-line';
+                
+                if (args[0] && args[0].includes('Found section header')) {
+                    debugLine.className += ' section-change';
+                } else if (args[0] && args[0].includes('Found question')) {
+                    debugLine.className += ' question-found';
+                }
+                
+                debugLine.textContent = args.join(' ');
+                debugOutput.appendChild(debugLine);
+            };
+            
+            console.log('=== STARTING DEBUG ===');
+            console.log('Content length:', content.length);
+            
+            // Look for section headers manually
+            const lines = content.split('\n');
+            console.log('Total lines:', lines.length);
+            
+            lines.forEach((line, i) => {
+                if (line.includes('\\section*{')) {
+                    console.log(`Line ${i+1}: Found potential section header: "${line}"`);
+                }
+                if (line.match(/^\d+\.\s/)) {
+                    console.log(`Line ${i+1}: Found potential question: "${line.substring(0, 50)}..."`);
+                }
+            });
+            
+            // Parse with the parser
+            const parser = new SophisticatedMarkdownParser();
+            const result = parser.parseMarkdownContent(content);
+            
+            console.log('=== PARSER RESULTS ===');
+            console.log('Total questions found:', result.questions.length);
+            
+            result.questions.forEach(q => {
+                console.log(`Q${q.questionIndex}: ${q.subject} - ${q.questionDetails[0].text.substring(0, 50)}...`);
+            });
+            
+            // Show results
+            results.innerHTML = '<h3>Final Results:</h3>';
+            const subjects = {};
+            result.questions.forEach(q => {
+                subjects[q.subject] = (subjects[q.subject] || 0) + 1;
+            });
+            
+            Object.entries(subjects).forEach(([subject, count]) => {
+                results.innerHTML += `<p><strong>${subject}:</strong> ${count} questions</p>`;
+            });
+            
+            // Restore original console.log
+            console.log = originalLog;
+        }
+    </script>
+</body>
+</html>
