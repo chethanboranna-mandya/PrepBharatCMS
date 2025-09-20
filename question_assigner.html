@@ -145,6 +145,14 @@
             padding: 15px;
             background: white;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border-color: #4facfe;
         }
         
         .question-header {
@@ -673,6 +681,7 @@
             allQuestions.forEach((question, index) => {
                 const questionCard = document.createElement('div');
                 questionCard.className = 'question-card';
+                questionCard.onclick = () => scrollToQuestion(question.number, 'all');
                 
                 const optionsHtml = question.options.map(opt => 
                     `<div class="option">(${opt.number}) ${opt.text}</div>`
@@ -922,7 +931,7 @@
                 const answerLetter = question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '';
                 
                 renderHtml += `
-                    <div class="question-render">
+                    <div class="question-render" id="render-q${question.number}">
                         <h4>Question ${question.number}</h4>
                         <div class="question-text">${question.text}</div>
                         <div class="options-render">${optionsHtml}</div>
@@ -937,6 +946,36 @@
             // Re-render MathJax
             if (window.MathJax) {
                 MathJax.typesetPromise([renderElement]).catch((err) => console.log('MathJax error:', err));
+            }
+        }
+        
+        function scrollToQuestion(questionNumber, context) {
+            const renderElement = document.getElementById(context === 'all' ? 'allQuestionsRender' : 
+                                                      context === 'Mathematics' ? 'mathRender' :
+                                                      context === 'Physics' ? 'physicsRender' : 'chemistryRender');
+            
+            if (!renderElement) return;
+            
+            const targetElement = document.getElementById(`render-q${questionNumber}`);
+            if (targetElement) {
+                // Scroll the target question into view
+                targetElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start',
+                    inline: 'nearest'
+                });
+                
+                // Add a highlight effect
+                targetElement.style.backgroundColor = '#fff3cd';
+                targetElement.style.border = '2px solid #ffc107';
+                targetElement.style.borderRadius = '8px';
+                targetElement.style.transition = 'all 0.3s ease';
+                
+                // Remove highlight after 2 seconds
+                setTimeout(() => {
+                    targetElement.style.backgroundColor = '';
+                    targetElement.style.border = '';
+                }, 2000);
             }
         }
         
@@ -973,6 +1012,7 @@
             subjectQuestions.forEach((question, index) => {
                 const questionCard = document.createElement('div');
                 questionCard.className = 'question-card';
+                questionCard.onclick = () => scrollToQuestion(question.number, subject);
                 
                 const optionsHtml = question.options.map(opt => 
                     `<div class="option">(${opt.number}) ${opt.text}</div>`
