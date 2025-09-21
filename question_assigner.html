@@ -404,6 +404,37 @@
             line-height: 1.4;
             font-size: 14px;
         }
+        
+        .json-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .json-display h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        .json-display pre {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 0;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .json-display code {
+            color: #212529;
+            font-family: 'Courier New', monospace;
+        }
     </style>
 </head>
 <body>
@@ -453,7 +484,7 @@
         
         <div id="questionsContainer" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>📝 Questions Found</h3>
+                <h3>📋 JSON Viewer</h3>
                 <h3>📖 Render View</h3>
             </div>
             <div class="questions-container">
@@ -473,7 +504,7 @@
         <!-- Subject Views -->
         <div id="subjectView-Mathematics" class="subject-view">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>📐 Mathematics Questions</h3>
+                <h3>📋 JSON Viewer</h3>
                 <h3>📖 Render View</h3>
             </div>
             <div class="questions-container">
@@ -492,7 +523,7 @@
 
         <div id="subjectView-Physics" class="subject-view">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>⚡ Physics Questions</h3>
+                <h3>📋 JSON Viewer</h3>
                 <h3>📖 Render View</h3>
             </div>
             <div class="questions-container">
@@ -511,7 +542,7 @@
 
         <div id="subjectView-Chemistry" class="subject-view">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>🧪 Chemistry Questions</h3>
+                <h3>📋 JSON Viewer</h3>
                 <h3>📖 Render View</h3>
             </div>
             <div class="questions-container">
@@ -642,11 +673,11 @@
                         currentQuestion.solution = line;
                         debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Started solution collection: ${line.substring(0, 50)}...</div>`;
                     }
-                    // Check for options (A), (B), (C), (D) - only if not in solution
+                    // Check for options (1), (2), (3), (4) - only if not in solution
                     else if (!inSolution) {
-                        const optionMatch = line.match(/^\(([A-D])\)\s*(.*)/);
+                        const optionMatch = line.match(/^\(([1-4])\)\s*(.*)/);
                         if (optionMatch) {
-                            currentQuestion.options.push(optionMatch[2]);
+                            currentQuestion.options.push(line);
                             debugContent += `<div style="color: #007bff; margin: 2px 0;">Line ${i+1}: Found option ${optionMatch[1]}: ${optionMatch[2].substring(0, 30)}...</div>`;
                         } else {
                             // If not an option and not in solution, add to question text
@@ -836,10 +867,194 @@
             updateStats();
         }
         
+        function extractImagesFromText(text) {
+            if (!text) return [];
+            const imageMatches = text.match(/!\[\]\([^)]+\)/g);
+            if (!imageMatches) return [];
+            return imageMatches.map(match => {
+                const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
+                return urlMatch ? urlMatch[1] : null;
+            }).filter(url => url !== null);
+        }
+        
+        function extractOptionsFromText(text) {
+            if (!text) return [];
+            const optionMatches = text.match(/\([1-4]\)\s*[^\n]+/g);
+            if (!optionMatches) return [];
+            return optionMatches.map(match => match.trim());
+        }
+        
+        function cleanQuestionText(text) {
+            // Remove options from question text
+            return text.replace(/\([1-4]\)\s*[^\n]+/g, '').trim();
+        }
+        
         function displayQuestions() {
             const container = document.getElementById('questionsList');
             container.innerHTML = '';
             
+            // Ensure all questions have options extracted
+            allQuestions.forEach(question => {
+                if (question.options.length === 0) {
+                    // Extract options from question text as fallback
+                    const optionMatches = question.text.match(/\([1-4]\)\s*[^\n]+/g);
+                    if (optionMatches) {
+                        question.options = optionMatches;
+                        // Remove options from question text
+                        question.text = question.text.replace(/\([1-4]\)\s*[^\n]+/g, '').trim();
+                    }
+                }
+            });
+            
+            // Generate JSON structure in the required format
+            const jsonStructure = [
+                {
+                    "tutorialId": "JEE_2025_Mathematics",
+                    "tutorialTitle": "JEE 2025 Mathematics",
+                    "tutorialDescription": "JEE 2025 Mathematics Questions with Solutions",
+                    "authorityExamId": "jee_2025",
+                    "state": "All India",
+                    "board": "JEE",
+                    "conductedBy": "NTA (National Testing Agency)",
+                    "year": "2025",
+                    "subject": "Mathematics",
+                    "questions": allQuestions
+                        .filter(q => q.subject === 'Mathematics' || q.subject === 'mathematics')
+                        .map(question => ({
+                            "questionIndex": question.number.toString(),
+                            "questionId": `2025MQ${question.number}`,
+                            "questionDetails": [
+                                {
+                                    "text": cleanQuestionText(question.text),
+                                    "textImages": extractImagesFromText(question.text),
+                                    "possibleAnswers": {
+                                        "A": {
+                                            "text": question.options[0]?.replace(/^\(1\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[0] || "")
+                                        },
+                                        "B": {
+                                            "text": question.options[1]?.replace(/^\(2\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[1] || "")
+                                        },
+                                        "C": {
+                                            "text": question.options[2]?.replace(/^\(3\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[2] || "")
+                                        },
+                                        "D": {
+                                            "text": question.options[3]?.replace(/^\(4\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[3] || "")
+                                        }
+                                    },
+                                    "correctAnswer": question.answer,
+                                    "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
+                                    "solution": question.solution,
+                                    "solutionImages": extractImagesFromText(question.solution)
+                                }
+                            ]
+                        }))
+                },
+                {
+                    "tutorialId": "JEE_2025_Physics",
+                    "tutorialTitle": "JEE 2025 Physics",
+                    "tutorialDescription": "JEE 2025 Physics Questions with Solutions",
+                    "authorityExamId": "jee_2025",
+                    "state": "All India",
+                    "board": "JEE",
+                    "conductedBy": "NTA (National Testing Agency)",
+                    "year": "2025",
+                    "subject": "Physics",
+                    "questions": allQuestions
+                        .filter(q => q.subject === 'Physics' || q.subject === 'physics')
+                        .map(question => ({
+                            "questionIndex": question.number.toString(),
+                            "questionId": `2025PQ${question.number}`,
+                            "questionDetails": [
+                                {
+                                    "text": cleanQuestionText(question.text),
+                                    "textImages": extractImagesFromText(question.text),
+                                    "possibleAnswers": {
+                                        "A": {
+                                            "text": question.options[0]?.replace(/^\(1\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[0] || "")
+                                        },
+                                        "B": {
+                                            "text": question.options[1]?.replace(/^\(2\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[1] || "")
+                                        },
+                                        "C": {
+                                            "text": question.options[2]?.replace(/^\(3\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[2] || "")
+                                        },
+                                        "D": {
+                                            "text": question.options[3]?.replace(/^\(4\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[3] || "")
+                                        }
+                                    },
+                                    "correctAnswer": question.answer,
+                                    "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
+                                    "solution": question.solution,
+                                    "solutionImages": extractImagesFromText(question.solution)
+                                }
+                            ]
+                        }))
+                },
+                {
+                    "tutorialId": "JEE_2025_Chemistry",
+                    "tutorialTitle": "JEE 2025 Chemistry",
+                    "tutorialDescription": "JEE 2025 Chemistry Questions with Solutions",
+                    "authorityExamId": "jee_2025",
+                    "state": "All India",
+                    "board": "JEE",
+                    "conductedBy": "NTA (National Testing Agency)",
+                    "year": "2025",
+                    "subject": "Chemistry",
+                    "questions": allQuestions
+                        .filter(q => q.subject === 'Chemistry' || q.subject === 'chemistry')
+                        .map(question => ({
+                            "questionIndex": question.number.toString(),
+                            "questionId": `2025CQ${question.number}`,
+                            "questionDetails": [
+                                {
+                                    "text": cleanQuestionText(question.text),
+                                    "textImages": extractImagesFromText(question.text),
+                                    "possibleAnswers": {
+                                        "A": {
+                                            "text": question.options[0]?.replace(/^\(1\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[0] || "")
+                                        },
+                                        "B": {
+                                            "text": question.options[1]?.replace(/^\(2\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[1] || "")
+                                        },
+                                        "C": {
+                                            "text": question.options[2]?.replace(/^\(3\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[2] || "")
+                                        },
+                                        "D": {
+                                            "text": question.options[3]?.replace(/^\(4\)\s*/, '').trim() || "",
+                                            "image": extractImagesFromText(question.options[3] || "")
+                                        }
+                                    },
+                                    "correctAnswer": question.answer,
+                                    "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
+                                    "solution": question.solution,
+                                    "solutionImages": extractImagesFromText(question.solution)
+                                }
+                            ]
+                        }))
+                }
+            ];
+            
+            // Display JSON structure in left panel
+            const jsonDisplay = document.createElement('div');
+            jsonDisplay.className = 'json-display';
+            jsonDisplay.innerHTML = `
+                <h4>📊 Question Data Structure</h4>
+                <pre><code>${JSON.stringify(jsonStructure, null, 2)}</code></pre>
+            `;
+            container.appendChild(jsonDisplay);
+            
+            // Also create individual question cards for interaction
             allQuestions.forEach((question, index) => {
                 const questionCard = document.createElement('div');
                 questionCard.className = 'question-card';
@@ -1085,12 +1300,16 @@
             
             let renderHtml = '';
             questionsToRender.forEach((question, index) => {
-                const optionsHtml = question.options.map(opt => {
-                    const letter = String.fromCharCode(64 + parseInt(opt.number));
-                    return `<div class="option-render"><strong>${letter}.</strong> ${opt.text}</div>`;
+                // Extract options from question.options array
+                const optionsHtml = question.options.map((opt, optIndex) => {
+                    const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
+                    const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
+                    return `<div class="option-render"><strong>${letter}.</strong> ${cleanText}</div>`;
                 }).join('\n');
                 
-                const answerText = question.options.find(opt => opt.number === question.answer)?.text || '';
+                // Find correct answer text
+                const answerIndex = parseInt(question.answer) - 1;
+                const answerText = question.options[answerIndex]?.replace(/^\(\d+\)\s*/, '').trim() || '';
                 const answerLetter = question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '';
                 
                 renderHtml += `
