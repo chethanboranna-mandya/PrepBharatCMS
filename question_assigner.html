@@ -583,9 +583,13 @@
             let currentQuestion = null;
             let currentSubject = '';
             let debugContent = '';
+            let inSolution = false;
             
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
+                const line = lines[i].trim();
+                
+                // Skip empty lines
+                if (line === '') continue;
                 
                 // Check for section breaks
                 if (line.includes('## MATHEMATICS') || line.includes('## PHYSICS') || line.includes('## CHEMISTRY')) {
@@ -595,99 +599,213 @@
                     continue;
                 }
                 
-                // Check if line starts with integer number followed by dot - this is a new question
-                // Format: New Line + Integer Number + Dot + (optional space/newline) + Content
-                // This prevents matching decimal numbers like "0.1 mol" or "2.5 cm"
+                // Check for new question - number followed by dot
                 let questionMatch = line.match(/^(\d+)\.\s*(.*)/);
                 
                 // Additional check: make sure it's not a decimal number
-                // If the character after the dot is a digit, it's a decimal, not a question
                 if (questionMatch && line.match(/^\d+\.\d/)) {
-                    // This is a decimal number, not a question
                     debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Ignored decimal number: ${line.substring(0, 50)}...</div>`;
                     questionMatch = null;
                 }
                 
-                // Debug: show what we're checking for potential questions
-                if (line.match(/^\d/)) {
-                    debugContent += `<div style="color: #6c757d; margin: 2px 0;">Line ${i+1}: Checking line starting with number: ${line.substring(0, 50)}...</div>`;
-                }
-                
                 if (questionMatch) {
-                    console.log(`Line ${i+1}: Found question ${questionMatch[1]}: ${questionMatch[2].substring(0, 50)}...`);
-                    debugContent += `<div style="color: #28a745; margin: 2px 0; font-weight: bold;">Line ${i+1}: Found question ${questionMatch[1]}: ${questionMatch[2].substring(0, 100)}...</div>`;
-                    
                     // Save previous question if it exists
                     if (currentQuestion) {
                         questions.push(currentQuestion);
                     }
                     
-                    // Start new question - collect ALL content until next question
+                    // Start new question
                     currentQuestion = {
-                        number: questionMatch[1],
+                        number: parseInt(questionMatch[1]),
                         text: questionMatch[2],
                         options: [],
                         answer: '',
                         solution: '',
                         subject: currentSubject || 'unassigned',
-                        fullContent: line + '\n'  // Start with the question line itself
+                        fullContent: questionMatch[2]
                     };
+                    inSolution = false;
+                    
+                    debugContent += `<div style="color: #28a745; margin: 2px 0; font-weight: bold;">Line ${i+1}: Found question ${currentQuestion.number}: ${questionMatch[2].substring(0, 100)}...</div>`;
                 } else if (currentQuestion) {
-                    // This line is part of the current question content
-                    currentQuestion.fullContent += line + '\n';
-                    
-                    // Try to extract options
-                    const optionMatch = line.match(/^\(([1-4])\)\s*(.*)/);
-                    if (optionMatch) {
-                        currentQuestion.options.push({
-                            number: optionMatch[1],
-                            text: optionMatch[2]
-                        });
-                        debugContent += `<div style="color: #6c757d; margin: 2px 0;">Line ${i+1}: Found option: ${line}</div>`;
-                    }
-                    
-                    // Try to extract answer
-                    const answerMatch = line.match(/Ans\.\s*\(([1-4])\)/);
-                    if (answerMatch) {
-                        currentQuestion.answer = answerMatch[1];
-                        debugContent += `<div style="color: #dc3545; margin: 2px 0;">Line ${i+1}: Found answer: ${line}</div>`;
-                    }
-                    
-                    // Try to extract solution - capture all lines until next question
-                    if (line.startsWith('Sol.')) {
-                        currentQuestion.solution = line.substring(4).trim();
-                        debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Found solution start: ${line.substring(0, 50)}...</div>`;
-                        
-                        // Continue reading lines until we hit the next question number
-                        let j = i + 1;
-                        while (j < lines.length) {
-                            const nextLine = lines[j];
-                            
-                            // Check if this is the start of a new question
-                            const nextQuestionMatch = nextLine.match(/^(\d+)\.\s*(.*)/);
-                            if (nextQuestionMatch && !nextLine.match(/^\d+\.\d/)) {
-                                // This is a new question, stop collecting solution
-                                break;
-                            }
-                            
-                            // Add this line to the solution
-                            currentQuestion.solution += '\n' + nextLine;
-                            debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${j+1}: Solution line: ${nextLine.substring(0, 50)}...</div>`;
-                            j++;
+                    // Check if we hit "Ans." - this means we're done with question text and options
+                    if (line.startsWith('Ans.')) {
+                        // Extract answer
+                        const answerMatch = line.match(/^Ans\.\s*\(([A-D])\)/);
+                        if (answerMatch) {
+                            currentQuestion.answer = answerMatch[1];
+                            debugContent += `<div style="color: #dc3545; margin: 2px 0;">Line ${i+1}: Found answer: ${line}</div>`;
                         }
                         
-                        // Update the loop index to skip the lines we've already processed
-                        i = j - 1;
+                        // Start collecting solution
+                        inSolution = true;
+                        currentQuestion.solution = line;
+                        debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Started solution collection: ${line.substring(0, 50)}...</div>`;
+                    }
+                    // Check for options (A), (B), (C), (D) - only if not in solution
+                    else if (!inSolution) {
+                        const optionMatch = line.match(/^\(([A-D])\)\s*(.*)/);
+                        if (optionMatch) {
+                            currentQuestion.options.push(optionMatch[2]);
+                            debugContent += `<div style="color: #007bff; margin: 2px 0;">Line ${i+1}: Found option ${optionMatch[1]}: ${optionMatch[2].substring(0, 30)}...</div>`;
+                        } else {
+                            // If not an option and not in solution, add to question text
+                            currentQuestion.text += '\n' + line;
+                            currentQuestion.fullContent += '\n' + line;
+                        }
+                    }
+                    // If in solution, continue collecting until next question
+                    else if (inSolution) {
+                        // Check if this is the start of a new question
+                        const nextQuestionMatch = line.match(/^(\d+)\.\s*(.*)/);
+                        if (nextQuestionMatch && !line.match(/^\d+\.\d/)) {
+                            // This is a new question, stop collecting solution and process current question
+                            inSolution = false;
+                            
+                            // Process solution for image URLs
+                            if (currentQuestion.solution) {
+                                const solutionImageMatches = currentQuestion.solution.match(/!\[\]\([^)]+\)/g);
+                                if (solutionImageMatches) {
+                                    solutionImageMatches.forEach(match => {
+                                        const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
+                                        if (urlMatch) {
+                                            const imageUrl = urlMatch[1];
+                                            debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Solution image URL: ${imageUrl}</div>`;
+                                            
+                                            // Replace with actual image tag
+                                            const imageTag = `<img src="${imageUrl}" alt="Solution Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
+                                            
+                                            currentQuestion.solution = currentQuestion.solution.replace(match, imageTag);
+                                        }
+                                    });
+                                }
+                            }
+                            
+                            // Process current question for image URLs in text
+                            if (currentQuestion.text) {
+                                const imageMatches = currentQuestion.text.match(/!\[\]\([^)]+\)/g);
+                                if (imageMatches) {
+                                    imageMatches.forEach(match => {
+                                        const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
+                                        if (urlMatch) {
+                                            const imageUrl = urlMatch[1];
+                                            debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Question image URL: ${imageUrl}</div>`;
+                                            
+                                            // Replace with actual image tag
+                                            const imageTag = `<img src="${imageUrl}" alt="Question Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
+                                            
+                                            currentQuestion.text = currentQuestion.text.replace(match, imageTag);
+                                        }
+                                    });
+                                }
+                            }
+                            
+                            // Process options for image URLs
+                            currentQuestion.options.forEach((option, index) => {
+                                const optionImageMatches = option.match(/!\[\]\([^)]+\)/g);
+                                if (optionImageMatches) {
+                                    optionImageMatches.forEach(match => {
+                                        const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
+                                        if (urlMatch) {
+                                            const imageUrl = urlMatch[1];
+                                            debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Option image URL: ${imageUrl}</div>`;
+                                            
+                                            // Replace with actual image tag
+                                            const imageTag = `<img src="${imageUrl}" alt="Option Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
+                                            
+                                            currentQuestion.options[index] = option.replace(match, imageTag);
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            // Save current question and start new one
+                            questions.push(currentQuestion);
+                            
+                            // Start new question
+                            currentQuestion = {
+                                number: parseInt(nextQuestionMatch[1]),
+                                text: nextQuestionMatch[2],
+                                options: [],
+                                answer: '',
+                                solution: '',
+                                subject: currentSubject || 'unassigned',
+                                fullContent: nextQuestionMatch[2]
+                            };
+                            
+                            debugContent += `<div style="color: #28a745; margin: 2px 0; font-weight: bold;">Line ${i+1}: Found question ${currentQuestion.number}: ${nextQuestionMatch[2].substring(0, 100)}...</div>`;
+                        } else {
+                            // Continue collecting solution
+                            currentQuestion.solution += '\n' + line;
+                            debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Solution line: ${line.substring(0, 50)}...</div>`;
+                        }
                     }
                 }
             }
             
-            // Don't forget the last question
-            if (currentQuestion) {
+            // Process the last question if we're still in solution mode
+            if (currentQuestion && inSolution) {
+                // Process solution for image URLs
+                if (currentQuestion.solution) {
+                    const solutionImageMatches = currentQuestion.solution.match(/!\[\]\([^)]+\)/g);
+                    if (solutionImageMatches) {
+                        solutionImageMatches.forEach(match => {
+                            const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
+                            if (urlMatch) {
+                                const imageUrl = urlMatch[1];
+                                debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Solution image URL: ${imageUrl}</div>`;
+                                
+                                // Replace with actual image tag
+                                const imageTag = `<img src="${imageUrl}" alt="Solution Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
+                                
+                                currentQuestion.solution = currentQuestion.solution.replace(match, imageTag);
+                            }
+                        });
+                    }
+                }
+                
+                // Process question text for image URLs
+                if (currentQuestion.text) {
+                    const imageMatches = currentQuestion.text.match(/!\[\]\([^)]+\)/g);
+                    if (imageMatches) {
+                        imageMatches.forEach(match => {
+                            const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
+                            if (urlMatch) {
+                                const imageUrl = urlMatch[1];
+                                debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Question image URL: ${imageUrl}</div>`;
+                                
+                                // Replace with actual image tag
+                                const imageTag = `<img src="${imageUrl}" alt="Question Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
+                                
+                                currentQuestion.text = currentQuestion.text.replace(match, imageTag);
+                            }
+                        });
+                    }
+                }
+                
+                // Process options for image URLs
+                currentQuestion.options.forEach((option, index) => {
+                    const optionImageMatches = option.match(/!\[\]\([^)]+\)/g);
+                    if (optionImageMatches) {
+                        optionImageMatches.forEach(match => {
+                            const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
+                            if (urlMatch) {
+                                const imageUrl = urlMatch[1];
+                                debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Option image URL: ${imageUrl}</div>`;
+                                
+                                // Replace with actual image tag
+                                const imageTag = `<img src="${imageUrl}" alt="Option Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
+                                
+                                currentQuestion.options[index] = option.replace(match, imageTag);
+                            }
+                        });
+                    }
+                });
+                
                 questions.push(currentQuestion);
             }
             
-            // No filtering - if it starts with number. it's a question
+            // Show debug info
             debugContent += `<div style="color: #007bff; font-weight: bold; margin: 10px 0; font-size: 16px;">Total questions found: ${questions.length}</div>`;
             debugContent += `<div style="color: #28a745; font-weight: bold; margin: 5px 0;">Question numbers: ${questions.map(q => q.number).join(', ')}</div>`;
             
@@ -729,7 +847,7 @@
                 
                 const optionsHtml = question.options.map(opt => 
                     `<div class="option">(${opt.number}) ${opt.text}</div>`
-                ).join('');
+                ).join('\n');
                 
                 // Set the selected value based on the detected subject
                 const selectedSubject = question.subject === 'unassigned' ? '' : question.subject.charAt(0).toUpperCase() + question.subject.slice(1);
@@ -970,7 +1088,7 @@
                 const optionsHtml = question.options.map(opt => {
                     const letter = String.fromCharCode(64 + parseInt(opt.number));
                     return `<div class="option-render"><strong>${letter}.</strong> ${opt.text}</div>`;
-                }).join('');
+                }).join('\n');
                 
                 const answerText = question.options.find(opt => opt.number === question.answer)?.text || '';
                 const answerLetter = question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '';
@@ -1062,7 +1180,7 @@
                 
                 const optionsHtml = question.options.map(opt => 
                     `<div class="option">(${opt.number}) ${opt.text}</div>`
-                ).join('');
+                ).join('\n');
                 
                 questionCard.innerHTML = `
                     <div class="question-header">
