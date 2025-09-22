@@ -471,6 +471,390 @@
             display: flex;
             flex-direction: column;
         }
+        
+        .metadata-editor {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .metadata-editor h4 {
+            margin: 0 0 20px 0;
+            color: #495057;
+            font-size: 18px;
+            border-bottom: 2px solid #4facfe;
+            padding-bottom: 10px;
+        }
+        
+        .metadata-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.full-width {
+            flex: 2;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background: white;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .form-input:hover {
+            border-color: #adb5bd;
+        }
+        
+        .question-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .edit-btn {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+        
+        .edit-btn:hover {
+            background: #00f2fe;
+        }
+        
+        .question-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .question-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        .question-textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .option-input {
+            flex: 1;
+            padding: 5px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+        
+        .option-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.1);
+        }
+        
+        .answer-section, .solution-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .answer-section label, .solution-section label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .answer-select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .answer-select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .solution-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        .solution-textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        
+        
+        .question-edit-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .question-edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4facfe;
+        }
+        
+        .question-edit-number {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4facfe;
+        }
+        
+        .question-edit-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .edit-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .edit-field-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .edit-field-group input,
+        .edit-field-group textarea,
+        .edit-field-group select {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .edit-field-group input:focus,
+        .edit-field-group textarea:focus,
+        .edit-field-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .edit-field-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .options-edit-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .option-edit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .option-edit-item label {
+            font-weight: bold;
+            min-width: 30px;
+        }
+        
+        .inline-edit-interface {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        
+        
+        .edit-interface-content {
+            display: flex;
+            height: 60vh;
+            overflow: hidden;
+        }
+        
+        .edit-fields-container {
+            flex: 1;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .inline-render-view {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .inline-render-view h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 18px;
+        }
+        
+        .edit-questions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .tab-controls {
+            display: flex;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+        
+        .tab-segment {
+            padding: 8px 20px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .tab-segment:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: none;
+        }
+        
+        .tab-segment:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        
+        .tab-segment.active {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+            box-shadow: 0 2px 4px rgba(79, 172, 254, 0.2);
+        }
+        
+        .tab-segment:hover:not(.active) {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .json-view-container {
+            flex: 1;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .json-view-container .json-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            height: 100%;
+        }
+        
+        .json-view-container .json-display h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        .json-textarea {
+            width: 100%;
+            height: calc(60vh - 100px);
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            resize: none;
+            white-space: pre;
+            overflow: auto;
+        }
+        
+        .json-textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -538,90 +922,260 @@
 
         <!-- Subject Views -->
         <div id="subjectView-Mathematics" class="subject-view">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>📖 Render View</h3>
-                <h3>📋 JSON Viewer</h3>
-            </div>
-            <div class="questions-container">
-                <div class="render-panel">
-                    <div id="mathRender">
-                        <p>Select a question to view its rendered content with MathJax.</p>
+            
+            <!-- Metadata Editor Section -->
+            <div class="metadata-editor">
+                <h4>📝 Tutorial Metadata Editor</h4>
+                <div class="metadata-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tutorialId">Tutorial ID:</label>
+                            <input type="text" id="tutorialId" value="JEE_2025_Mathematics" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="tutorialTitle">Tutorial Title:</label>
+                            <input type="text" id="tutorialTitle" value="JEE 2025 Mathematics" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="tutorialDescription">Tutorial Description:</label>
+                            <input type="text" id="tutorialDescription" value="JEE 2025 Mathematics Questions with Solutions" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="authorityExamId">Authority Exam ID:</label>
+                            <input type="text" id="authorityExamId" value="jee_2025" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="state">State:</label>
+                            <input type="text" id="state" value="All India" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="board">Board:</label>
+                            <input type="text" id="board" value="JEE" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="conductedBy">Conducted By:</label>
+                            <input type="text" id="conductedBy" value="NTA (National Testing Agency)" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="year">Year:</label>
+                            <input type="text" id="year" value="2025" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">Subject:</label>
+                            <input type="text" id="subject" value="Mathematics" class="form-input">
+                        </div>
                     </div>
                 </div>
-                <div class="questions-grid">
-                    <div class="questions-list" id="mathQuestionsList">
-                        <!-- Mathematics questions will be populated here -->
+            </div>
+            
+            
+            <!-- Always show edit interface for Mathematics -->
+            <div id="inlineEditInterface-Mathematics" class="inline-edit-interface">
+                <div class="tab-controls">
+                    <div class="tab-segment active" onclick="switchTab('Mathematics', 'edit')" id="tab-edit-Mathematics">Edit</div>
+                    <div class="tab-segment" onclick="switchTab('Mathematics', 'json')" id="tab-json-Mathematics">JSON</div>
+                </div>
+                <div class="edit-interface-content">
+                    <div class="edit-fields-container" id="edit-content-Mathematics">
+                        <div class="edit-questions-list" id="editQuestionsList-Mathematics">
+                            <!-- Editable question fields will be populated here -->
+                        </div>
+                    </div>
+                    <div class="json-view-container" id="json-content-Mathematics" style="display: none;">
+                        <div class="json-display">
+                            <h4>📋 JSON Data Structure</h4>
+                            <textarea id="json-output-Mathematics" readonly class="json-textarea"></textarea>
+                        </div>
+                    </div>
+                    <div class="inline-render-view">
+                        <h4>📖 Live Preview</h4>
+                        <div id="inlineMathRender">
+                            <!-- Live render view will be shown here -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="subjectView-Physics" class="subject-view">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>📖 Render View</h3>
-                <h3>📋 JSON Viewer</h3>
-            </div>
-            <div class="questions-container">
-                <div class="render-panel">
-                    <div id="physicsRender">
-                        <p>Select a question to view its rendered content with MathJax.</p>
+            
+            <!-- Metadata Editor Section -->
+            <div class="metadata-editor">
+                <h4>📝 Tutorial Metadata Editor</h4>
+                <div class="metadata-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tutorialId-physics">Tutorial ID:</label>
+                            <input type="text" id="tutorialId-physics" value="JEE_2025_Physics" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="tutorialTitle-physics">Tutorial Title:</label>
+                            <input type="text" id="tutorialTitle-physics" value="JEE 2025 Physics" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="tutorialDescription-physics">Tutorial Description:</label>
+                            <input type="text" id="tutorialDescription-physics" value="JEE 2025 Physics Questions with Solutions" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="authorityExamId-physics">Authority Exam ID:</label>
+                            <input type="text" id="authorityExamId-physics" value="jee_2025" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="state-physics">State:</label>
+                            <input type="text" id="state-physics" value="All India" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="board-physics">Board:</label>
+                            <input type="text" id="board-physics" value="JEE" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="conductedBy-physics">Conducted By:</label>
+                            <input type="text" id="conductedBy-physics" value="NTA (National Testing Agency)" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="year-physics">Year:</label>
+                            <input type="text" id="year-physics" value="2025" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="subject-physics">Subject:</label>
+                            <input type="text" id="subject-physics" value="Physics" class="form-input">
+                        </div>
                     </div>
                 </div>
-                <div class="questions-grid">
-                    <div class="questions-list" id="physicsQuestionsList">
-                        <!-- Physics questions will be populated here -->
+            </div>
+            
+            
+            <!-- Always show edit interface for Physics -->
+            <div id="inlineEditInterface-Physics" class="inline-edit-interface">
+                <div class="tab-controls">
+                    <div class="tab-segment active" onclick="switchTab('Physics', 'edit')" id="tab-edit-Physics">Edit</div>
+                    <div class="tab-segment" onclick="switchTab('Physics', 'json')" id="tab-json-Physics">JSON</div>
+                </div>
+                <div class="edit-interface-content">
+                    <div class="edit-fields-container" id="edit-content-Physics">
+                        <div class="edit-questions-list" id="editQuestionsList-Physics">
+                            <!-- Editable question fields will be populated here -->
+                        </div>
+                    </div>
+                    <div class="json-view-container" id="json-content-Physics" style="display: none;">
+                        <div class="json-display">
+                            <h4>📋 JSON Data Structure</h4>
+                            <textarea id="json-output-Physics" readonly class="json-textarea"></textarea>
+                        </div>
+                    </div>
+                    <div class="inline-render-view">
+                        <h4>📖 Live Preview</h4>
+                        <div id="inlinePhysicsRender">
+                            <!-- Live render view will be shown here -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="subjectView-Chemistry" class="subject-view">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>📖 Render View</h3>
-                <h3>📋 JSON Viewer</h3>
-            </div>
-            <div class="questions-container">
-                <div class="render-panel">
-                    <div id="chemistryRender">
-                        <p>Select a question to view its rendered content with MathJax.</p>
+            
+            <!-- Metadata Editor Section -->
+            <div class="metadata-editor">
+                <h4>📝 Tutorial Metadata Editor</h4>
+                <div class="metadata-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tutorialId-chemistry">Tutorial ID:</label>
+                            <input type="text" id="tutorialId-chemistry" value="JEE_2025_Chemistry" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="tutorialTitle-chemistry">Tutorial Title:</label>
+                            <input type="text" id="tutorialTitle-chemistry" value="JEE 2025 Chemistry" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="tutorialDescription-chemistry">Tutorial Description:</label>
+                            <input type="text" id="tutorialDescription-chemistry" value="JEE 2025 Chemistry Questions with Solutions" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="authorityExamId-chemistry">Authority Exam ID:</label>
+                            <input type="text" id="authorityExamId-chemistry" value="jee_2025" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="state-chemistry">State:</label>
+                            <input type="text" id="state-chemistry" value="All India" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="board-chemistry">Board:</label>
+                            <input type="text" id="board-chemistry" value="JEE" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="conductedBy-chemistry">Conducted By:</label>
+                            <input type="text" id="conductedBy-chemistry" value="NTA (National Testing Agency)" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="year-chemistry">Year:</label>
+                            <input type="text" id="year-chemistry" value="2025" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="subject-chemistry">Subject:</label>
+                            <input type="text" id="subject-chemistry" value="Chemistry" class="form-input">
+                        </div>
                     </div>
                 </div>
-                <div class="questions-grid">
-                    <div class="questions-list" id="chemistryQuestionsList">
-                        <!-- Chemistry questions will be populated here -->
+            </div>
+            
+            
+            <!-- Always show edit interface for Chemistry -->
+            <div id="inlineEditInterface-Chemistry" class="inline-edit-interface">
+                <div class="tab-controls">
+                    <div class="tab-segment active" onclick="switchTab('Chemistry', 'edit')" id="tab-edit-Chemistry">Edit</div>
+                    <div class="tab-segment" onclick="switchTab('Chemistry', 'json')" id="tab-json-Chemistry">JSON</div>
+                </div>
+                <div class="edit-interface-content">
+                    <div class="edit-fields-container" id="edit-content-Chemistry">
+                        <div class="edit-questions-list" id="editQuestionsList-Chemistry">
+                            <!-- Editable question fields will be populated here -->
+                        </div>
+                    </div>
+                    <div class="json-view-container" id="json-content-Chemistry" style="display: none;">
+                        <div class="json-display">
+                            <h4>📋 JSON Data Structure</h4>
+                            <textarea id="json-output-Chemistry" readonly class="json-textarea"></textarea>
+                        </div>
+                    </div>
+                    <div class="inline-render-view">
+                        <h4>📖 Live Preview</h4>
+                        <div id="inlineChemistryRender">
+                            <!-- Live render view will be shown here -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="actions" id="actions" style="display: none;">
-            <h3>📄 Generate JSON Files</h3>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
-                <button class="btn" onclick="generateSubjectJSON('Mathematics')">📐 Mathematics JSON</button>
-                <button class="btn" onclick="generateSubjectJSON('Physics')">⚡ Physics JSON</button>
-                <button class="btn" onclick="generateSubjectJSON('Chemistry')">🧪 Chemistry JSON</button>
-                <button class="btn btn-secondary" onclick="generateAllJSON()">📚 All Subjects JSON</button>
-            </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-secondary" onclick="downloadAssignments()">Download Assignments</button>
-                <button class="btn btn-secondary" onclick="resetAssignments()">Reset All</button>
-            </div>
-        </div>
         
-        <div id="subjectAssignments" style="display: none;">
-            <h3>📊 Current Assignments</h3>
-            <div id="assignmentsList">
-                <!-- Assignments will be shown here -->
-            </div>
-        </div>
-        
-        <div id="debugInfo" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
-            <h3>🔍 Debug Information</h3>
-            <div id="debugContent" style="font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto;">
-                <!-- Debug content will be shown here -->
-            </div>
-        </div>
     </div>
+
 
     <script>
         let allQuestions = [];
@@ -891,9 +1445,8 @@
                 debugContent += `<div style="color: #dc3545; font-weight: bold; margin: 5px 0;">Extra question numbers: ${extra.join(', ')}</div>`;
             }
             
-            // Show debug info
-            document.getElementById('debugContent').innerHTML = debugContent;
-            document.getElementById('debugInfo').style.display = 'block';
+            // Debug info removed - console logging only
+            console.log('Debug info:', debugContent);
             
             console.log(`Found ${questions.length} questions`);
             console.log('Question numbers:', questions.map(q => q.number).join(', '));
@@ -1183,8 +1736,12 @@
             // Show Mathematics tab by default
             showSubject('Mathematics');
             
+            // Populate edit interfaces for all subjects
+            populateInlineEditFields('Mathematics');
+            populateInlineEditFields('Physics');
+            populateInlineEditFields('Chemistry');
+            
             document.getElementById('subjectTabs').style.display = 'block';
-            document.getElementById('actions').style.display = 'block';
         }
         
         function assignSubject(questionIndex, subject) {
@@ -1231,26 +1788,17 @@
         }
         
         function updateAssignmentsDisplay() {
-            const assignmentsList = document.getElementById('assignmentsList');
+            // Assignment display removed - console logging only
             const subjects = ['Mathematics', 'Physics', 'Chemistry'];
             
-            let html = '';
             subjects.forEach(subject => {
                 const questions = Object.entries(questionAssignments)
                     .filter(([num, sub]) => sub === subject)
                     .map(([num]) => num)
                     .sort((a, b) => parseInt(a) - parseInt(b));
                 
-                html += `
-                    <div class="subject-group">
-                        <div class="subject-title">${subject} (${questions.length} questions)</div>
-                        <div class="question-list">Questions: ${questions.join(', ')}</div>
-                    </div>
-                `;
+                console.log(`${subject}: ${questions.length} questions - ${questions.join(', ')}`);
             });
-            
-            assignmentsList.innerHTML = html;
-            document.getElementById('subjectAssignments').style.display = 'block';
         }
         
         function generateJSON() {
@@ -1485,16 +2033,47 @@
                 const optionsHtml = question.options.map((opt, optIndex) => {
                     const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
                     const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
-                    return `<div class="option"><strong>${letter}.</strong> ${cleanText}</div>`;
+                    return `<div class="option">
+                        <strong>${letter}.</strong> 
+                        <input type="text" class="option-input" value="${cleanText}" 
+                               data-question="${question.number}" data-option="${optIndex}"
+                               onclick="event.stopPropagation()" 
+                               onchange="updateQuestionOption(${question.number}, ${optIndex}, this.value, '${subject}')">
+                    </div>`;
                 }).join('\n');
                 
                 questionCard.innerHTML = `
                     <div class="question-header">
                         <div class="question-number">Q${question.number}</div>
+                        <div class="question-actions">
+                            <button class="edit-btn" onclick="event.stopPropagation(); toggleQuestionEdit(${question.number}, '${subject}')">✏️ Edit</button>
+                        </div>
                     </div>
-                    <div class="question-text">${question.text}</div>
-                    <div class="question-options">${optionsHtml}</div>
-                    ${question.answer ? `<div class="answer">Answer: (${question.answer})</div>` : ''}
+                    <div class="question-content">
+                        <div class="question-text">
+                            <textarea class="question-textarea" data-question="${question.number}" 
+                                      onclick="event.stopPropagation()" 
+                                      onchange="updateQuestionText(${question.number}, this.value, '${subject}')">${question.text}</textarea>
+                        </div>
+                        <div class="question-options">${optionsHtml}</div>
+                        <div class="answer-section">
+                            <label>Correct Answer:</label>
+                            <select class="answer-select" data-question="${question.number}" 
+                                    onclick="event.stopPropagation()" 
+                                    onchange="updateQuestionAnswer(${question.number}, this.value, '${subject}')">
+                                <option value="1" ${question.answer === '1' ? 'selected' : ''}>A</option>
+                                <option value="2" ${question.answer === '2' ? 'selected' : ''}>B</option>
+                                <option value="3" ${question.answer === '3' ? 'selected' : ''}>C</option>
+                                <option value="4" ${question.answer === '4' ? 'selected' : ''}>D</option>
+                            </select>
+                        </div>
+                        <div class="solution-section">
+                            <label>Solution:</label>
+                            <textarea class="solution-textarea" data-question="${question.number}" 
+                                      onclick="event.stopPropagation()" 
+                                      onchange="updateQuestionSolution(${question.number}, this.value, '${subject}')">${question.solution || ''}</textarea>
+                        </div>
+                    </div>
                 `;
                 
                 container.appendChild(questionCard);
@@ -1520,17 +2099,33 @@
                 return;
             }
             
+            // Get values from form inputs
+            const getFormValue = (fieldId) => {
+                const element = document.getElementById(fieldId);
+                return element ? element.value : '';
+            };
+            
+            const tutorialId = getFormValue(`tutorialId${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const tutorialTitle = getFormValue(`tutorialTitle${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const tutorialDescription = getFormValue(`tutorialDescription${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const authorityExamId = getFormValue(`authorityExamId${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const state = getFormValue(`state${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const board = getFormValue(`board${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const conductedBy = getFormValue(`conductedBy${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const year = getFormValue(`year${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const subjectValue = getFormValue(`subject${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            
             // Generate JSON structure
             const jsonData = [{
-                "tutorialId": `JEE_2025_${subject}`,
-                "tutorialTitle": `JEE 2025 ${subject}`,
-                "tutorialDescription": `JEE 2025 ${subject} Questions with Solutions`,
-                "authorityExamId": "jee_2025",
-                "state": "All India",
-                "board": "JEE",
-                "conductedBy": "NTA (National Testing Agency)",
-                "year": "2025",
-                "subject": subject,
+                "tutorialId": tutorialId || `JEE_2025_${subject}`,
+                "tutorialTitle": tutorialTitle || `JEE 2025 ${subject}`,
+                "tutorialDescription": tutorialDescription || `JEE 2025 ${subject} Questions with Solutions`,
+                "authorityExamId": authorityExamId || "jee_2025",
+                "state": state || "All India",
+                "board": board || "JEE",
+                "conductedBy": conductedBy || "NTA (National Testing Agency)",
+                "year": year || "2025",
+                "subject": subjectValue || subject,
                 "questions": subjectQuestions.map(question => ({
                     "questionIndex": question.number.toString(),
                     "questionId": `2025${subject.charAt(0)}Q${question.number}`,
@@ -1577,68 +2172,407 @@
                     </div>
                 `;
             }
+            
+            // Add event listeners to form inputs to update JSON in real-time
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const formInputs = [
+                `tutorialId${suffix}`, `tutorialTitle${suffix}`, `tutorialDescription${suffix}`,
+                `authorityExamId${suffix}`, `state${suffix}`, `board${suffix}`,
+                `conductedBy${suffix}`, `year${suffix}`, `subject${suffix}`
+            ];
+            
+            formInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('input', () => {
+                        // Regenerate JSON with updated values
+                        displaySubjectJSON(subject);
+                    });
+                }
+            });
         }
         
-        function generateSubjectJSON(subject) {
-            // Get questions assigned to this subject OR detected as this subject
+        // Question editing functions
+        function updateQuestionText(questionNumber, newText, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                question.text = newText;
+                // Update the render view
+                renderAllQuestions(subject);
+                // Update JSON
+                displaySubjectJSON(subject);
+            }
+        }
+        
+        function updateQuestionOption(questionNumber, optionIndex, newText, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question && question.options[optionIndex]) {
+                // Update the option text while preserving the numbering
+                const optionNumber = optionIndex + 1;
+                question.options[optionIndex] = `(${optionNumber}) ${newText}`;
+                // Update the render view
+                renderAllQuestions(subject);
+                // Update JSON
+                displaySubjectJSON(subject);
+            }
+        }
+        
+        function updateQuestionAnswer(questionNumber, newAnswer, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                question.answer = newAnswer;
+                // Update the render view
+                renderAllQuestions(subject);
+                // Update JSON
+                displaySubjectJSON(subject);
+            }
+        }
+        
+        function updateQuestionSolution(questionNumber, newSolution, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                question.solution = newSolution;
+                // Update the render view
+                renderAllQuestions(subject);
+                // Update JSON
+                displaySubjectJSON(subject);
+            }
+        }
+        
+        function toggleQuestionEdit(questionNumber, subject) {
+            // This function can be used to toggle edit mode if needed
+            console.log(`Toggling edit mode for question ${questionNumber} in ${subject}`);
+        }
+        
+        let currentEditSubject = '';
+        let originalQuestions = [];
+        
+        
+        
+        function populateInlineEditFields(subject) {
             const subjectQuestions = allQuestions.filter(q => {
                 const assignedSubject = questionAssignments[q.number];
                 const detectedSubject = q.subject;
                 return assignedSubject === subject || 
-                       (detectedSubject === subject.toLowerCase() && !assignedSubject) ||
-                       (detectedSubject === 'mathematics' && subject === 'Mathematics') ||
-                       (detectedSubject === 'physics' && subject === 'Physics') ||
-                       (detectedSubject === 'chemistry' && subject === 'Chemistry');
+                       (detectedSubject && detectedSubject.toLowerCase() === subject.toLowerCase());
             });
             
+            const editQuestionsList = document.getElementById(`editQuestionsList-${subject}`);
+            editQuestionsList.innerHTML = '';
+            
+            subjectQuestions.forEach(question => {
+                const questionEditItem = document.createElement('div');
+                questionEditItem.className = 'question-edit-item';
+                
+                const optionsHtml = question.options.map((opt, optIndex) => {
+                    const letter = String.fromCharCode(65 + optIndex);
+                    const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
+                    return `
+                        <div class="option-edit-item">
+                            <label>${letter}:</label>
+                            <input type="text" class="option-edit-input" 
+                                   data-question="${question.number}" data-option="${optIndex}"
+                                   value="${cleanText}" oninput="updateInlineQuestionOption(${question.number}, ${optIndex}, this.value, '${subject}')">
+                        </div>
+                    `;
+                }).join('');
+                
+                questionEditItem.innerHTML = `
+                    <div class="question-edit-header">
+                        <div class="question-edit-number">Question ${question.number}</div>
+                    </div>
+                    <div class="question-edit-fields">
+                        <div class="edit-field-group">
+                            <label>Question Text:</label>
+                            <textarea class="question-edit-textarea" 
+                                      data-question="${question.number}" 
+                                      oninput="updateInlineQuestionText(${question.number}, this.value, '${subject}')">${question.text}</textarea>
+                        </div>
+                        <div class="edit-field-group">
+                            <label>Options:</label>
+                            <div class="options-edit-grid">
+                                ${optionsHtml}
+                            </div>
+                        </div>
+                        <div class="edit-field-group">
+                            <label>Correct Answer:</label>
+                            <select class="answer-edit-select" 
+                                    data-question="${question.number}" 
+                                    onchange="updateInlineQuestionAnswer(${question.number}, this.value, '${subject}')">
+                                <option value="1" ${question.answer === '1' ? 'selected' : ''}>A</option>
+                                <option value="2" ${question.answer === '2' ? 'selected' : ''}>B</option>
+                                <option value="3" ${question.answer === '3' ? 'selected' : ''}>C</option>
+                                <option value="4" ${question.answer === '4' ? 'selected' : ''}>D</option>
+                            </select>
+                        </div>
+                        <div class="edit-field-group">
+                            <label>Solution:</label>
+                            <textarea class="solution-edit-textarea" 
+                                      data-question="${question.number}" 
+                                      oninput="updateInlineQuestionSolution(${question.number}, this.value, '${subject}')">${question.solution || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+                
+                editQuestionsList.appendChild(questionEditItem);
+            });
+            
+            // Populate the render view
+            populateInlineRenderView(subject);
+        }
+        
+        function updateInlinePreview(subject) {
+            // Update the questions data with current form values
+            const editFields = document.querySelectorAll(`#editQuestionsList-${subject} .question-edit-item`);
+            
+            editFields.forEach(editField => {
+                const questionNumber = parseInt(editField.querySelector('[data-question]').getAttribute('data-question'));
+                const question = allQuestions.find(q => q.number === questionNumber);
+                
+                if (question) {
+                    // Update question text
+                    const questionTextarea = editField.querySelector('.question-edit-textarea');
+                    if (questionTextarea) {
+                        question.text = questionTextarea.value;
+                    }
+                    
+                    // Update options
+                    const optionInputs = editField.querySelectorAll('.option-edit-input');
+                    optionInputs.forEach((input, index) => {
+                        const optionNumber = index + 1;
+                        question.options[index] = `(${optionNumber}) ${input.value}`;
+                    });
+                    
+                    // Update answer
+                    const answerSelect = editField.querySelector('.answer-edit-select');
+                    if (answerSelect) {
+                        question.answer = answerSelect.value;
+                    }
+                    
+                    // Update solution
+                    const solutionTextarea = editField.querySelector('.solution-edit-textarea');
+                    if (solutionTextarea) {
+                        question.solution = solutionTextarea.value;
+                    }
+                }
+            });
+            
+            // Update the main view
+            displaySubjectJSON(subject);
+            renderAllQuestions(subject);
+        }
+        
+        function saveAllInlineChanges(subject) {
+            // Auto-save is now handled by individual field updates
+            // This function is kept for compatibility but does nothing
+            console.log('Auto-save is enabled - changes are saved automatically');
+        }
+        
+        function updateInlineQuestionText(questionNumber, newText, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                question.text = newText;
+                populateInlineRenderView(subject);
+            }
+        }
+        
+        function updateInlineQuestionOption(questionNumber, optionIndex, newValue, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                const optionNumber = optionIndex + 1;
+                question.options[optionIndex] = `(${optionNumber}) ${newValue}`;
+                populateInlineRenderView(subject);
+            }
+        }
+        
+        function updateInlineQuestionAnswer(questionNumber, newAnswer, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                question.answer = newAnswer;
+                populateInlineRenderView(subject);
+            }
+        }
+        
+        function updateInlineQuestionSolution(questionNumber, newSolution, subject) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                question.solution = newSolution;
+                populateInlineRenderView(subject);
+            }
+        }
+        
+        function populateInlineRenderView(subject) {
+            const subjectQuestions = allQuestions.filter(q => {
+                const assignedSubject = questionAssignments[q.number];
+                const detectedSubject = q.subject;
+                return assignedSubject === subject || 
+                       (detectedSubject && detectedSubject.toLowerCase() === subject.toLowerCase());
+            });
+            
+            let renderHtml = '';
+            subjectQuestions.forEach(question => {
+                const optionsHtml = question.options.map((opt, optIndex) => {
+                    const letter = String.fromCharCode(65 + optIndex);
+                    const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
+                    return `<div class="option-render"><strong>${letter}.</strong> ${cleanText}</div>`;
+                }).join('\n');
+                
+                const answerIndex = parseInt(question.answer) - 1;
+                const answerText = question.options[answerIndex]?.replace(/^\(\d+\)\s*/, '').trim() || '';
+                const answerLetter = question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '';
+                
+                renderHtml += `
+                    <div class="question-render" id="inline-render-q${question.number}">
+                        <h4>Question ${question.number}</h4>
+                        <div class="question-text">${question.text}</div>
+                        <div class="options-render">${optionsHtml}</div>
+                        ${answerText ? `<div class="answer-render">Answer: ${answerLetter}. ${answerText}</div>` : ''}
+                        ${question.solution ? `<div class="solution-render">Solution: ${cleanSolutionText(question.solution)}</div>` : ''}
+                        <hr style="margin: 20px 0; border: 1px solid #eee;">
+                    </div>
+                `;
+            });
+            
+            const renderContainerId = subject === 'Mathematics' ? 'inlineMathRender' :
+                                    subject === 'Physics' ? 'inlinePhysicsRender' : 'inlineChemistryRender';
+            document.getElementById(renderContainerId).innerHTML = renderHtml;
+            
+            // Re-render MathJax
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise([document.getElementById(renderContainerId)]);
+            }
+        }
+        
+        function switchTab(subject, tabType) {
+            console.log(`Switching to ${tabType} tab for ${subject}`);
+            
+            // Update tab segments
+            document.getElementById(`tab-edit-${subject}`).classList.toggle('active', tabType === 'edit');
+            document.getElementById(`tab-json-${subject}`).classList.toggle('active', tabType === 'json');
+            
+            // Show/hide content
+            const editContent = document.getElementById(`edit-content-${subject}`);
+            const jsonContent = document.getElementById(`json-content-${subject}`);
+            
+            if (tabType === 'edit') {
+                editContent.style.display = 'block';
+                jsonContent.style.display = 'none';
+            } else {
+                editContent.style.display = 'none';
+                jsonContent.style.display = 'block';
+                
+                // Generate and display JSON
+                console.log(`Generating JSON for ${subject}`);
+                generateSubjectJSON(subject);
+            }
+        }
+        
+        function generateSubjectJSON(subject) {
+            console.log(`generateSubjectJSON called for ${subject}`);
+            console.log(`Total questions: ${allQuestions.length}`);
+            
+            // Filter questions for this subject
+            const subjectQuestions = allQuestions.filter(q => {
+                const assignedSubject = questionAssignments[q.number];
+                const detectedSubject = q.subject;
+                return assignedSubject === subject || 
+                       (detectedSubject && detectedSubject.toLowerCase() === subject.toLowerCase()) ||
+                       (subject === 'Mathematics' && (!assignedSubject && !detectedSubject)) ||
+                       (subject === 'Physics' && (!assignedSubject && !detectedSubject)) ||
+                       (subject === 'Chemistry' && (!assignedSubject && !detectedSubject));
+            });
+            
+            console.log(`Filtered questions for ${subject}: ${subjectQuestions.length}`);
+            
             if (subjectQuestions.length === 0) {
-                alert(`No questions assigned to ${subject}. Please assign some questions first.`);
+                const jsonOutput = document.getElementById(`json-output-${subject}`);
+                if (jsonOutput) {
+                    jsonOutput.value = 'No questions found.';
+                } else {
+                    console.error(`JSON output element not found for ${subject}`);
+                }
                 return;
             }
             
+            // Get values from form inputs
+            const getFormValue = (fieldId) => {
+                const element = document.getElementById(fieldId);
+                return element ? element.value : '';
+            };
+            
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const tutorialId = getFormValue(`tutorialId${suffix}`);
+            const tutorialTitle = getFormValue(`tutorialTitle${suffix}`);
+            const tutorialDescription = getFormValue(`tutorialDescription${suffix}`);
+            const authorityExamId = getFormValue(`authorityExamId${suffix}`);
+            const state = getFormValue(`state${suffix}`);
+            const board = getFormValue(`board${suffix}`);
+            const conductedBy = getFormValue(`conductedBy${suffix}`);
+            const year = getFormValue(`year${suffix}`);
+            const subjectValue = getFormValue(`subject${suffix}`);
+            
+            // Generate JSON structure in the required format
             const jsonData = [{
                 "tutorialId": `JEE_2025_${subject}`,
                 "tutorialTitle": `JEE 2025 ${subject}`,
-                "tutorialDescription": `JEE (Main) 2025 ${subject} Questions`,
+                "tutorialDescription": `JEE 2025 ${subject} Questions with Solutions`,
                 "authorityExamId": "jee_main",
                 "state": "All India",
                 "board": "JEE",
                 "conductedBy": "NTA (National Testing Agency)",
                 "year": "2025",
                 "subject": subject,
-                "questions": subjectQuestions.map((q, index) => ({
-                    "questionIndex": (index + 1).toString(),
-                    "questionId": `2025${subject.charAt(0)}Q${q.number}`,
+                "questions": subjectQuestions.map(question => ({
+                    "questionIndex": question.number.toString(),
+                    "questionId": `2025${subject.charAt(0)}Q${question.number}`,
                     "questionDetails": [{
-                        "text": q.text,
+                        "text": question.text || "No text",
                         "textImages": [],
-                        "possibleAnswers": q.options.reduce((acc, opt) => {
-                            const letter = String.fromCharCode(64 + parseInt(opt.number));
-                            acc[letter] = { 
-                                "text": opt.text, 
-                                "image": null 
-                            };
-                            return acc;
-                        }, {}),
-                        "correctAnswer": q.answer ? String.fromCharCode(64 + parseInt(q.answer)) : "",
-                        "correctAnswerText": q.options.find(opt => opt.number === q.answer)?.text || ""
+                        "possibleAnswers": {
+                            "A": {
+                                "text": question.options[0]?.replace(/^\(\d+\)\s*/, '').trim() || "",
+                                "image": null
+                            },
+                            "B": {
+                                "text": question.options[1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
+                                "image": null
+                            },
+                            "C": {
+                                "text": question.options[2]?.replace(/^\(\d+\)\s*/, '').trim() || "",
+                                "image": null
+                            },
+                            "D": {
+                                "text": question.options[3]?.replace(/^\(\d+\)\s*/, '').trim() || "",
+                                "image": null
+                            }
+                        },
+                        "correctAnswer": question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : "",
+                        "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || ""
                     }]
                 }))
             }];
             
-            // Display JSON in the right panel
-            const jsonContainerId = subject === 'Mathematics' ? 'mathQuestionsList' :
-                                   subject === 'Physics' ? 'physicsQuestionsList' : 'chemistryQuestionsList';
-            const jsonContainer = document.getElementById(jsonContainerId);
-            if (jsonContainer) {
-                jsonContainer.innerHTML = `
-                    <div class="json-display">
-                        <h4>Question Data Structure</h4>
-                        <pre><code>${JSON.stringify(jsonData, null, 2)}</code></pre>
-                    </div>
-                `;
+            // Display JSON in the textarea
+            const jsonOutput = document.getElementById(`json-output-${subject}`);
+            console.log(`JSON output element found:`, jsonOutput);
+            
+            if (jsonOutput) {
+                const jsonString = JSON.stringify(jsonData, null, 2);
+                console.log(`JSON string length: ${jsonString.length}`);
+                console.log(`JSON content preview:`, jsonString.substring(0, 200));
+                jsonOutput.value = jsonString;
+                console.log(`JSON set in textarea for ${subject}`);
+                
+                // Force a visual update
+                jsonOutput.style.backgroundColor = '#f0f0f0';
+                setTimeout(() => {
+                    jsonOutput.style.backgroundColor = '#ffffff';
+                }, 100);
+            } else {
+                console.error(`JSON output element not found for ${subject}`);
             }
         }
+        
         
         function generateAllJSON() {
             const subjects = ['Mathematics', 'Physics', 'Chemistry'];
