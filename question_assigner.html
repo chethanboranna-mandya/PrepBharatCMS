@@ -17,35 +17,112 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
             background: #f5f5f5;
         }
         
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            min-height: 100vh;
+            background: #f8f9fa;
         }
         
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
             color: white;
-            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+        
+        /* Custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .sidebar-header p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            opacity: 0.8;
         }
         
         .upload-section {
-            border: 2px dashed #ddd;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 30px;
-            border-radius: 10px;
-            background: #fafafa;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .upload-section h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .upload-section p {
+            margin: 0 0 15px 0;
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        
+        .main-content {
+            flex: 1;
+            margin-left: 300px;
+            padding: 20px;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
         }
         
         .file-input {
@@ -53,52 +130,181 @@
         }
         
         .upload-btn {
-            background: #4facfe;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
-            margin: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
         }
         
         .upload-btn:hover {
-            background: #00f2fe;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
         }
         
-        .stats {
+        .upload-btn:active {
+            transform: translateY(0);
+        }
+        
+        
+        .sidebar-subjects {
+            margin-top: 15px;
+        }
+        
+        .subject-tabs-sidebar {
             display: flex;
-            gap: 20px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 8px;
         }
         
-        .stat-card {
-            background: #e8f4fd;
-            padding: 15px;
+        .subject-tab-sidebar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
-            text-align: center;
-            min-width: 120px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-align: left;
+            width: 100%;
         }
         
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
+        .subject-tab-sidebar:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .subject-tab-sidebar.active {
+            background: rgba(79, 172, 254, 0.2);
             color: #4facfe;
+            border-color: rgba(79, 172, 254, 0.3);
+            border-left: 3px solid #4facfe;
+        }
+        
+        .subject-tab-sidebar span:first-child {
+            font-size: 16px;
+        }
+        
+        .question-count {
+            background: rgba(79, 172, 254, 0.2);
+            color: #4facfe;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+        
+        .sidebar-stats {
+            margin-top: 20px;
+        }
+        
+        .stats-summary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .stat-item:last-child {
+            margin-bottom: 0;
         }
         
         .stat-label {
-            color: #666;
-            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
         }
+        
+        .stat-number {
+            background: rgba(79, 172, 254, 0.2);
+            color: #4facfe;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .sidebar-download {
+            margin-top: 20px;
+        }
+        
+        .download-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .download-btn, .download-all-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-align: left;
+            width: 100%;
+        }
+        
+        .download-btn:hover {
+            background: rgba(79, 172, 254, 0.1);
+            color: #4facfe;
+            border-color: rgba(79, 172, 254, 0.3);
+            transform: translateX(3px);
+        }
+        
+        .download-all-btn {
+            background: rgba(39, 174, 96, 0.1);
+            border-color: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+            margin-top: 8px;
+        }
+        
+        .download-all-btn:hover {
+            background: rgba(39, 174, 96, 0.2);
+            border-color: rgba(39, 174, 96, 0.4);
+            color: #2ecc71;
+            transform: translateX(3px);
+        }
+        
+        .download-icon {
+            margin-left: auto;
+            font-size: 16px;
+        }
+        
+        
         
         .questions-container {
             display: flex;
             gap: 20px;
             margin-bottom: 30px;
-            height: 70vh;
-            min-height: 500px;
+            height: 80vh;
+            min-height: 600px;
             box-sizing: border-box;
         }
         
@@ -272,28 +478,6 @@
             font-size: 14px;
         }
         
-        .tab-btn {
-            background: none;
-            border: none;
-            padding: 12px 24px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-        
-        .tab-btn:hover {
-            color: #4facfe;
-            background: #f8f9fa;
-        }
-        
-        .tab-btn.active {
-            color: #4facfe;
-            border-bottom-color: #4facfe;
-            background: #f8f9fa;
-        }
         
         .subject-questions {
             display: none;
@@ -859,47 +1043,92 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📚 Question Subject Assigner</h1>
-            <p>Upload your markdown file and assign questions to correct subjects</p>
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>📚 Question Assigner</h1>
+                <p>Professional Question Management</p>
+            </div>
+            
+            <div class="upload-section">
+                <h3>📁 Upload File</h3>
+                <p>Select your markdown file containing questions to get started</p>
+                <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+            </div>
+            
+            <!-- Subject Tabs in Sidebar -->
+            <div class="sidebar-subjects" id="sidebarSubjectTabs" style="display: none;">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📚 Subjects</h3>
+                <div class="subject-tabs-sidebar">
+                    <button class="subject-tab-sidebar active" onclick="showSubject('Mathematics')" id="sidebar-tab-Mathematics">
+                        <span>🔢</span>
+                        <span>Mathematics</span>
+                        <span class="question-count" id="sidebar-count-Mathematics">0</span>
+                    </button>
+                    <button class="subject-tab-sidebar" onclick="showSubject('Physics')" id="sidebar-tab-Physics">
+                        <span>⚛️</span>
+                        <span>Physics</span>
+                        <span class="question-count" id="sidebar-count-Physics">0</span>
+                    </button>
+                    <button class="subject-tab-sidebar" onclick="showSubject('Chemistry')" id="sidebar-tab-Chemistry">
+                        <span>🧪</span>
+                        <span>Chemistry</span>
+                        <span class="question-count" id="sidebar-count-Chemistry">0</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Statistics Summary in Sidebar -->
+            <div class="sidebar-stats" id="sidebarStats" style="display: none;">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📊 Summary</h3>
+                <div class="stats-summary">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Questions</span>
+                        <span class="stat-number" id="sidebar-total-questions">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Extracted</span>
+                        <span class="stat-number" id="sidebar-extracted-questions">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Download Section in Sidebar -->
+            <div class="sidebar-download" id="sidebarDownload" style="display: none;">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">💾 Download JSON</h3>
+                <div class="download-buttons">
+                    <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
+                        <span>🔢</span>
+                        <span>Mathematics</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
+                    <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
+                        <span>⚛️</span>
+                        <span>Physics</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
+                    <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
+                        <span>🧪</span>
+                        <span>Chemistry</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
+                    <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
+                        <span>📦</span>
+                        <span>Download All</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
+                </div>
+            </div>
+            
         </div>
         
-        <div class="upload-section">
-            <h3>📁 Upload Markdown File</h3>
-            <p>Select your .md file containing the questions</p>
-            <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
-            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                Choose File
-            </button>
-        </div>
+        <!-- Main Content Area -->
+        <div class="main-content">
         
-        <div class="stats" id="stats" style="display: none;">
-            <div class="stat-card">
-                <div class="stat-number" id="totalQuestions">0</div>
-                <div class="stat-label">Total Questions</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="mathQuestions">0</div>
-                <div class="stat-label">Mathematics</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="physicsQuestions">0</div>
-                <div class="stat-label">Physics</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="chemistryQuestions">0</div>
-                <div class="stat-label">Chemistry</div>
-            </div>
-        </div>
 
-        <!-- Subject Tabs -->
-        <div id="subjectTabs" style="display: none; margin-bottom: 20px;">
-            <div style="display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px;">
-                <button class="tab-btn active" onclick="showSubject('Mathematics')" id="tab-Mathematics">Mathematics</button>
-                <button class="tab-btn" onclick="showSubject('Physics')" id="tab-Physics">Physics</button>
-                <button class="tab-btn" onclick="showSubject('Chemistry')" id="tab-Chemistry">Chemistry</button>
-            </div>
-        </div>
         
         <div id="questionsContainer" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1741,7 +1970,7 @@
             populateInlineEditFields('Physics');
             populateInlineEditFields('Chemistry');
             
-            document.getElementById('subjectTabs').style.display = 'block';
+            document.getElementById('sidebarSubjectTabs').style.display = 'block';
         }
         
         function assignSubject(questionIndex, subject) {
@@ -1779,12 +2008,19 @@
                        (detectedSubject === 'chemistry');
             }).length;
             
-            document.getElementById('totalQuestions').textContent = total;
-            document.getElementById('mathQuestions').textContent = math;
-            document.getElementById('physicsQuestions').textContent = physics;
-            document.getElementById('chemistryQuestions').textContent = chemistry;
+            // Update sidebar statistics
+            document.getElementById('sidebar-total-questions').textContent = total;
+            document.getElementById('sidebar-count-Mathematics').textContent = math;
+            document.getElementById('sidebar-count-Physics').textContent = physics;
+            document.getElementById('sidebar-count-Chemistry').textContent = chemistry;
             
-            document.getElementById('stats').style.display = 'flex';
+            // Calculate extracted questions (questions that have been assigned or detected)
+            const extracted = math + physics + chemistry;
+            document.getElementById('sidebar-extracted-questions').textContent = extracted;
+            
+            // Show sidebar stats and download section
+            document.getElementById('sidebarStats').style.display = 'block';
+            document.getElementById('sidebarDownload').style.display = 'block';
         }
         
         function updateAssignmentsDisplay() {
@@ -1882,11 +2118,11 @@
         function showSubject(subject) {
             console.log(`Switching to subject: ${subject}`);
             
-            // Update tab buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => {
+            // Update sidebar tab buttons
+            document.querySelectorAll('.subject-tab-sidebar').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.getElementById(`tab-${subject}`).classList.add('active');
+            document.getElementById(`sidebar-tab-${subject}`).classList.add('active');
             
             // Hide all subject views
             document.querySelectorAll('.subject-view').forEach(view => {
@@ -2437,6 +2673,7 @@
                                     subject === 'Physics' ? 'inlinePhysicsRender' : 'inlineChemistryRender';
             document.getElementById(renderContainerId).innerHTML = renderHtml;
             
+            
             // Re-render MathJax
             if (typeof MathJax !== 'undefined') {
                 MathJax.typesetPromise([document.getElementById(renderContainerId)]);
@@ -2552,7 +2789,7 @@
                 }))
             }];
             
-            // Display JSON in the textarea
+            // Display JSON in the main textarea
             const jsonOutput = document.getElementById(`json-output-${subject}`);
             console.log(`JSON output element found:`, jsonOutput);
             
@@ -2571,6 +2808,7 @@
             } else {
                 console.error(`JSON output element not found for ${subject}`);
             }
+            
         }
         
         
@@ -2645,6 +2883,133 @@
                 </html>
             `);
         }
+        
+        function downloadSubjectJSON(subject) {
+            console.log(`Downloading JSON for ${subject}`);
+            
+            // Filter questions for this subject
+            const subjectQuestions = allQuestions.filter(q => {
+                const assignedSubject = questionAssignments[q.number];
+                const detectedSubject = q.subject;
+                return assignedSubject === subject || 
+                       (detectedSubject && detectedSubject.toLowerCase() === subject.toLowerCase());
+            });
+            
+            if (subjectQuestions.length === 0) {
+                alert(`No questions found for ${subject}. Please assign some questions to this subject first.`);
+                return;
+            }
+            
+            // Generate JSON structure for this subject
+            const jsonData = [{
+                "tutorialId": `JEE_2025_${subject}`,
+                "tutorialTitle": `JEE 2025 ${subject}`,
+                "tutorialDescription": `JEE 2025 ${subject} Questions with Solutions`,
+                "authorityExamId": "jee_main",
+                "state": "All India",
+                "board": "JEE",
+                "conductedBy": "NTA (National Testing Agency)",
+                "year": "2025",
+                "subject": subject,
+                "questions": subjectQuestions.map(question => ({
+                    "questionIndex": question.number.toString(),
+                    "questionId": `2025${subject.charAt(0)}Q${question.number}`,
+                    "questionDetails": [{
+                        "text": question.text || "No text",
+                        "textImages": [],
+                        "possibleAnswers": question.options.map((opt, index) => ({
+                            "option": String.fromCharCode(65 + index),
+                            "text": opt.replace(/^\(\d+\)\s*/, '').trim(),
+                            "image": null
+                        })),
+                        "correctAnswer": question.answer || "1",
+                        "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || ""
+                    }]
+                }))
+            }];
+            
+            // Create and download the file
+            const jsonString = JSON.stringify(jsonData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `JEE_2025_${subject}_Questions.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log(`Downloaded JSON for ${subject} with ${subjectQuestions.length} questions`);
+        }
+        
+        function downloadAllSubjectsJSON() {
+            console.log('Downloading JSON for all subjects');
+            
+            const subjects = ['Mathematics', 'Physics', 'Chemistry'];
+            const allJsonData = [];
+            
+            subjects.forEach(subject => {
+                const subjectQuestions = allQuestions.filter(q => {
+                    const assignedSubject = questionAssignments[q.number];
+                    const detectedSubject = q.subject;
+                    return assignedSubject === subject || 
+                           (detectedSubject && detectedSubject.toLowerCase() === subject.toLowerCase());
+                });
+                
+                if (subjectQuestions.length > 0) {
+                    allJsonData.push({
+                        "tutorialId": `JEE_2025_${subject}`,
+                        "tutorialTitle": `JEE 2025 ${subject}`,
+                        "tutorialDescription": `JEE 2025 ${subject} Questions with Solutions`,
+                        "authorityExamId": "jee_main",
+                        "state": "All India",
+                        "board": "JEE",
+                        "conductedBy": "NTA (National Testing Agency)",
+                        "year": "2025",
+                        "subject": subject,
+                        "questions": subjectQuestions.map(question => ({
+                            "questionIndex": question.number.toString(),
+                            "questionId": `2025${subject.charAt(0)}Q${question.number}`,
+                            "questionDetails": [{
+                                "text": question.text || "No text",
+                                "textImages": [],
+                                "possibleAnswers": question.options.map((opt, index) => ({
+                                    "option": String.fromCharCode(65 + index),
+                                    "text": opt.replace(/^\(\d+\)\s*/, '').trim(),
+                                    "image": null
+                                })),
+                                "correctAnswer": question.answer || "1",
+                                "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || ""
+                            }]
+                        }))
+                    });
+                }
+            });
+            
+            if (allJsonData.length === 0) {
+                alert('No questions found for any subject. Please assign some questions first.');
+                return;
+            }
+            
+            // Create and download the file
+            const jsonString = JSON.stringify(allJsonData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'JEE_2025_All_Subjects_Questions.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log(`Downloaded JSON for all subjects with ${allJsonData.length} subject files`);
+        }
     </script>
+        </div> <!-- Close main-content -->
+    </div> <!-- Close container -->
 </body>
 </html>
