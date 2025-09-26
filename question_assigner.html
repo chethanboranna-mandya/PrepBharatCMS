@@ -2903,6 +2903,86 @@
             }
         }
         
+        function updateQuestion(questionId, field, value, optionIndex = null) {
+            console.log('updateQuestion called:', { questionId, field, value, optionIndex });
+            const question = allQuestions.find(q => q.number === questionId);
+            if (!question) {
+                console.log('Question not found with number:', questionId);
+                console.log('Available questions:', allQuestions.map(q => q.number));
+                return;
+            }
+            
+            console.log('Found question:', question);
+            
+            if (field === 'text') {
+                question.text = value;
+                console.log('Updated text to:', value);
+            } else if (field === 'option' && optionIndex !== null) {
+                // Ensure options array exists
+                if (!question.options) {
+                    question.options = ['', '', '', ''];
+                }
+                // Update option text while preserving the numbering
+                const optionNumber = optionIndex + 1;
+                question.options[optionIndex] = `(${optionNumber}) ${value}`;
+                console.log(`Updated option ${optionIndex} to:`, question.options[optionIndex]);
+            } else if (field === 'solution') {
+                question.solution = value;
+                console.log('Updated solution to:', value);
+            } else if (field === 'answer') {
+                question.answer = value;
+                console.log('Updated answer to:', value);
+            }
+            
+            // Update the Live Preview immediately
+            console.log('Calling updateLivePreview...');
+            updateLivePreview();
+        }
+        
+        function updateLivePreview() {
+            console.log('updateLivePreview called');
+            const currentSubject = getCurrentSubject();
+            const currentQuestionIndex = getCurrentQuestionIndex();
+            
+            console.log('Current subject:', currentSubject);
+            console.log('Current question index:', currentQuestionIndex);
+            
+            if (currentSubject && currentQuestionIndex !== null) {
+                console.log('Calling generateQuestionRender...');
+                generateQuestionRender(currentSubject, currentQuestionIndex);
+            } else {
+                console.log('Cannot update Live Preview - missing subject or question index');
+            }
+        }
+        
+        function getCurrentSubject() {
+            // Find which subject is currently active
+            const activeInterface = document.querySelector('.inline-edit-interface[style*="display: block"], .inline-edit-interface:not([style*="display: none"])');
+            console.log('Active interface found:', activeInterface);
+            if (activeInterface) {
+                const id = activeInterface.id;
+                console.log('Interface ID:', id);
+                if (id.includes('Mathematics')) return 'Mathematics';
+                if (id.includes('Physics')) return 'Physics';
+                if (id.includes('Chemistry')) return 'Chemistry';
+            }
+            return null;
+        }
+        
+        function getCurrentQuestionIndex() {
+            // Find the currently selected question
+            const activeQuestion = document.querySelector('.question-item.active');
+            console.log('Active question found:', activeQuestion);
+            if (activeQuestion) {
+                const text = activeQuestion.textContent;
+                const index = parseInt(text) - 1; // Convert to 0-based index
+                console.log('Question text:', text, 'Index:', index);
+                return index;
+            }
+            console.log('No active question found, returning 0');
+            return 0;
+        }
+        
         function toggleQuestionEdit(questionNumber, subject) {
             // This function can be used to toggle edit mode if needed
             console.log(`Toggling edit mode for question ${questionNumber} in ${subject}`);
@@ -3241,22 +3321,22 @@
                     <h5>Question ${questionIndex + 1}</h5>
                     <div class="edit-field">
                         <label>Question Text:</label>
-                        <textarea class="question-edit-input" onchange="updateQuestion(${question.id}, 'text', this.value)">${question.text || ''}</textarea>
+                        <textarea class="question-edit-input" oninput="updateQuestion(${question.number}, 'text', this.value)">${question.text || ''}</textarea>
                     </div>
                     
                     <div class="image-upload-section">
                         <label>Question Images (Multiple):</label>
-                        <div class="image-upload-area" ondrop="handleQuestionImageDrop(event, ${question.id})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <div class="image-upload-area" ondrop="handleQuestionImageDrop(event, ${question.number})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                             <div class="image-upload-icon">📷</div>
                             <div class="image-upload-text">Click or drag images here</div>
                             <div class="image-upload-hint">Multiple images allowed</div>
-                            <input type="file" multiple accept="image/*" onchange="handleQuestionImageUpload(event, ${question.id})" style="display: none;">
+                            <input type="file" multiple accept="image/*" onchange="handleQuestionImageUpload(event, ${question.number})" style="display: none;">
                         </div>
-                        <div class="uploaded-images" id="question-images-${question.id}">
+                        <div class="uploaded-images" id="question-images-${question.number}">
                             ${(question.images || []).map((img, idx) => `
                                 <div class="uploaded-image">
                                     <img src="${img}" alt="Question image">
-                                    <button class="remove-image" onclick="removeImage(${question.id}, 'question', ${idx})">×</button>
+                                    <button class="remove-image" onclick="removeImage(${question.number}, 'question', ${idx})">×</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -3268,17 +3348,17 @@
                             ${['A', 'B', 'C', 'D'].map((option, idx) => `
                                 <div class="option-edit-item">
                                     <label>${option}:</label>
-                                    <input type="text" class="option-edit-input" value="${question.options && question.options[idx] ? question.options[idx].text : ''}" onchange="updateQuestion(${question.id}, 'option', ${idx}, this.value)">
+                                    <input type="text" class="option-edit-input" value="${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}" oninput="updateQuestion(${question.number}, 'option', this.value, ${idx})">
                                     <div class="option-image-upload">
-                                        <div class="image-upload-area" ondrop="handleOptionImageDrop(event, ${question.id}, ${idx})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                                        <div class="image-upload-area" ondrop="handleOptionImageDrop(event, ${question.number}, ${idx})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                                             <div class="image-upload-icon">📷</div>
                                             <div class="image-upload-text">Option Image</div>
-                                            <input type="file" accept="image/*" onchange="handleOptionImageUpload(event, ${question.id}, ${idx})" style="display: none;">
+                                            <input type="file" accept="image/*" onchange="handleOptionImageUpload(event, ${question.number}, ${idx})" style="display: none;">
                                         </div>
                                         ${question.options && question.options[idx] && question.options[idx].image ? `
                                             <div class="uploaded-image">
                                                 <img src="${question.options[idx].image}" alt="Option image">
-                                                <button class="remove-image" onclick="removeImage(${question.id}, 'option', ${idx})">×</button>
+                                                <button class="remove-image" onclick="removeImage(${question.number}, 'option', ${idx})">×</button>
                                             </div>
                                         ` : ''}
                                     </div>
@@ -3289,7 +3369,7 @@
                     
                     <div class="edit-field">
                         <label>Correct Answer:</label>
-                        <select class="answer-edit-select" onchange="updateQuestion(${question.id}, 'answer', this.value)">
+                        <select class="answer-edit-select" onchange="updateQuestion(${question.number}, 'answer', this.value)">
                             <option value="A" ${question.answer === 'A' ? 'selected' : ''}>A</option>
                             <option value="B" ${question.answer === 'B' ? 'selected' : ''}>B</option>
                             <option value="C" ${question.answer === 'C' ? 'selected' : ''}>C</option>
@@ -3299,22 +3379,22 @@
                     
                     <div class="edit-field">
                         <label>Solution:</label>
-                        <textarea class="solution-edit-input" onchange="updateQuestion(${question.id}, 'solution', this.value)">${question.solution || ''}</textarea>
+                        <textarea class="solution-edit-input" oninput="updateQuestion(${question.number}, 'solution', this.value)">${question.solution || ''}</textarea>
                     </div>
                     
                     <div class="image-upload-section">
                         <label>Solution Images (Multiple):</label>
-                        <div class="image-upload-area" ondrop="handleSolutionImageDrop(event, ${question.id})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <div class="image-upload-area" ondrop="handleSolutionImageDrop(event, ${question.number})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                             <div class="image-upload-icon">📷</div>
                             <div class="image-upload-text">Click or drag images here</div>
                             <div class="image-upload-hint">Multiple images allowed</div>
-                            <input type="file" multiple accept="image/*" onchange="handleSolutionImageUpload(event, ${question.id})" style="display: none;">
+                            <input type="file" multiple accept="image/*" onchange="handleSolutionImageUpload(event, ${question.number})" style="display: none;">
                         </div>
-                        <div class="uploaded-images" id="solution-images-${question.id}">
+                        <div class="uploaded-images" id="solution-images-${question.number}">
                             ${(question.solutionImages || []).map((img, idx) => `
                                 <div class="uploaded-image">
                                     <img src="${img}" alt="Solution image">
-                                    <button class="remove-image" onclick="removeImage(${question.id}, 'solution', ${idx})">×</button>
+                                    <button class="remove-image" onclick="removeImage(${question.number}, 'solution', ${idx})">×</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -3329,7 +3409,14 @@
             
             if (!question) return;
             
-            const renderContainer = document.getElementById(`inline${subject}Render`);
+            // Map subject names to correct container IDs
+            const containerIdMap = {
+                'Mathematics': 'inlineMathRender',
+                'Physics': 'inlinePhysicsRender', 
+                'Chemistry': 'inlineChemistryRender'
+            };
+            
+            const renderContainer = document.getElementById(containerIdMap[subject]);
             renderContainer.innerHTML = `
                 <div class="question-render-item">
                     <h5>Question ${questionIndex + 1}</h5>
@@ -3340,7 +3427,7 @@
                     <div class="options">
                         ${['A', 'B', 'C', 'D'].map((option, idx) => `
                             <div class="option">
-                                <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].text : ''}
+                                <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
                                 ${question.options && question.options[idx] && question.options[idx].image ? `<img src="${question.options[idx].image}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
                             </div>
                         `).join('')}
