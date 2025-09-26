@@ -25,19 +25,18 @@
         
         .container {
             display: flex;
+            flex-direction: column;
             min-height: 100vh;
             background: #f8f9fa;
         }
         
         .sidebar {
-            width: 300px;
+            width: 100%;
             background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
             color: white;
-            padding: 20px;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
             z-index: 1000;
             box-sizing: border-box;
         }
@@ -63,8 +62,8 @@
         
         .sidebar-header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         
@@ -80,12 +79,23 @@
             opacity: 0.8;
         }
         
+        .sidebar-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .sidebar-section {
+            flex: 1;
+            min-width: 200px;
+        }
+        
         .upload-section {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 15px;
             backdrop-filter: blur(10px);
         }
         
@@ -106,11 +116,11 @@
         
         .main-content {
             flex: 1;
-            margin-left: 300px;
             padding: 20px;
+            padding-right: 30px;
             background: white;
-            min-height: 100vh;
-            max-width: calc(100vw - 300px);
+            min-height: auto;
+            max-width: 100%;
             overflow-x: hidden;
             box-sizing: border-box;
         }
@@ -118,14 +128,16 @@
         
         /* Responsive design */
         @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                position: relative;
-                height: auto;
+            .sidebar-content {
+                flex-direction: column;
             }
             
-            .main-content {
-                margin-left: 0;
+            .sidebar-section {
+                min-width: 100%;
+            }
+            
+            .subject-tabs-sidebar {
+                flex-direction: column;
             }
         }
         
@@ -159,13 +171,14 @@
         
         
         .sidebar-subjects {
-            margin-top: 15px;
+            margin-top: 0;
         }
         
         .subject-tabs-sidebar {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 8px;
+            flex-wrap: wrap;
         }
         
         .subject-tab-sidebar {
@@ -307,30 +320,243 @@
             display: flex;
             gap: 20px;
             margin-bottom: 30px;
-            height: 80vh;
-            min-height: 600px;
+            min-height: auto;
             box-sizing: border-box;
             max-width: 100%;
-            overflow: hidden;
         }
         
         .questions-grid {
             flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
             padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
             box-sizing: border-box;
-            max-height: 100%;
             display: flex;
             flex-direction: column;
         }
         
         .questions-list {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 150px 1fr 1fr;
+            gap: 0;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: visible;
+        }
+        
+        .question-list-sidebar {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 70vh;
+            overflow-y: auto;
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
+            box-sizing: border-box;
+        }
+        
+        .question-list-sidebar h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+        
+        .question-item {
+            display: block;
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .question-item:hover {
+            background: #e9ecef;
+            border-color: #4facfe;
+            transform: translateY(-1px);
+        }
+        
+        .question-item.active {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+        }
+        
+        .question-editor-panel {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            padding-left: 32px;
+            padding-right: 80px;
+            max-height: 70vh;
+            overflow-y: auto;
+            overflow-x: visible;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .question-render-panel {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            padding-left: 20px;
+            padding-right: 32px;
+            max-height: 70vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .question-editor-panel h4,
+        .question-render-panel h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+        
+        .question-edit-item {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .question-edit-item h5 {
+            margin: 0 0 20px 0;
+            color: #495057;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .edit-field {
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 100%;
+            min-width: 0;
+            overflow: visible;
+        }
+        
+        .edit-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            text-align: left;
+        }
+        
+        .question-edit-input {
+            width: 100%;
+            min-height: 180px;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+            max-width: 100%;
+            overflow-x: hidden;
+            word-wrap: break-word;
+        }
+        
+        .option-edit-input {
+            width: 100%;
+            min-height: 50px;
+            padding: 10px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            max-width: 100%;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            resize: vertical;
+        }
+        
+        .solution-edit-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+            max-width: 100%;
+            overflow-x: hidden;
+            word-wrap: break-word;
+        }
+        
+        .answer-edit-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        
+        .option-edit-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        
+        .option-edit-item label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            text-align: left !important;
+            width: 100%;
+            text-align-last: left;
+        }
+        
+        .options-edit-grid {
+            display: flex;
+            flex-direction: column;
             gap: 15px;
+            margin-bottom: 20px;
+            width: 100%;
         }
         
         .render-panel {
@@ -339,11 +565,8 @@
             border: 1px solid #e0e0e0;
             border-radius: 10px;
             padding: 15px;
-            overflow-y: auto;
-            overflow-x: hidden;
             position: relative;
             box-sizing: border-box;
-            max-height: 100%;
             max-width: 100%;
         }
         
@@ -526,10 +749,8 @@
             border: 1px solid #e0e0e0;
             border-radius: 10px;
             padding: 15px;
-            overflow-y: auto;
             position: relative;
             box-sizing: border-box;
-            max-height: 100%;
         }
         
         .render-label {
@@ -846,6 +1067,9 @@
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
         
         .question-edit-header {
@@ -916,10 +1140,6 @@
             gap: 10px;
         }
         
-        .option-edit-item label {
-            font-weight: bold;
-            min-width: 30px;
-        }
         
         .inline-edit-interface {
             background: #f8f9fa;
@@ -931,22 +1151,33 @@
         
         
         
+        .inline-panels-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .inline-panels-header h3 {
+            margin: 0;
+            color: #495057;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
         .edit-interface-content {
             display: flex;
-            height: 60vh;
-            overflow: hidden;
+            min-height: auto;
+            gap: 20px;
         }
         
         .edit-fields-container {
             flex: 1;
             border-right: 1px solid #dee2e6;
-            overflow-y: auto;
             padding: 20px;
         }
         
         .inline-render-view {
             flex: 1;
-            overflow-y: auto;
             padding: 20px;
             background: #f8f9fa;
         }
@@ -1012,7 +1243,6 @@
         .json-view-container {
             flex: 1;
             border-right: 1px solid #dee2e6;
-            overflow-y: auto;
             padding: 20px;
         }
         
@@ -1032,7 +1262,7 @@
         
         .json-textarea {
             width: 100%;
-            height: calc(60vh - 100px);
+            min-height: 300px;
             background: #ffffff;
             border: 1px solid #e9ecef;
             border-radius: 5px;
@@ -1054,6 +1284,174 @@
             border-color: #4facfe;
             box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
         }
+        
+        /* Image Upload Styles */
+        .image-upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            width: 60%;
+            box-sizing: border-box;
+            max-width: 60%;
+            align-self: flex-start;
+        }
+        
+        .image-upload-area:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+        
+        .image-upload-area.dragover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+        
+        .image-upload-icon {
+            font-size: 24px;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .image-upload-text {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .image-upload-hint {
+            color: #adb5bd;
+            font-size: 12px;
+        }
+        
+        .uploaded-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .uploaded-image {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e9ecef;
+        }
+        
+        .uploaded-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .option-image-upload {
+            margin-top: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        
+        .image-upload-section {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        .image-upload-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            text-align: left;
+        }
+        
+        .image-upload-area {
+            width: 100%;
+            min-height: 80px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            box-sizing: border-box;
+        }
+        
+        .option-image-upload .image-upload-area {
+            padding: 15px;
+            margin: 0;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .option-image-upload .image-upload-icon {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .option-image-upload .image-upload-text {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+        
+        .option-image-upload .image-upload-hint {
+            font-size: 10px;
+        }
+        
+        .option-image-upload .uploaded-image {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .option-edit-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        
+        
+        .option-edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .options-edit-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -1063,80 +1461,90 @@
             <div class="sidebar-header">
                 <h1>📚 Markdown to Json Converter</h1>
                 <p>Professional Question Management</p>
+        </div>
+        
+            <div class="sidebar-content">
+                <div class="sidebar-section">
+        <div class="upload-section">
+                        <h3>📁 Upload File</h3>
+                        <p>Select your markdown file containing questions to get started</p>
+            <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose File
+            </button>
+                    </div>
+        </div>
+        
+                <div class="sidebar-section">
+                    <!-- Subject Tabs in Sidebar -->
+                    <div class="sidebar-subjects" id="sidebarSubjectTabs" style="display: none;">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📚 Subjects</h3>
+                        <div class="subject-tabs-sidebar">
+                            <button class="subject-tab-sidebar active" onclick="showSubject('Mathematics')" id="sidebar-tab-Mathematics">
+                                <span>🔢</span>
+                                <span>Mathematics</span>
+                                <span class="question-count" id="sidebar-count-Mathematics">0</span>
+                            </button>
+                            <button class="subject-tab-sidebar" onclick="showSubject('Physics')" id="sidebar-tab-Physics">
+                                <span>⚛️</span>
+                                <span>Physics</span>
+                                <span class="question-count" id="sidebar-count-Physics">0</span>
+                            </button>
+                            <button class="subject-tab-sidebar" onclick="showSubject('Chemistry')" id="sidebar-tab-Chemistry">
+                                <span>🧪</span>
+                                <span>Chemistry</span>
+                                <span class="question-count" id="sidebar-count-Chemistry">0</span>
+                            </button>
             </div>
-            
-            <div class="upload-section">
-                <h3>📁 Upload File</h3>
-                <p>Select your markdown file containing questions to get started</p>
-                <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
-                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                    Choose File
-                </button>
             </div>
-            
-            <!-- Subject Tabs in Sidebar -->
-            <div class="sidebar-subjects" id="sidebarSubjectTabs" style="display: none;">
-                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📚 Subjects</h3>
-                <div class="subject-tabs-sidebar">
-                    <button class="subject-tab-sidebar active" onclick="showSubject('Mathematics')" id="sidebar-tab-Mathematics">
-                        <span>🔢</span>
-                        <span>Mathematics</span>
-                        <span class="question-count" id="sidebar-count-Mathematics">0</span>
-                    </button>
-                    <button class="subject-tab-sidebar" onclick="showSubject('Physics')" id="sidebar-tab-Physics">
-                        <span>⚛️</span>
-                        <span>Physics</span>
-                        <span class="question-count" id="sidebar-count-Physics">0</span>
-                    </button>
-                    <button class="subject-tab-sidebar" onclick="showSubject('Chemistry')" id="sidebar-tab-Chemistry">
-                        <span>🧪</span>
-                        <span>Chemistry</span>
-                        <span class="question-count" id="sidebar-count-Chemistry">0</span>
-                    </button>
-                </div>
             </div>
             
             <!-- Statistics Summary in Sidebar -->
-            <div class="sidebar-stats" id="sidebarStats" style="display: none;">
-                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📊 Summary</h3>
-                <div class="stats-summary">
-                    <div class="stat-item">
-                        <span class="stat-label">Total Questions</span>
-                        <span class="stat-number" id="sidebar-total-questions">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Extracted</span>
-                        <span class="stat-number" id="sidebar-extracted-questions">0</span>
-                    </div>
-                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-stats" id="sidebarStats" style="display: none;">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📊 Summary</h3>
+                        <div class="stats-summary">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Questions</span>
+                                <span class="stat-number" id="sidebar-total-questions">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Extracted</span>
+                                <span class="stat-number" id="sidebar-extracted-questions">0</span>
+                            </div>
+                        </div>
             </div>
-            
-            <!-- Download Section in Sidebar -->
-            <div class="sidebar-download" id="sidebarDownload" style="display: none;">
-                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">💾 Download JSON</h3>
-                <div class="download-buttons">
-                    <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
-                        <span>🔢</span>
-                        <span>Mathematics</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-                    <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
-                        <span>⚛️</span>
-                        <span>Physics</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-                    <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
-                        <span>🧪</span>
-                        <span>Chemistry</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-                    <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
-                        <span>📦</span>
-                        <span>Download All</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-                </div>
+        </div>
+
+                <div class="sidebar-section">
+                    <!-- Download Section in Sidebar -->
+                    <div class="sidebar-download" id="sidebarDownload" style="display: none;">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">💾 Download JSON</h3>
+                        <div class="download-buttons">
+                            <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
+                                <span>🔢</span>
+                                <span>Mathematics</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
+                            <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
+                                <span>⚛️</span>
+                                <span>Physics</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
+                            <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
+                                <span>🧪</span>
+                                <span>Chemistry</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
+                            <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
+                                <span>📦</span>
+                                <span>Download All</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
+                        </div>
+                    </div>
             </div>
+        </div>
             
         </div>
         
@@ -1223,23 +1631,21 @@
             
             <!-- Always show edit interface for Mathematics -->
             <div id="inlineEditInterface-Mathematics" class="inline-edit-interface">
-                <div class="tab-controls">
-                    <div class="tab-segment active" onclick="switchTab('Mathematics', 'edit')" id="tab-edit-Mathematics">Edit</div>
-                    <div class="tab-segment" onclick="switchTab('Mathematics', 'json')" id="tab-json-Mathematics">JSON</div>
+                <div class="inline-panels-header">
+                    <h3>Question Editor</h3>
                 </div>
                 <div class="edit-interface-content">
-                    <div class="edit-fields-container" id="edit-content-Mathematics">
-                        <div class="edit-questions-list" id="editQuestionsList-Mathematics">
+                    <div class="question-list-sidebar" id="questionList-Mathematics">
+                        <h4>📋 Questions</h4>
+                        <!-- Question list will be populated here -->
+                    </div>
+                    <div class="question-editor-panel" id="questionEditor-Mathematics" style="display: none;">
+                        <h4>✏️ Question Editor</h4>
+                        <div id="editQuestionsList-Mathematics">
                             <!-- Editable question fields will be populated here -->
                         </div>
                     </div>
-                    <div class="json-view-container" id="json-content-Mathematics" style="display: none;">
-                        <div class="json-display">
-                            <h4>📋 JSON Data Structure</h4>
-                            <textarea id="json-output-Mathematics" readonly class="json-textarea"></textarea>
-                        </div>
-                    </div>
-                    <div class="inline-render-view">
+                    <div class="question-render-panel" id="questionRender-Mathematics" style="display: none;">
                         <h4>📖 Live Preview</h4>
                         <div id="inlineMathRender">
                             <!-- Live render view will be shown here -->
@@ -1307,23 +1713,21 @@
             
             <!-- Always show edit interface for Physics -->
             <div id="inlineEditInterface-Physics" class="inline-edit-interface">
-                <div class="tab-controls">
-                    <div class="tab-segment active" onclick="switchTab('Physics', 'edit')" id="tab-edit-Physics">Edit</div>
-                    <div class="tab-segment" onclick="switchTab('Physics', 'json')" id="tab-json-Physics">JSON</div>
+                <div class="inline-panels-header">
+                    <h3>Question Editor</h3>
                 </div>
                 <div class="edit-interface-content">
-                    <div class="edit-fields-container" id="edit-content-Physics">
-                        <div class="edit-questions-list" id="editQuestionsList-Physics">
+                    <div class="question-list-sidebar" id="questionList-Physics">
+                        <h4>📋 Questions</h4>
+                        <!-- Question list will be populated here -->
+                    </div>
+                    <div class="question-editor-panel" id="questionEditor-Physics" style="display: none;">
+                        <h4>✏️ Question Editor</h4>
+                        <div id="editQuestionsList-Physics">
                             <!-- Editable question fields will be populated here -->
                         </div>
                     </div>
-                    <div class="json-view-container" id="json-content-Physics" style="display: none;">
-                        <div class="json-display">
-                            <h4>📋 JSON Data Structure</h4>
-                            <textarea id="json-output-Physics" readonly class="json-textarea"></textarea>
-                        </div>
-                    </div>
-                    <div class="inline-render-view">
+                    <div class="question-render-panel" id="questionRender-Physics" style="display: none;">
                         <h4>📖 Live Preview</h4>
                         <div id="inlinePhysicsRender">
                             <!-- Live render view will be shown here -->
@@ -1391,23 +1795,21 @@
             
             <!-- Always show edit interface for Chemistry -->
             <div id="inlineEditInterface-Chemistry" class="inline-edit-interface">
-                <div class="tab-controls">
-                    <div class="tab-segment active" onclick="switchTab('Chemistry', 'edit')" id="tab-edit-Chemistry">Edit</div>
-                    <div class="tab-segment" onclick="switchTab('Chemistry', 'json')" id="tab-json-Chemistry">JSON</div>
+                <div class="inline-panels-header">
+                    <h3>Question Editor</h3>
                 </div>
                 <div class="edit-interface-content">
-                    <div class="edit-fields-container" id="edit-content-Chemistry">
-                        <div class="edit-questions-list" id="editQuestionsList-Chemistry">
+                    <div class="question-list-sidebar" id="questionList-Chemistry">
+                        <h4>📋 Questions</h4>
+                        <!-- Question list will be populated here -->
+                    </div>
+                    <div class="question-editor-panel" id="questionEditor-Chemistry" style="display: none;">
+                        <h4>✏️ Question Editor</h4>
+                        <div id="editQuestionsList-Chemistry">
                             <!-- Editable question fields will be populated here -->
                         </div>
                     </div>
-                    <div class="json-view-container" id="json-content-Chemistry" style="display: none;">
-                        <div class="json-display">
-                            <h4>📋 JSON Data Structure</h4>
-                            <textarea id="json-output-Chemistry" readonly class="json-textarea"></textarea>
-                        </div>
-                    </div>
-                    <div class="inline-render-view">
+                    <div class="question-render-panel" id="questionRender-Chemistry" style="display: none;">
                         <h4>📖 Live Preview</h4>
                         <div id="inlineChemistryRender">
                             <!-- Live render view will be shown here -->
@@ -1697,6 +2099,11 @@
             allQuestions = questions;
             displayQuestions();
             updateStats();
+            
+            // Populate question lists for all subjects
+            populateQuestionList('Mathematics');
+            populateQuestionList('Physics');
+            populateQuestionList('Chemistry');
         }
         
         function extractImagesFromText(text) {
@@ -2157,6 +2564,12 @@
                 subjectViewElement.classList.add('active');
                 console.log(`Activated subject view for ${subject}`);
                 
+                // Populate the question list for the selected subject (if not already populated)
+                const questionListContainer = document.getElementById(`questionList-${subject}`);
+                if (questionListContainer && questionListContainer.children.length <= 1) {
+                    populateQuestionList(subject);
+                }
+                
                 // Generate and display questions for this subject
                 generateSubjectView(subject);
             } else {
@@ -2524,6 +2937,29 @@
                             <input type="text" class="option-edit-input" 
                                    data-question="${question.number}" data-option="${optIndex}"
                                    value="${cleanText}" oninput="updateInlineQuestionOption(${question.number}, ${optIndex}, this.value, '${subject}')">
+                            
+                            <!-- Option Image Upload -->
+                            <div class="option-image-upload">
+                                <div class="image-upload-area" 
+                                     data-question="${question.number}" 
+                                     data-option="${optIndex}"
+                                     data-type="option"
+                                     onclick="document.getElementById('option-image-input-${question.number}-${optIndex}').click()"
+                                     ondrop="handleImageDrop(event, ${question.number}, 'option', ${optIndex})"
+                                     ondragover="handleDragOver(event)"
+                                     ondragleave="handleDragLeave(event)">
+                                    <div class="image-upload-icon">📷</div>
+                                    <div class="image-upload-text">Click or drag image</div>
+                                    <div class="image-upload-hint">Single image for option ${letter}</div>
+                                </div>
+                                <input type="file" id="option-image-input-${question.number}-${optIndex}" 
+                                       style="display: none;" 
+                                       accept="image/*"
+                                       onchange="handleOptionImageUpload(event, ${question.number}, ${optIndex})">
+                                <div class="uploaded-images" id="option-images-${question.number}-${optIndex}">
+                                    <!-- Uploaded image will appear here -->
+                                </div>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -2538,13 +2974,39 @@
                             <textarea class="question-edit-textarea" 
                                       data-question="${question.number}" 
                                       oninput="updateInlineQuestionText(${question.number}, this.value, '${subject}')">${question.text}</textarea>
+                            
+                            <!-- Question Images Upload -->
+                            <div class="image-upload-section">
+                                <label>Question Images (Multiple):</label>
+                                <div class="image-upload-area" 
+                                     data-question="${question.number}" 
+                                     data-type="question"
+                                     onclick="document.getElementById('question-image-input-${question.number}').click()"
+                                     ondrop="handleImageDrop(event, ${question.number}, 'question')"
+                                     ondragover="handleDragOver(event)"
+                                     ondragleave="handleDragLeave(event)">
+                                    <div class="image-upload-icon">📷</div>
+                                    <div class="image-upload-text">Click or drag images here</div>
+                                    <div class="image-upload-hint">Multiple images allowed</div>
                         </div>
+                                <input type="file" id="question-image-input-${question.number}" 
+                                       style="display: none;" 
+                                       multiple 
+                                       accept="image/*"
+                                       onchange="handleQuestionImageUpload(event, ${question.number})">
+                                <div class="uploaded-images" id="question-images-${question.number}">
+                                    <!-- Uploaded images will appear here -->
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="edit-field-group">
                             <label>Options:</label>
                             <div class="options-edit-grid">
                                 ${optionsHtml}
                             </div>
                         </div>
+                        
                         <div class="edit-field-group">
                             <label>Correct Answer:</label>
                             <select class="answer-edit-select" 
@@ -2556,11 +3018,36 @@
                                 <option value="4" ${question.answer === '4' ? 'selected' : ''}>D</option>
                             </select>
                         </div>
+                        
                         <div class="edit-field-group">
                             <label>Solution:</label>
                             <textarea class="solution-edit-textarea" 
                                       data-question="${question.number}" 
                                       oninput="updateInlineQuestionSolution(${question.number}, this.value, '${subject}')">${question.solution || ''}</textarea>
+                            
+                            <!-- Solution Images Upload -->
+                            <div class="image-upload-section">
+                                <label>Solution Images (Multiple):</label>
+                                <div class="image-upload-area" 
+                                     data-question="${question.number}" 
+                                     data-type="solution"
+                                     onclick="document.getElementById('solution-image-input-${question.number}').click()"
+                                     ondrop="handleImageDrop(event, ${question.number}, 'solution')"
+                                     ondragover="handleDragOver(event)"
+                                     ondragleave="handleDragLeave(event)">
+                                    <div class="image-upload-icon">📷</div>
+                                    <div class="image-upload-text">Click or drag images here</div>
+                                    <div class="image-upload-hint">Multiple images allowed</div>
+                                </div>
+                                <input type="file" id="solution-image-input-${question.number}" 
+                                       style="display: none;" 
+                                       multiple 
+                                       accept="image/*"
+                                       onchange="handleSolutionImageUpload(event, ${question.number})">
+                                <div class="uploaded-images" id="solution-images-${question.number}">
+                                    <!-- Uploaded images will appear here -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -2696,26 +3183,184 @@
         }
         
         function switchTab(subject, tabType) {
-            console.log(`Switching to ${tabType} tab for ${subject}`);
+            // Tab switching is no longer needed - both panels are always visible
+            console.log(`Inline layout - both panels always visible for ${subject}`);
+        }
+        
+        function populateQuestionList(subject) {
+            const questionListContainer = document.getElementById(`questionList-${subject}`);
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
             
-            // Update tab segments
-            document.getElementById(`tab-edit-${subject}`).classList.toggle('active', tabType === 'edit');
-            document.getElementById(`tab-json-${subject}`).classList.toggle('active', tabType === 'json');
+            console.log(`Populating question list for ${subject}`);
+            console.log(`Total questions: ${allQuestions.length}`);
+            console.log(`Questions for ${subject.toLowerCase()}: ${subjectQuestions.length}`);
+            console.log(`All subjects found:`, [...new Set(allQuestions.map(q => q.subject))]);
             
-            // Show/hide content
-            const editContent = document.getElementById(`edit-content-${subject}`);
-            const jsonContent = document.getElementById(`json-content-${subject}`);
+            questionListContainer.innerHTML = '<h4>📋 Questions</h4>';
             
-            if (tabType === 'edit') {
-                editContent.style.display = 'block';
-                jsonContent.style.display = 'none';
-            } else {
-                editContent.style.display = 'none';
-                jsonContent.style.display = 'block';
-                
-                // Generate and display JSON
-                console.log(`Generating JSON for ${subject}`);
-                generateSubjectJSON(subject);
+            if (subjectQuestions.length === 0) {
+                questionListContainer.innerHTML += '<p style="text-align: center; color: #6c757d; margin-top: 20px;">No questions found</p>';
+                return;
+            }
+            
+            subjectQuestions.forEach((question, index) => {
+                const questionItem = document.createElement('button');
+                questionItem.className = 'question-item';
+                questionItem.textContent = `${index + 1}`;
+                questionItem.onclick = () => selectQuestion(subject, index);
+                questionListContainer.appendChild(questionItem);
+            });
+        }
+        
+        function selectQuestion(subject, questionIndex) {
+            // Remove active class from all question items
+            const questionItems = document.querySelectorAll(`#questionList-${subject} .question-item`);
+            questionItems.forEach(item => item.classList.remove('active'));
+            
+            // Add active class to selected question
+            questionItems[questionIndex].classList.add('active');
+            
+            // Show the editor and render panels
+            document.getElementById(`questionEditor-${subject}`).style.display = 'block';
+            document.getElementById(`questionRender-${subject}`).style.display = 'block';
+            
+            // Generate the specific question editor and render
+            generateQuestionEditor(subject, questionIndex);
+            generateQuestionRender(subject, questionIndex);
+        }
+        
+        function generateQuestionEditor(subject, questionIndex) {
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            const question = subjectQuestions[questionIndex];
+            
+            if (!question) return;
+            
+            const editorContainer = document.getElementById(`editQuestionsList-${subject}`);
+            editorContainer.innerHTML = `
+                <div class="question-edit-item">
+                    <h5>Question ${questionIndex + 1}</h5>
+                    <div class="edit-field">
+                        <label>Question Text:</label>
+                        <textarea class="question-edit-input" onchange="updateQuestion(${question.id}, 'text', this.value)">${question.text || ''}</textarea>
+                    </div>
+                    
+                    <div class="image-upload-section">
+                        <label>Question Images (Multiple):</label>
+                        <div class="image-upload-area" ondrop="handleQuestionImageDrop(event, ${question.id})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                            <div class="image-upload-icon">📷</div>
+                            <div class="image-upload-text">Click or drag images here</div>
+                            <div class="image-upload-hint">Multiple images allowed</div>
+                            <input type="file" multiple accept="image/*" onchange="handleQuestionImageUpload(event, ${question.id})" style="display: none;">
+                        </div>
+                        <div class="uploaded-images" id="question-images-${question.id}">
+                            ${(question.images || []).map((img, idx) => `
+                                <div class="uploaded-image">
+                                    <img src="${img}" alt="Question image">
+                                    <button class="remove-image" onclick="removeImage(${question.id}, 'question', ${idx})">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="edit-field">
+                        <label>Options:</label>
+                        <div class="options-edit-grid">
+                            ${['A', 'B', 'C', 'D'].map((option, idx) => `
+                                <div class="option-edit-item">
+                                    <label>${option}:</label>
+                                    <input type="text" class="option-edit-input" value="${question.options && question.options[idx] ? question.options[idx].text : ''}" onchange="updateQuestion(${question.id}, 'option', ${idx}, this.value)">
+                                    <div class="option-image-upload">
+                                        <div class="image-upload-area" ondrop="handleOptionImageDrop(event, ${question.id}, ${idx})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                                            <div class="image-upload-icon">📷</div>
+                                            <div class="image-upload-text">Option Image</div>
+                                            <input type="file" accept="image/*" onchange="handleOptionImageUpload(event, ${question.id}, ${idx})" style="display: none;">
+                                        </div>
+                                        ${question.options && question.options[idx] && question.options[idx].image ? `
+                                            <div class="uploaded-image">
+                                                <img src="${question.options[idx].image}" alt="Option image">
+                                                <button class="remove-image" onclick="removeImage(${question.id}, 'option', ${idx})">×</button>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="edit-field">
+                        <label>Correct Answer:</label>
+                        <select class="answer-edit-select" onchange="updateQuestion(${question.id}, 'answer', this.value)">
+                            <option value="A" ${question.answer === 'A' ? 'selected' : ''}>A</option>
+                            <option value="B" ${question.answer === 'B' ? 'selected' : ''}>B</option>
+                            <option value="C" ${question.answer === 'C' ? 'selected' : ''}>C</option>
+                            <option value="D" ${question.answer === 'D' ? 'selected' : ''}>D</option>
+                        </select>
+                    </div>
+                    
+                    <div class="edit-field">
+                        <label>Solution:</label>
+                        <textarea class="solution-edit-input" onchange="updateQuestion(${question.id}, 'solution', this.value)">${question.solution || ''}</textarea>
+                    </div>
+                    
+                    <div class="image-upload-section">
+                        <label>Solution Images (Multiple):</label>
+                        <div class="image-upload-area" ondrop="handleSolutionImageDrop(event, ${question.id})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                            <div class="image-upload-icon">📷</div>
+                            <div class="image-upload-text">Click or drag images here</div>
+                            <div class="image-upload-hint">Multiple images allowed</div>
+                            <input type="file" multiple accept="image/*" onchange="handleSolutionImageUpload(event, ${question.id})" style="display: none;">
+                        </div>
+                        <div class="uploaded-images" id="solution-images-${question.id}">
+                            ${(question.solutionImages || []).map((img, idx) => `
+                                <div class="uploaded-image">
+                                    <img src="${img}" alt="Solution image">
+                                    <button class="remove-image" onclick="removeImage(${question.id}, 'solution', ${idx})">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function generateQuestionRender(subject, questionIndex) {
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            const question = subjectQuestions[questionIndex];
+            
+            if (!question) return;
+            
+            const renderContainer = document.getElementById(`inline${subject}Render`);
+            renderContainer.innerHTML = `
+                <div class="question-render-item">
+                    <h5>Question ${questionIndex + 1}</h5>
+                    <div class="question-text">${question.text || ''}</div>
+                    
+                    ${(question.images || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                    
+                    <div class="options">
+                        ${['A', 'B', 'C', 'D'].map((option, idx) => `
+                            <div class="option">
+                                <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].text : ''}
+                                ${question.options && question.options[idx] && question.options[idx].image ? `<img src="${question.options[idx].image}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
+                        Answer: ${question.answer || ''}
+                    </div>
+                    
+                    <div class="solution">
+                        <strong>Solution:</strong>
+                        <div>${question.solution || ''}</div>
+                        ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                    </div>
+                </div>
+            `;
+            
+            // Re-render MathJax
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise([renderContainer]);
             }
         }
         
@@ -3022,6 +3667,145 @@
             URL.revokeObjectURL(url);
             
             console.log(`Downloaded JSON for all subjects with ${allJsonData.length} subject files`);
+        }
+        
+        // Image Upload Functions
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+        
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('dragover');
+        }
+        
+        function handleImageDrop(event, questionNumber, type, optionIndex = null) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                if (type === 'option' && optionIndex !== null) {
+                    handleOptionImageUpload({ target: { files: [files[0]] } }, questionNumber, optionIndex);
+                } else if (type === 'question') {
+                    handleQuestionImageUpload({ target: { files: files } }, questionNumber);
+                } else if (type === 'solution') {
+                    handleSolutionImageUpload({ target: { files: files } }, questionNumber);
+                }
+            }
+        }
+        
+        function handleQuestionImageUpload(event, questionNumber) {
+            const files = event.target.files;
+            const container = document.getElementById(`question-images-${questionNumber}`);
+            
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imageDiv = document.createElement('div');
+                        imageDiv.className = 'uploaded-image';
+                        imageDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="Question Image">
+                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'question', this)">×</button>
+                        `;
+                        container.appendChild(imageDiv);
+                        
+                        // Store image data in question object
+                        if (!allQuestions.find(q => q.number === questionNumber).questionImages) {
+                            allQuestions.find(q => q.number === questionNumber).questionImages = [];
+                        }
+                        allQuestions.find(q => q.number === questionNumber).questionImages.push({
+                            data: e.target.result,
+                            name: file.name
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        function handleOptionImageUpload(event, questionNumber, optionIndex) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const container = document.getElementById(`option-images-${questionNumber}-${optionIndex}`);
+                
+                // Clear existing image for this option
+                container.innerHTML = '';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageDiv = document.createElement('div');
+                    imageDiv.className = 'uploaded-image';
+                    imageDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Option Image">
+                        <button class="remove-image" onclick="removeImage(${questionNumber}, 'option', this, ${optionIndex})">×</button>
+                    `;
+                    container.appendChild(imageDiv);
+                    
+                    // Store image data in question object
+                    const question = allQuestions.find(q => q.number === questionNumber);
+                    if (!question.optionImages) {
+                        question.optionImages = {};
+                    }
+                    question.optionImages[optionIndex] = {
+                        data: e.target.result,
+                        name: file.name
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function handleSolutionImageUpload(event, questionNumber) {
+            const files = event.target.files;
+            const container = document.getElementById(`solution-images-${questionNumber}`);
+            
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imageDiv = document.createElement('div');
+                        imageDiv.className = 'uploaded-image';
+                        imageDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="Solution Image">
+                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'solution', this)">×</button>
+                        `;
+                        container.appendChild(imageDiv);
+                        
+                        // Store image data in question object
+                        if (!allQuestions.find(q => q.number === questionNumber).solutionImages) {
+                            allQuestions.find(q => q.number === questionNumber).solutionImages = [];
+                        }
+                        allQuestions.find(q => q.number === questionNumber).solutionImages.push({
+                            data: e.target.result,
+                            name: file.name
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        function removeImage(questionNumber, type, buttonElement, optionIndex = null) {
+            const imageDiv = buttonElement.parentElement;
+            imageDiv.remove();
+            
+            // Remove from question object
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (type === 'question' && question.questionImages) {
+                const imageIndex = Array.from(document.getElementById(`question-images-${questionNumber}`).children).indexOf(imageDiv);
+                if (imageIndex > -1) {
+                    question.questionImages.splice(imageIndex, 1);
+                }
+            } else if (type === 'option' && question.optionImages && optionIndex !== null) {
+                delete question.optionImages[optionIndex];
+            } else if (type === 'solution' && question.solutionImages) {
+                const imageIndex = Array.from(document.getElementById(`solution-images-${questionNumber}`).children).indexOf(imageDiv);
+                if (imageIndex > -1) {
+                    question.solutionImages.splice(imageIndex, 1);
+                }
+            }
         }
     </script>
         </div> <!-- Close main-content -->
