@@ -14,6 +14,61 @@
             }
         };
     </script>
+    
+    <!-- Firebase Configuration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import {
+            getStorage,
+            ref,
+            uploadBytesResumable,
+            getDownloadURL,
+            deleteObject
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkRSU7sVKQXmQo4C-imX0aSeHXHhlH59E",
+            authDomain: "prepbharat.firebaseapp.com",
+            projectId: "prepbharat",
+            storageBucket: "prepbharat.firebasestorage.app",
+            messagingSenderId: "593555148862",
+            appId: "1:593555148862:web:d627edfe32a17c71a5c16f",
+            measurementId: "G-7QGE8KDDTF"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+
+        // Make firebase functions available globally
+        window.firebaseStorage = {
+            storage,
+            ref,
+            deleteObject,
+            uploadBytesResumable,
+            getDownloadURL
+        };
+
+        // Firebase upload function with progress tracking
+        window.uploadImageToFirebase = function(file, subject, year, index, suffix, onProgress) {
+            return new Promise((resolve, reject) => {
+                const fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
+                const storageRef = ref(storage, `questions/${subject}/${year}/${fileName}`);
+                const uploadTask = uploadBytesResumable(storageRef, file);
+
+                uploadTask.on(
+                    "state_changed",
+                    (snapshot) => {
+                        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        if (onProgress) onProgress(Math.round(percent));
+                    },
+                    (error) => reject(error),
+                    () => {
+                        getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
+                    }
+                );
+            });
+        };
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -1366,6 +1421,58 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        /* Progress Bar Styles */
+        .upload-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #6c757d;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .upload-status {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .upload-status.uploading {
+            color: #007bff;
+        }
+
+        .upload-status.success {
+            color: #28a745;
+        }
+
+        .upload-status.error {
+            color: #dc3545;
         }
         
         .option-image-upload {
@@ -3326,17 +3433,17 @@
                     
                     <div class="image-upload-section">
                         <label>Question Images (Multiple):</label>
-                        <div class="image-upload-area" ondrop="handleQuestionImageDrop(event, ${question.number})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <div class="image-upload-area" onclick="document.getElementById('question-image-input-${question.number}').click()" ondrop="handleImageDrop(event, ${question.number}, 'question')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                             <div class="image-upload-icon">📷</div>
                             <div class="image-upload-text">Click or drag images here</div>
                             <div class="image-upload-hint">Multiple images allowed</div>
-                            <input type="file" multiple accept="image/*" onchange="handleQuestionImageUpload(event, ${question.number})" style="display: none;">
+                            <input type="file" id="question-image-input-${question.number}" multiple accept="image/*" onchange="handleQuestionImageUpload(event, ${question.number})" style="display: none;">
                         </div>
                         <div class="uploaded-images" id="question-images-${question.number}">
-                            ${(question.images || []).map((img, idx) => `
+                            ${(question.questionImages || []).map((img, idx) => `
                                 <div class="uploaded-image">
                                     <img src="${img}" alt="Question image">
-                                    <button class="remove-image" onclick="removeImage(${question.number}, 'question', ${idx})">×</button>
+                                    <button class="remove-image" onclick="removeImage(${question.number}, 'question', this, ${idx})">×</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -3350,17 +3457,19 @@
                                     <label>${option}:</label>
                                     <input type="text" class="option-edit-input" value="${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}" oninput="updateQuestion(${question.number}, 'option', this.value, ${idx})">
                                     <div class="option-image-upload">
-                                        <div class="image-upload-area" ondrop="handleOptionImageDrop(event, ${question.number}, ${idx})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                                        <div class="image-upload-area" onclick="document.getElementById('option-image-input-${question.number}-${idx}').click()" ondrop="handleImageDrop(event, ${question.number}, 'option', ${idx})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                                             <div class="image-upload-icon">📷</div>
                                             <div class="image-upload-text">Option Image</div>
-                                            <input type="file" accept="image/*" onchange="handleOptionImageUpload(event, ${question.number}, ${idx})" style="display: none;">
+                                            <input type="file" id="option-image-input-${question.number}-${idx}" accept="image/*" onchange="handleOptionImageUpload(event, ${question.number}, ${idx})" style="display: none;">
                                         </div>
-                                        ${question.options && question.options[idx] && question.options[idx].image ? `
-                                            <div class="uploaded-image">
-                                                <img src="${question.options[idx].image}" alt="Option image">
-                                                <button class="remove-image" onclick="removeImage(${question.number}, 'option', ${idx})">×</button>
-                                            </div>
-                                        ` : ''}
+                                        <div class="uploaded-images" id="option-images-${question.number}-${idx}">
+                                            ${question.optionImages && question.optionImages[idx] ? `
+                                                <div class="uploaded-image">
+                                                    <img src="${question.optionImages[idx]}" alt="Option image">
+                                                    <button class="remove-image" onclick="removeImage(${question.number}, 'option', this, ${idx})">×</button>
+                                                </div>
+                                            ` : ''}
+                                        </div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -3384,17 +3493,17 @@
                     
                     <div class="image-upload-section">
                         <label>Solution Images (Multiple):</label>
-                        <div class="image-upload-area" ondrop="handleSolutionImageDrop(event, ${question.number})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <div class="image-upload-area" onclick="document.getElementById('solution-image-input-${question.number}').click()" ondrop="handleImageDrop(event, ${question.number}, 'solution')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                             <div class="image-upload-icon">📷</div>
                             <div class="image-upload-text">Click or drag images here</div>
                             <div class="image-upload-hint">Multiple images allowed</div>
-                            <input type="file" multiple accept="image/*" onchange="handleSolutionImageUpload(event, ${question.number})" style="display: none;">
+                            <input type="file" id="solution-image-input-${question.number}" multiple accept="image/*" onchange="handleSolutionImageUpload(event, ${question.number})" style="display: none;">
                         </div>
                         <div class="uploaded-images" id="solution-images-${question.number}">
                             ${(question.solutionImages || []).map((img, idx) => `
                                 <div class="uploaded-image">
                                     <img src="${img}" alt="Solution image">
-                                    <button class="remove-image" onclick="removeImage(${question.number}, 'solution', ${idx})">×</button>
+                                    <button class="remove-image" onclick="removeImage(${question.number}, 'solution', this, ${idx})">×</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -3422,13 +3531,13 @@
                     <h5>Question ${questionIndex + 1}</h5>
                     <div class="question-text">${question.text || ''}</div>
                     
-                    ${(question.images || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                    ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
                     
                     <div class="options">
                         ${['A', 'B', 'C', 'D'].map((option, idx) => `
                             <div class="option">
                                 <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
-                                ${question.options && question.options[idx] && question.options[idx].image ? `<img src="${question.options[idx].image}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
+                                ${question.optionImages && question.optionImages[idx] ? `<img src="${question.optionImages[idx]}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -3785,114 +3894,305 @@
         function handleQuestionImageUpload(event, questionNumber) {
             const files = event.target.files;
             const container = document.getElementById(`question-images-${questionNumber}`);
+            const question = allQuestions.find(q => q.number === questionNumber);
             
-            Array.from(files).forEach(file => {
+            if (!question) {
+                console.error('Question not found:', questionNumber);
+                return;
+            }
+            
+            // Initialize questionImages array if it doesn't exist
+            if (!question.questionImages) {
+                question.questionImages = [];
+            }
+            
+            Array.from(files).forEach((file, fileIndex) => {
                 if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
+                    const imgIndex = question.questionImages.length;
+                    const suffix = `_Q${imgIndex + 1}`;
+                    
+                    // Create progress container
+                    const progressContainer = document.createElement('div');
+                    progressContainer.className = 'upload-progress';
+                    progressContainer.innerHTML = `
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="progress-text">0%</div>
+                        <div class="upload-status uploading">Uploading...</div>
+                    `;
+                    container.appendChild(progressContainer);
+                    
+                    const progressFill = progressContainer.querySelector('.progress-fill');
+                    const progressText = progressContainer.querySelector('.progress-text');
+                    const uploadStatus = progressContainer.querySelector('.upload-status');
+                    
+                    // Get current subject and year for Firebase path
+                    const currentSubject = getCurrentSubject();
+                    const year = '2025'; // You can make this dynamic if needed
+                    
+                    // Upload to Firebase
+                    uploadImageToFirebase(file, currentSubject, year, questionNumber - 1, suffix, (percent) => {
+                        progressFill.style.width = percent + '%';
+                        progressText.textContent = percent + '%';
+                    }).then(url => {
+                        // Upload successful
+                        uploadStatus.textContent = '✅ Uploaded';
+                        uploadStatus.className = 'upload-status success';
+                        
+                        // Create image display
                         const imageDiv = document.createElement('div');
                         imageDiv.className = 'uploaded-image';
                         imageDiv.innerHTML = `
-                            <img src="${e.target.result}" alt="Question Image">
-                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'question', this)">×</button>
+                            <img src="${url}" alt="Question Image">
+                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'question', this, ${imgIndex})">×</button>
                         `;
-                        container.appendChild(imageDiv);
                         
-                        // Store image data in question object
-                        if (!allQuestions.find(q => q.number === questionNumber).questionImages) {
-                            allQuestions.find(q => q.number === questionNumber).questionImages = [];
-                        }
-                        allQuestions.find(q => q.number === questionNumber).questionImages.push({
-                            data: e.target.result,
-                            name: file.name
-                        });
-                    };
-                    reader.readAsDataURL(file);
+                        // Replace progress with image
+                        progressContainer.replaceWith(imageDiv);
+                        
+                        // Store Firebase URL in question object
+                        question.questionImages.push(url);
+                        
+                        // Update Live Preview
+                        updateLivePreview();
+                        
+                    }).catch(error => {
+                        console.error('Upload failed:', error);
+                        uploadStatus.textContent = '❌ Upload failed';
+                        uploadStatus.className = 'upload-status error';
+                    });
                 }
             });
+            
+            // Reset file input
+            event.target.value = '';
         }
         
         function handleOptionImageUpload(event, questionNumber, optionIndex) {
             const file = event.target.files[0];
             if (file && file.type.startsWith('image/')) {
                 const container = document.getElementById(`option-images-${questionNumber}-${optionIndex}`);
+                const question = allQuestions.find(q => q.number === questionNumber);
+                
+                if (!question) {
+                    console.error('Question not found:', questionNumber);
+                    return;
+                }
                 
                 // Clear existing image for this option
                 container.innerHTML = '';
                 
-                const reader = new FileReader();
-                reader.onload = function(e) {
+                // Create progress container
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'upload-progress';
+                progressContainer.innerHTML = `
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">0%</div>
+                    <div class="upload-status uploading">Uploading...</div>
+                `;
+                container.appendChild(progressContainer);
+                
+                const progressFill = progressContainer.querySelector('.progress-fill');
+                const progressText = progressContainer.querySelector('.progress-text');
+                const uploadStatus = progressContainer.querySelector('.upload-status');
+                
+                // Get current subject and year for Firebase path
+                const currentSubject = getCurrentSubject();
+                const year = '2025'; // You can make this dynamic if needed
+                const suffix = `_op${optionIndex + 1}`;
+                
+                // Upload to Firebase
+                uploadImageToFirebase(file, currentSubject, year, questionNumber - 1, suffix, (percent) => {
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = percent + '%';
+                }).then(url => {
+                    // Upload successful
+                    uploadStatus.textContent = '✅ Uploaded';
+                    uploadStatus.className = 'upload-status success';
+                    
+                    // Create image display
                     const imageDiv = document.createElement('div');
                     imageDiv.className = 'uploaded-image';
                     imageDiv.innerHTML = `
-                        <img src="${e.target.result}" alt="Option Image">
+                        <img src="${url}" alt="Option Image">
                         <button class="remove-image" onclick="removeImage(${questionNumber}, 'option', this, ${optionIndex})">×</button>
                     `;
-                    container.appendChild(imageDiv);
                     
-                    // Store image data in question object
-                    const question = allQuestions.find(q => q.number === questionNumber);
+                    // Replace progress with image
+                    progressContainer.replaceWith(imageDiv);
+                    
+                    // Store Firebase URL in question object
                     if (!question.optionImages) {
                         question.optionImages = {};
                     }
-                    question.optionImages[optionIndex] = {
-                        data: e.target.result,
-                        name: file.name
-                    };
-                };
-                reader.readAsDataURL(file);
+                    question.optionImages[optionIndex] = url;
+                    
+                    // Update Live Preview
+                    updateLivePreview();
+                    
+                }).catch(error => {
+                    console.error('Upload failed:', error);
+                    uploadStatus.textContent = '❌ Upload failed';
+                    uploadStatus.className = 'upload-status error';
+                });
             }
         }
         
         function handleSolutionImageUpload(event, questionNumber) {
             const files = event.target.files;
             const container = document.getElementById(`solution-images-${questionNumber}`);
+            const question = allQuestions.find(q => q.number === questionNumber);
             
-            Array.from(files).forEach(file => {
+            if (!question) {
+                console.error('Question not found:', questionNumber);
+                return;
+            }
+            
+            // Initialize solutionImages array if it doesn't exist
+            if (!question.solutionImages) {
+                question.solutionImages = [];
+            }
+            
+            Array.from(files).forEach((file, fileIndex) => {
                 if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
+                    const imgIndex = question.solutionImages.length;
+                    const suffix = `_S${imgIndex + 1}`;
+                    
+                    // Create progress container
+                    const progressContainer = document.createElement('div');
+                    progressContainer.className = 'upload-progress';
+                    progressContainer.innerHTML = `
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="progress-text">0%</div>
+                        <div class="upload-status uploading">Uploading...</div>
+                    `;
+                    container.appendChild(progressContainer);
+                    
+                    const progressFill = progressContainer.querySelector('.progress-fill');
+                    const progressText = progressContainer.querySelector('.progress-text');
+                    const uploadStatus = progressContainer.querySelector('.upload-status');
+                    
+                    // Get current subject and year for Firebase path
+                    const currentSubject = getCurrentSubject();
+                    const year = '2025'; // You can make this dynamic if needed
+                    
+                    // Upload to Firebase
+                    uploadImageToFirebase(file, currentSubject, year, questionNumber - 1, suffix, (percent) => {
+                        progressFill.style.width = percent + '%';
+                        progressText.textContent = percent + '%';
+                    }).then(url => {
+                        // Upload successful
+                        uploadStatus.textContent = '✅ Uploaded';
+                        uploadStatus.className = 'upload-status success';
+                        
+                        // Create image display
                         const imageDiv = document.createElement('div');
                         imageDiv.className = 'uploaded-image';
                         imageDiv.innerHTML = `
-                            <img src="${e.target.result}" alt="Solution Image">
-                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'solution', this)">×</button>
+                            <img src="${url}" alt="Solution Image">
+                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'solution', this, ${imgIndex})">×</button>
                         `;
-                        container.appendChild(imageDiv);
                         
-                        // Store image data in question object
-                        if (!allQuestions.find(q => q.number === questionNumber).solutionImages) {
-                            allQuestions.find(q => q.number === questionNumber).solutionImages = [];
-                        }
-                        allQuestions.find(q => q.number === questionNumber).solutionImages.push({
-                            data: e.target.result,
-                            name: file.name
-                        });
-                    };
-                    reader.readAsDataURL(file);
+                        // Replace progress with image
+                        progressContainer.replaceWith(imageDiv);
+                        
+                        // Store Firebase URL in question object
+                        question.solutionImages.push(url);
+                        
+                        // Update Live Preview
+                        updateLivePreview();
+                        
+                    }).catch(error => {
+                        console.error('Upload failed:', error);
+                        uploadStatus.textContent = '❌ Upload failed';
+                        uploadStatus.className = 'upload-status error';
+                    });
                 }
             });
+            
+            // Reset file input
+            event.target.value = '';
         }
         
-        function removeImage(questionNumber, type, buttonElement, optionIndex = null) {
+        // Prevent default drag and drop behavior on the entire page
+        document.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('drop', function(e) {
+            e.preventDefault();
+        });
+
+        function removeImage(questionNumber, type, buttonElement, imageIndex = null) {
+            if (!confirm('Are you sure you want to remove this image?')) {
+                return;
+            }
+            
             const imageDiv = buttonElement.parentElement;
+            const question = allQuestions.find(q => q.number === questionNumber);
+            
+            if (!question) {
+                console.error('Question not found:', questionNumber);
+                return;
+            }
+            
+            // Get the image URL for Firebase deletion
+            const imgElement = imageDiv.querySelector('img');
+            const imageUrl = imgElement ? imgElement.src : null;
+            
+            // Remove from Firebase if it's a Firebase URL
+            if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
+                const { storage, ref, deleteObject } = window.firebaseStorage;
+                if (storage && ref && deleteObject) {
+                    // Extract the file path from the URL
+                    const urlParts = imageUrl.split('/');
+                    const fileName = urlParts[urlParts.length - 1].split('?')[0];
+                    const currentSubject = getCurrentSubject();
+                    const year = '2025';
+                    const storagePath = `questions/${currentSubject}/${year}/${fileName}`;
+                    
+                    const storageRef = ref(storage, storagePath);
+                    deleteObject(storageRef).catch(error => {
+                        console.error('Failed to delete from Firebase:', error);
+                    });
+                }
+            }
+            
+            // Remove from DOM
             imageDiv.remove();
             
             // Remove from question object
-            const question = allQuestions.find(q => q.number === questionNumber);
             if (type === 'question' && question.questionImages) {
-                const imageIndex = Array.from(document.getElementById(`question-images-${questionNumber}`).children).indexOf(imageDiv);
-                if (imageIndex > -1) {
+                if (imageIndex !== null && imageIndex >= 0) {
                     question.questionImages.splice(imageIndex, 1);
+                } else {
+                    // Fallback: find by URL
+                    const index = question.questionImages.findIndex(url => url === imageUrl);
+                    if (index > -1) {
+                        question.questionImages.splice(index, 1);
+                    }
                 }
-            } else if (type === 'option' && question.optionImages && optionIndex !== null) {
-                delete question.optionImages[optionIndex];
+            } else if (type === 'option' && question.optionImages && imageIndex !== null) {
+                delete question.optionImages[imageIndex];
             } else if (type === 'solution' && question.solutionImages) {
-                const imageIndex = Array.from(document.getElementById(`solution-images-${questionNumber}`).children).indexOf(imageDiv);
-                if (imageIndex > -1) {
+                if (imageIndex !== null && imageIndex >= 0) {
                     question.solutionImages.splice(imageIndex, 1);
+                } else {
+                    // Fallback: find by URL
+                    const index = question.solutionImages.findIndex(url => url === imageUrl);
+                    if (index > -1) {
+                        question.solutionImages.splice(index, 1);
+                    }
                 }
             }
+            
+            // Update Live Preview
+            updateLivePreview();
         }
     </script>
         </div> <!-- Close main-content -->
