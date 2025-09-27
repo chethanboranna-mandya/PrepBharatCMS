@@ -613,6 +613,157 @@
             padding-bottom: 10px;
         }
         
+        /* JSON Viewer Styles */
+        .viewer-toggle {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            background: var(--background-color);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        
+        .inline-panels-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 32px;
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .inline-panels-header h3 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .viewer-toggle-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .viewer-toggle-btn.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .viewer-toggle-btn:hover:not(.active) {
+            background: var(--background-color);
+            color: var(--text-primary);
+        }
+        
+        .json-viewer-panel {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            max-height: 70vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            display: none;
+            flex-direction: column;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .json-viewer-panel.active {
+            display: flex;
+        }
+        
+        .json-viewer-panel h4 {
+            margin: 0 0 20px 0;
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 12px;
+        }
+        
+        .json-content {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 24px;
+            border-radius: var(--radius-md);
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 1px solid #334155;
+            max-height: 50vh;
+            overflow-y: auto;
+            min-height: 300px;
+        }
+        
+        .json-content::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .json-content::-webkit-scrollbar-track {
+            background: #334155;
+            border-radius: 4px;
+        }
+        
+        .json-content::-webkit-scrollbar-thumb {
+            background: #64748b;
+            border-radius: 4px;
+        }
+        
+        .json-content::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .json-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .json-action-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--surface-color);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .json-action-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .json-action-btn.primary {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .json-action-btn.primary:hover {
+            background: var(--primary-hover);
+        }
+        
         .question-edit-item {
             width: 100%;
             display: flex;
@@ -1889,18 +2040,39 @@
             <div id="inlineEditInterface-Mathematics" class="inline-edit-interface">
                 <div class="inline-panels-header">
                     <h3>Question Editor</h3>
+                    <!-- Viewer Toggle -->
+                    <div class="viewer-toggle" id="viewerToggle-Mathematics" style="display: none;">
+                        <button class="viewer-toggle-btn active" onclick="switchViewer('Mathematics', 'editor')">✏️ Question Editor</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Mathematics', 'json')">📄 JSON Viewer</button>
+                    </div>
                 </div>
                 <div class="edit-interface-content">
                     <div class="question-list-sidebar" id="questionList-Mathematics">
                         <h4>📋 Questions</h4>
                         <!-- Question list will be populated here -->
                     </div>
+                    
+                    <!-- Question Editor Panel -->
                     <div class="question-editor-panel" id="questionEditor-Mathematics" style="display: none;">
                         <h4>✏️ Question Editor</h4>
                         <div id="editQuestionsList-Mathematics">
                             <!-- Editable question fields will be populated here -->
                         </div>
                     </div>
+                    
+                    <!-- JSON Viewer Panel -->
+                    <div class="json-viewer-panel" id="jsonViewer-Mathematics" style="display: none;">
+                        <h4>📄 JSON Data Structure</h4>
+                        <div class="json-content" id="jsonContent-Mathematics">
+                            <!-- JSON content will be populated here -->
+                        </div>
+                        <div class="json-actions">
+                            <button class="json-action-btn primary" onclick="copyJSON('Mathematics')">📋 Copy JSON</button>
+                            <button class="json-action-btn" onclick="downloadJSON('Mathematics')">💾 Download JSON</button>
+                            <button class="json-action-btn" onclick="refreshJSON('Mathematics')">🔄 Refresh</button>
+                    </div>
+                    </div>
+                    
                     <div class="question-render-panel" id="questionRender-Mathematics" style="display: none;">
                         <h4>📖 Live Preview</h4>
                         <div id="inlineMathRender">
@@ -1971,18 +2143,39 @@
             <div id="inlineEditInterface-Physics" class="inline-edit-interface">
                 <div class="inline-panels-header">
                     <h3>Question Editor</h3>
+                    <!-- Viewer Toggle -->
+                    <div class="viewer-toggle" id="viewerToggle-Physics" style="display: none;">
+                        <button class="viewer-toggle-btn active" onclick="switchViewer('Physics', 'editor')">✏️ Question Editor</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Physics', 'json')">📄 JSON Viewer</button>
+                    </div>
                 </div>
                 <div class="edit-interface-content">
                     <div class="question-list-sidebar" id="questionList-Physics">
                         <h4>📋 Questions</h4>
                         <!-- Question list will be populated here -->
                     </div>
+                    
+                    <!-- Question Editor Panel -->
                     <div class="question-editor-panel" id="questionEditor-Physics" style="display: none;">
                         <h4>✏️ Question Editor</h4>
                         <div id="editQuestionsList-Physics">
                             <!-- Editable question fields will be populated here -->
                         </div>
                     </div>
+                    
+                    <!-- JSON Viewer Panel -->
+                    <div class="json-viewer-panel" id="jsonViewer-Physics" style="display: none;">
+                        <h4>📄 JSON Data Structure</h4>
+                        <div class="json-content" id="jsonContent-Physics">
+                            <!-- JSON content will be populated here -->
+                        </div>
+                        <div class="json-actions">
+                            <button class="json-action-btn primary" onclick="copyJSON('Physics')">📋 Copy JSON</button>
+                            <button class="json-action-btn" onclick="downloadJSON('Physics')">💾 Download JSON</button>
+                            <button class="json-action-btn" onclick="refreshJSON('Physics')">🔄 Refresh</button>
+                    </div>
+                    </div>
+                    
                     <div class="question-render-panel" id="questionRender-Physics" style="display: none;">
                         <h4>📖 Live Preview</h4>
                         <div id="inlinePhysicsRender">
@@ -2053,18 +2246,39 @@
             <div id="inlineEditInterface-Chemistry" class="inline-edit-interface">
                 <div class="inline-panels-header">
                     <h3>Question Editor</h3>
+                    <!-- Viewer Toggle -->
+                    <div class="viewer-toggle" id="viewerToggle-Chemistry" style="display: none;">
+                        <button class="viewer-toggle-btn active" onclick="switchViewer('Chemistry', 'editor')">✏️ Question Editor</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Chemistry', 'json')">📄 JSON Viewer</button>
+                    </div>
                 </div>
                 <div class="edit-interface-content">
                     <div class="question-list-sidebar" id="questionList-Chemistry">
                         <h4>📋 Questions</h4>
                         <!-- Question list will be populated here -->
                     </div>
+                    
+                    <!-- Question Editor Panel -->
                     <div class="question-editor-panel" id="questionEditor-Chemistry" style="display: none;">
                         <h4>✏️ Question Editor</h4>
                         <div id="editQuestionsList-Chemistry">
                             <!-- Editable question fields will be populated here -->
                         </div>
                     </div>
+                    
+                    <!-- JSON Viewer Panel -->
+                    <div class="json-viewer-panel" id="jsonViewer-Chemistry" style="display: none;">
+                        <h4>📄 JSON Data Structure</h4>
+                        <div class="json-content" id="jsonContent-Chemistry">
+                            <!-- JSON content will be populated here -->
+                        </div>
+                        <div class="json-actions">
+                            <button class="json-action-btn primary" onclick="copyJSON('Chemistry')">📋 Copy JSON</button>
+                            <button class="json-action-btn" onclick="downloadJSON('Chemistry')">💾 Download JSON</button>
+                            <button class="json-action-btn" onclick="refreshJSON('Chemistry')">🔄 Refresh</button>
+                    </div>
+                    </div>
+                    
                     <div class="question-render-panel" id="questionRender-Chemistry" style="display: none;">
                         <h4>📖 Live Preview</h4>
                         <div id="inlineChemistryRender">
@@ -3209,6 +3423,12 @@
             if (currentSubject && currentQuestionIndex !== null) {
                 console.log('Calling generateQuestionRender...');
                 generateQuestionRender(currentSubject, currentQuestionIndex);
+                
+                // Also update JSON content if JSON viewer is active
+                const jsonPanel = document.getElementById(`jsonViewer-${currentSubject}`);
+                if (jsonPanel && jsonPanel.style.display === 'flex') {
+                    generateJSONContent(currentSubject);
+                }
             } else {
                 console.log('Cannot update Live Preview - missing subject or question index');
             }
@@ -3559,13 +3779,146 @@
             // Add active class to selected question
             questionItems[questionIndex].classList.add('active');
             
-            // Show the editor and render panels
-            document.getElementById(`questionEditor-${subject}`).style.display = 'block';
+            // Show the viewer toggle and render panels
+            document.getElementById(`viewerToggle-${subject}`).style.display = 'flex';
             document.getElementById(`questionRender-${subject}`).style.display = 'block';
             
-            // Generate the specific question editor and render
-            generateQuestionEditor(subject, questionIndex);
+            // Check which viewer is currently active and show only that one
+            const editorPanel = document.getElementById(`questionEditor-${subject}`);
+            const jsonPanel = document.getElementById(`jsonViewer-${subject}`);
+            const renderPanel = document.getElementById(`questionRender-${subject}`);
+            const toggleButtons = document.querySelectorAll(`#viewerToggle-${subject} .viewer-toggle-btn`);
+            
+            // Check if JSON viewer is active (has active class on second button)
+            const isJsonViewerActive = toggleButtons[1] && toggleButtons[1].classList.contains('active');
+            
+            if (isJsonViewerActive) {
+                // JSON viewer is active - show JSON panel and render panel
+                editorPanel.style.display = 'none';
+                jsonPanel.style.display = 'flex';
+                renderPanel.style.display = 'block';
+                generateJSONContent(subject);
+            } else {
+                // Question editor is active - show editor panel and render panel
+                editorPanel.style.display = 'block';
+                jsonPanel.style.display = 'none';
+                renderPanel.style.display = 'block';
+                generateQuestionEditor(subject, questionIndex);
+            }
+            
+            // Always generate the render (Live Preview)
             generateQuestionRender(subject, questionIndex);
+        }
+        
+        // JSON Viewer Functions
+        function switchViewer(subject, viewerType) {
+            const editorPanel = document.getElementById(`questionEditor-${subject}`);
+            const jsonPanel = document.getElementById(`jsonViewer-${subject}`);
+            const renderPanel = document.getElementById(`questionRender-${subject}`);
+            const toggleButtons = document.querySelectorAll(`#viewerToggle-${subject} .viewer-toggle-btn`);
+            
+            // Remove active class from all toggle buttons
+            toggleButtons.forEach(btn => btn.classList.remove('active'));
+            
+            if (viewerType === 'editor') {
+                editorPanel.style.display = 'block';
+                jsonPanel.style.display = 'none';
+                renderPanel.style.display = 'block';
+                toggleButtons[0].classList.add('active');
+            } else if (viewerType === 'json') {
+                editorPanel.style.display = 'none';
+                jsonPanel.style.display = 'flex';
+                renderPanel.style.display = 'block'; // Keep Live Preview visible
+                toggleButtons[1].classList.add('active');
+                
+                // Generate JSON content when switching to JSON viewer
+                generateJSONContent(subject);
+            }
+        }
+        
+        function generateJSONContent(subject) {
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            const jsonContent = document.getElementById(`jsonContent-${subject}`);
+            
+            if (subjectQuestions.length === 0) {
+                jsonContent.textContent = 'No questions found for this subject.';
+                return;
+            }
+            
+            // Create a structured JSON object
+            const jsonData = {
+                subject: subject,
+                totalQuestions: subjectQuestions.length,
+                questions: subjectQuestions.map((question, index) => ({
+                    questionNumber: index + 1,
+                    text: question.text || '',
+                    options: question.options || [],
+                    answer: question.answer || '',
+                    solution: question.solution || '',
+                    questionImages: question.questionImages || [],
+                    optionImages: question.optionImages || {},
+                    solutionImages: question.solutionImages || [],
+                    metadata: {
+                        subject: question.subject,
+                        number: question.number,
+                        id: question.id
+                    }
+                }))
+            };
+            
+            // Format JSON with proper indentation
+            jsonContent.textContent = JSON.stringify(jsonData, null, 2);
+        }
+        
+        function copyJSON(subject) {
+            const jsonContent = document.getElementById(`jsonContent-${subject}`);
+            const text = jsonContent.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success feedback
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = 'var(--success-color)';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy JSON:', err);
+                alert('Failed to copy JSON to clipboard');
+            });
+        }
+        
+        function downloadJSON(subject) {
+            const jsonContent = document.getElementById(`jsonContent-${subject}`);
+            const text = jsonContent.textContent;
+            
+            const blob = new Blob([text], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${subject.toLowerCase()}_questions.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function refreshJSON(subject) {
+            generateJSONContent(subject);
+            
+            // Show success feedback
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '✅ Refreshed!';
+            button.style.background = 'var(--success-color)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+            }, 2000);
         }
         
         function generateQuestionEditor(subject, questionIndex) {
