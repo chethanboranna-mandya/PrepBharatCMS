@@ -532,6 +532,77 @@
             box-shadow: var(--shadow-sm);
         }
         
+        .question-render-item {
+            width: 100%;
+            margin-bottom: 32px;
+            padding: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--surface-color);
+            transition: all 0.3s ease;
+        }
+        
+        .question-render-item.active-question {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .question-render-item h5 {
+            margin: 0 0 16px 0;
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        
+        .question-render-item.active-question h5 {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .question-render-item .question-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        
+        .question-render-item .options {
+            margin: 16px 0;
+        }
+        
+        .question-render-item .option {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: var(--background-color);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--border-color);
+        }
+        
+        .question-render-item .answer {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+        }
+        
+        .question-render-item .solution {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--background-color);
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .question-render-item .solution strong {
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+        
         .question-editor-panel h4,
         .question-render-panel h4 {
             margin: 0 0 15px 0;
@@ -2757,6 +2828,9 @@
                 
                 // Generate and display questions for this subject
                 generateSubjectView(subject);
+                
+                // Generate the full Live Preview with all questions for this subject
+                generateQuestionRender(subject, 0); // Start with question 0
             } else {
                 console.error(`Element subjectView-${subject} not found!`);
             }
@@ -3592,9 +3666,8 @@
         
         function generateQuestionRender(subject, questionIndex) {
             const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
-            const question = subjectQuestions[questionIndex];
             
-            if (!question) return;
+            if (subjectQuestions.length === 0) return;
             
             // Map subject names to correct container IDs
             const containerIdMap = {
@@ -3604,33 +3677,53 @@
             };
             
             const renderContainer = document.getElementById(containerIdMap[subject]);
-            renderContainer.innerHTML = `
-                <div class="question-render-item">
-                    <h5>Question ${questionIndex + 1}</h5>
-                    <div class="question-text">${question.text || ''}</div>
-                    
-                    ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
-                    
-                    <div class="options">
-                        ${['A', 'B', 'C', 'D'].map((option, idx) => `
-                            <div class="option">
-                                <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
-                                ${question.optionImages && question.optionImages[idx] ? `<img src="${question.optionImages[idx]}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
-                            </div>
-                        `).join('')}
+            
+            // Generate HTML for all questions
+            let allQuestionsHTML = '';
+            subjectQuestions.forEach((question, index) => {
+                const isActive = index === questionIndex;
+                allQuestionsHTML += `
+                    <div class="question-render-item ${isActive ? 'active-question' : ''}" id="render-question-${index}">
+                        <h5>Question ${index + 1}</h5>
+                        <div class="question-text">${question.text || ''}</div>
+                        
+                        ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                        
+                        <div class="options">
+                            ${['A', 'B', 'C', 'D'].map((option, idx) => `
+                                <div class="option">
+                                    <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
+                                    ${question.optionImages && question.optionImages[idx] ? `<img src="${question.optionImages[idx]}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
+                            Answer: ${question.answer || ''}
+                        </div>
+                        
+                        <div class="solution">
+                            <strong>Solution:</strong>
+                            <div>${question.solution || ''}</div>
+                            ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                        </div>
                     </div>
-                    
-                    <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
-                        Answer: ${question.answer || ''}
-                    </div>
-                    
-                    <div class="solution">
-                        <strong>Solution:</strong>
-                        <div>${question.solution || ''}</div>
-                        ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
-                    </div>
-                </div>
-            `;
+                `;
+            });
+            
+            renderContainer.innerHTML = allQuestionsHTML;
+            
+            // Scroll to the selected question
+            setTimeout(() => {
+                const targetQuestion = document.getElementById(`render-question-${questionIndex}`);
+                if (targetQuestion) {
+                    targetQuestion.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start',
+                        inline: 'nearest'
+                    });
+                }
+            }, 100);
             
             // Re-render MathJax
             if (typeof MathJax !== 'undefined') {
