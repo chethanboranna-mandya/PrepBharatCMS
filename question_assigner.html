@@ -616,8 +616,8 @@
         /* JSON Viewer Styles */
         .viewer-toggle {
             display: flex;
-            gap: 8px;
-            padding: 8px;
+            gap: 2px;
+            padding: 2px;
             background: var(--background-color);
             border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
@@ -627,29 +627,34 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 32px;
+            padding: 8px 20px;
             background: var(--surface-color);
             border-bottom: 1px solid var(--border-color);
+            min-height: 48px;
         }
         
         .inline-panels-header h3 {
             margin: 0;
             color: var(--text-primary);
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 600;
         }
         
         .viewer-toggle-btn {
             flex: 1;
-            padding: 12px 16px;
+            padding: 6px 10px;
             border: none;
             border-radius: var(--radius-sm);
             background: transparent;
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .viewer-toggle-btn.active {
@@ -2311,6 +2316,34 @@
             }
         }
         
+        // Function to clean image tags and URLs from text
+        function cleanImageReferences(text) {
+            if (!text) return text;
+            
+            // Remove HTML img tags (both self-closing and with closing tag)
+            text = text.replace(/<img[^>]*\/?>/gi, '[Image]');
+            
+            // Remove markdown image syntax ![](url)
+            text = text.replace(/!\[\]\([^)]+\)/g, '[Image]');
+            
+            // Remove markdown image syntax ![alt](url)
+            text = text.replace(/!\[[^\]]*\]\([^)]+\)/g, '[Image]');
+            
+            // Remove any remaining image URLs (http/https)
+            text = text.replace(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|svg|webp|bmp)(\?[^\s]*)?/gi, '[Image]');
+            
+            // Remove data URLs (base64 images)
+            text = text.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g, '[Image]');
+            
+            // Clean up multiple consecutive [Image] placeholders
+            text = text.replace(/\[Image\]\s*\[Image\]/g, '[Image]');
+            
+            // Clean up extra whitespace
+            text = text.replace(/\s+/g, ' ').trim();
+            
+            return text;
+        }
+        
         function parseQuestions(content) {
             console.log('Parsing questions from content...');
             
@@ -2353,12 +2386,12 @@
                     // Start new question
                     currentQuestion = {
                         number: parseInt(questionMatch[1]),
-                        text: questionMatch[2],
+                        text: cleanImageReferences(questionMatch[2]),
                         options: [],
                         answer: '',
                         solution: '',
                         subject: currentSubject || 'unassigned',
-                        fullContent: questionMatch[2]
+                        fullContent: cleanImageReferences(questionMatch[2])
                     };
                     inSolution = false;
                     
@@ -2375,19 +2408,19 @@
                         
                         // Start collecting solution
                         inSolution = true;
-                        currentQuestion.solution = line;
+                        currentQuestion.solution = cleanImageReferences(line);
                         debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Started solution collection: ${line.substring(0, 50)}...</div>`;
                     }
                     // Check for options (1), (2), (3), (4) - only if not in solution
                     else if (!inSolution) {
                         const optionMatch = line.match(/^\(([1-4])\)\s*(.*)/);
                         if (optionMatch) {
-                            currentQuestion.options.push(line);
+                            currentQuestion.options.push(cleanImageReferences(line));
                             debugContent += `<div style="color: #007bff; margin: 2px 0;">Line ${i+1}: Found option ${optionMatch[1]}: ${optionMatch[2].substring(0, 30)}...</div>`;
                         } else {
                             // If not an option and not in solution, add to question text
-                            currentQuestion.text += '\n' + line;
-                            currentQuestion.fullContent += '\n' + line;
+                            currentQuestion.text += '\n' + cleanImageReferences(line);
+                            currentQuestion.fullContent += '\n' + cleanImageReferences(line);
                         }
                     }
                     // If in solution, continue collecting until next question
@@ -2398,62 +2431,8 @@
                             // This is a new question, stop collecting solution and process current question
                             inSolution = false;
                             
-                            // Process solution for image URLs
-                            if (currentQuestion.solution) {
-                                const solutionImageMatches = currentQuestion.solution.match(/!\[\]\([^)]+\)/g);
-                                if (solutionImageMatches) {
-                                    solutionImageMatches.forEach(match => {
-                                        const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
-                                        if (urlMatch) {
-                                            const imageUrl = urlMatch[1];
-                                            debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Solution image URL: ${imageUrl}</div>`;
-                                            
-                                            // Replace with actual image tag
-                                            const imageTag = `<img src="${imageUrl}" alt="Solution Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
-                                            
-                                            currentQuestion.solution = currentQuestion.solution.replace(match, imageTag);
-                                        }
-                                    });
-                                }
-                            }
                             
-                            // Process current question for image URLs in text
-                            if (currentQuestion.text) {
-                                const imageMatches = currentQuestion.text.match(/!\[\]\([^)]+\)/g);
-                                if (imageMatches) {
-                                    imageMatches.forEach(match => {
-                                        const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
-                                        if (urlMatch) {
-                                            const imageUrl = urlMatch[1];
-                                            debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Question image URL: ${imageUrl}</div>`;
-                                            
-                                            // Replace with actual image tag
-                                            const imageTag = `<img src="${imageUrl}" alt="Question Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
-                                            
-                                            currentQuestion.text = currentQuestion.text.replace(match, imageTag);
-                                        }
-                                    });
-                                }
-                            }
                             
-                            // Process options for image URLs
-                            currentQuestion.options.forEach((option, index) => {
-                                const optionImageMatches = option.match(/!\[\]\([^)]+\)/g);
-                                if (optionImageMatches) {
-                                    optionImageMatches.forEach(match => {
-                                        const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
-                                        if (urlMatch) {
-                                            const imageUrl = urlMatch[1];
-                                            debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Option image URL: ${imageUrl}</div>`;
-                                            
-                                            // Replace with actual image tag
-                                            const imageTag = `<img src="${imageUrl}" alt="Option Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
-                                            
-                                            currentQuestion.options[index] = option.replace(match, imageTag);
-                                        }
-                                    });
-                                }
-                            });
                             
                             // Save current question and start new one
                             questions.push(currentQuestion);
@@ -2461,18 +2440,18 @@
                             // Start new question
                             currentQuestion = {
                                 number: parseInt(nextQuestionMatch[1]),
-                                text: nextQuestionMatch[2],
+                                text: cleanImageReferences(nextQuestionMatch[2]),
                                 options: [],
                                 answer: '',
                                 solution: '',
                                 subject: currentSubject || 'unassigned',
-                                fullContent: nextQuestionMatch[2]
+                                fullContent: cleanImageReferences(nextQuestionMatch[2])
                             };
                             
                             debugContent += `<div style="color: #28a745; margin: 2px 0; font-weight: bold;">Line ${i+1}: Found question ${currentQuestion.number}: ${nextQuestionMatch[2].substring(0, 100)}...</div>`;
                         } else {
                             // Continue collecting solution
-                            currentQuestion.solution += '\n' + line;
+                            currentQuestion.solution += '\n' + cleanImageReferences(line);
                             debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Solution line: ${line.substring(0, 50)}...</div>`;
                         }
                     }
@@ -2481,63 +2460,6 @@
             
             // Process the last question if we're still in solution mode
             if (currentQuestion && inSolution) {
-                // Process solution for image URLs
-                if (currentQuestion.solution) {
-                    const solutionImageMatches = currentQuestion.solution.match(/!\[\]\([^)]+\)/g);
-                    if (solutionImageMatches) {
-                        solutionImageMatches.forEach(match => {
-                            const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
-                            if (urlMatch) {
-                                const imageUrl = urlMatch[1];
-                                debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Solution image URL: ${imageUrl}</div>`;
-                                
-                                // Replace with actual image tag
-                                const imageTag = `<img src="${imageUrl}" alt="Solution Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
-                                
-                                currentQuestion.solution = currentQuestion.solution.replace(match, imageTag);
-                            }
-                        });
-                    }
-                }
-                
-                // Process question text for image URLs
-                if (currentQuestion.text) {
-                    const imageMatches = currentQuestion.text.match(/!\[\]\([^)]+\)/g);
-                    if (imageMatches) {
-                        imageMatches.forEach(match => {
-                            const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
-                            if (urlMatch) {
-                                const imageUrl = urlMatch[1];
-                                debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Question image URL: ${imageUrl}</div>`;
-                                
-                                // Replace with actual image tag
-                                const imageTag = `<img src="${imageUrl}" alt="Question Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
-                                
-                                currentQuestion.text = currentQuestion.text.replace(match, imageTag);
-                            }
-                        });
-                    }
-                }
-                
-                // Process options for image URLs
-                currentQuestion.options.forEach((option, index) => {
-                    const optionImageMatches = option.match(/!\[\]\([^)]+\)/g);
-                    if (optionImageMatches) {
-                        optionImageMatches.forEach(match => {
-                            const urlMatch = match.match(/!\[\]\(([^)]+)\)/);
-                            if (urlMatch) {
-                                const imageUrl = urlMatch[1];
-                                debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Option image URL: ${imageUrl}</div>`;
-                                
-                                // Replace with actual image tag
-                                const imageTag = `<img src="${imageUrl}" alt="Option Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><div style="display: none; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; margin: 10px 0; color: #6c757d;">Image failed to load: <a href="${imageUrl}" target="_blank">${imageUrl}</a></div>`;
-                                
-                                currentQuestion.options[index] = option.replace(match, imageTag);
-                            }
-                        });
-                    }
-                });
-                
                 questions.push(currentQuestion);
             }
             
