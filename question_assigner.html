@@ -3944,11 +3944,23 @@
             const jsonContent = document.getElementById(`jsonContent-${subject}`);
             const text = jsonContent.textContent;
             
+            // Get metadata values from form inputs
+            const getFormValue = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.value : '';
+            };
+            
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const yearValue = getFormValue(`year${suffix}`) || '2025';
+            const boardValue = getFormValue(`board${suffix}`) || 'KCET';
+            const subjectLower = subject.toLowerCase();
+            const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_${subjectLower}.json`;
+            
             const blob = new Blob([text], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${subject.toLowerCase()}_questions.json`;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -4408,18 +4420,24 @@
                 }
             ];
             
-            // Create and download the file
-            const jsonString = JSON.stringify(jsonData, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `KCET_2025_${subject}_Questions.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+                // Create and download the file
+                const jsonString = JSON.stringify(jsonData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                // Generate dynamic filename based on form values
+                const yearValue = year || '2025';
+                const boardValue = board || 'KCET';
+                const subjectLower = subject.toLowerCase();
+                const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_${subjectLower}.json`;
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             
             console.log(`Downloaded JSON for ${subject} with ${subjectQuestions.length} questions`);
         }
@@ -4507,18 +4525,23 @@
                 return;
             }
             
-            // Create and download the file
-            const jsonString = JSON.stringify(allJsonData, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'KCET_2025_All_Subjects_Questions.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+                // Create and download the file
+                const jsonString = JSON.stringify(allJsonData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                // Generate dynamic filename based on form values (use Mathematics as reference)
+                const yearValue = getFormValue('year') || '2025';
+                const boardValue = getFormValue('board') || 'KCET';
+                const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_all_subjects.json`;
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             
             console.log(`Downloaded JSON for all subjects with ${allJsonData.length} subject files`);
         }
