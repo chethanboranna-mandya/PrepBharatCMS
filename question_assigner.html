@@ -1247,67 +1247,96 @@
         }
         
         .metadata-editor {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 100%;
-            overflow-x: hidden;
-            box-sizing: border-box;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
         }
         
-        .metadata-editor h4 {
+        .metadata-editor h2 {
             margin: 0 0 20px 0;
-            color: #495057;
-            font-size: 18px;
-            border-bottom: 2px solid #4facfe;
-            padding-bottom: 10px;
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 700;
         }
         
-        .metadata-form {
+        .row {
             display: flex;
-            flex-direction: column;
-            gap: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
-        .form-row {
-            display: flex;
-            gap: 15px;
-            align-items: end;
-        }
-        
-        .form-group {
+        .field {
             flex: 1;
-            display: flex;
-            flex-direction: column;
+            min-width: 200px;
         }
         
-        .form-group.full-width {
-            flex: 2;
-        }
-        
-        .form-group label {
+        .field label {
+            display: block;
+            margin-bottom: 4px;
             font-weight: 600;
-            color: #495057;
-            margin-bottom: 5px;
-            font-size: 14px;
+            color: var(--text-primary);
         }
         
-        .form-input {
-            padding: 10px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-            background: white;
+        .field input, .field select {
+            margin: 4px 0;
+            padding: 6px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--surface-color);
+            color: var(--text-primary);
         }
         
-        .form-input:focus {
+        .field input:focus, .field select:focus {
             outline: none;
-            border-color: #4facfe;
-            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+            border-color: var(--primary-color);
+        }
+        
+        .field input[readonly] {
+            background: var(--background-color);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+        
+        .metadata-editor > label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 16px;
+        }
+        
+        .metadata-editor > input {
+            margin: 4px 0;
+            padding: 6px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--surface-color);
+            color: var(--text-primary);
+        }
+        
+        .metadata-editor > input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        /* Side by side layout for Tutorial Title and Authority Exam ID */
+        .metadata-editor .row:last-of-type {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .metadata-editor .row:last-of-type .field {
+            flex: 0 0 auto;
+            width: 300px;
+            max-width: 300px;
         }
         
         .form-input:hover {
@@ -1989,53 +2018,64 @@
             
             <!-- Metadata Editor Section -->
             <div class="metadata-editor">
-                <h4>📝 Tutorial Metadata Editor</h4>
-                <div class="metadata-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="tutorialId">Tutorial ID:</label>
-                            <input type="text" id="tutorialId" value="JEE_2025_Mathematics" class="form-input">
+                <h2>Tutorial JSON Builder</h2>
+                <div class="row">
+                    <div class="field">
+                        <label>State:</label>
+                        <select id="state">
+                            <option value="Karnataka" selected>Karnataka</option>
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Center">Center</option>
+                        </select>
                         </div>
-                        <div class="form-group">
-                            <label for="tutorialTitle">Tutorial Title:</label>
-                            <input type="text" id="tutorialTitle" value="JEE 2025 Mathematics" class="form-input">
+                    <div class="field">
+                        <label>Board:</label>
+                        <select id="board">
+                            <option value="KCET" selected>KCET</option>
+                            <option value="NEET">NEET</option>
+                            <option value="JEE Main">JEE Main</option>
+                            <option value="JEE Advanced">JEE Advanced</option>
+                            <option value="MH-CET">MH-CET</option>
+                            <option value="TN-Board">TN-Board</option>
+                        </select>
                         </div>
+                    <div class="field">
+                        <label>Conducted By:</label>
+                        <input type="text" id="conductedBy" value="KEA (Karnataka Examinations Authority)" readonly />
                     </div>
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="tutorialDescription">Tutorial Description:</label>
-                            <input type="text" id="tutorialDescription" value="JEE 2025 Mathematics Questions with Solutions" class="form-input">
+                    <div class="field">
+                        <label>Year:</label>
+                        <select id="year">
+                            <option value="2025" selected>2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                        </select>
                         </div>
+                    <div class="field">
+                        <label>Subject:</label>
+                        <select id="subject">
+                            <option value="Mathematics" selected>Mathematics</option>
+                            <option value="Physics">Physics</option>
+                            <option value="Chemistry">Chemistry</option>
+                            <option value="Biology">Biology</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="authorityExamId">Authority Exam ID:</label>
-                            <input type="text" id="authorityExamId" value="jee_2025" class="form-input">
+                    <div class="field">
+                        <label>Tutorial ID:</label>
+                        <input type="text" id="tutorialId" value="KCET_2025_Mathematics" readonly/>
                         </div>
-                        <div class="form-group">
-                            <label for="state">State:</label>
-                            <input type="text" id="state" value="All India" class="form-input">
                         </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Tutorial Title:</label>
+                        <input type="text" id="tutorialTitle" value="KCET 2025 Mathematics"/>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="board">Board:</label>
-                            <input type="text" id="board" value="JEE" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="conductedBy">Conducted By:</label>
-                            <input type="text" id="conductedBy" value="NTA (National Testing Agency)" class="form-input">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="year">Year:</label>
-                            <input type="text" id="year" value="2025" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="subject">Subject:</label>
-                            <input type="text" id="subject" value="Mathematics" class="form-input">
-                        </div>
+                    <div class="field">
+                        <label>Authority Exam ID:</label>
+                        <input type="text" id="authorityExamId" value="kar_kect"/>
                     </div>
                 </div>
             </div>
@@ -2092,53 +2132,64 @@
             
             <!-- Metadata Editor Section -->
             <div class="metadata-editor">
-                <h4>📝 Tutorial Metadata Editor</h4>
-                <div class="metadata-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="tutorialId-physics">Tutorial ID:</label>
-                            <input type="text" id="tutorialId-physics" value="JEE_2025_Physics" class="form-input">
+                <h2>Tutorial JSON Builder</h2>
+                <div class="row">
+                    <div class="field">
+                        <label>State:</label>
+                        <select id="state-physics">
+                            <option value="Karnataka" selected>Karnataka</option>
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Center">Center</option>
+                        </select>
                         </div>
-                        <div class="form-group">
-                            <label for="tutorialTitle-physics">Tutorial Title:</label>
-                            <input type="text" id="tutorialTitle-physics" value="JEE 2025 Physics" class="form-input">
+                    <div class="field">
+                        <label>Board:</label>
+                        <select id="board-physics">
+                            <option value="KCET" selected>KCET</option>
+                            <option value="NEET">NEET</option>
+                            <option value="JEE Main">JEE Main</option>
+                            <option value="JEE Advanced">JEE Advanced</option>
+                            <option value="MH-CET">MH-CET</option>
+                            <option value="TN-Board">TN-Board</option>
+                        </select>
                         </div>
+                    <div class="field">
+                        <label>Conducted By:</label>
+                        <input type="text" id="conductedBy-physics" value="KEA (Karnataka Examinations Authority)" readonly />
                     </div>
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="tutorialDescription-physics">Tutorial Description:</label>
-                            <input type="text" id="tutorialDescription-physics" value="JEE 2025 Physics Questions with Solutions" class="form-input">
+                    <div class="field">
+                        <label>Year:</label>
+                        <select id="year-physics">
+                            <option value="2025" selected>2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                        </select>
                         </div>
+                    <div class="field">
+                        <label>Subject:</label>
+                        <select id="subject-physics">
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Physics" selected>Physics</option>
+                            <option value="Chemistry">Chemistry</option>
+                            <option value="Biology">Biology</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="authorityExamId-physics">Authority Exam ID:</label>
-                            <input type="text" id="authorityExamId-physics" value="jee_2025" class="form-input">
+                    <div class="field">
+                        <label>Tutorial ID:</label>
+                        <input type="text" id="tutorialId-physics" value="KCET_2025_Physics" readonly/>
                         </div>
-                        <div class="form-group">
-                            <label for="state-physics">State:</label>
-                            <input type="text" id="state-physics" value="All India" class="form-input">
                         </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Tutorial Title:</label>
+                        <input type="text" id="tutorialTitle-physics" value="KCET 2025 Physics"/>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="board-physics">Board:</label>
-                            <input type="text" id="board-physics" value="JEE" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="conductedBy-physics">Conducted By:</label>
-                            <input type="text" id="conductedBy-physics" value="NTA (National Testing Agency)" class="form-input">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="year-physics">Year:</label>
-                            <input type="text" id="year-physics" value="2025" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="subject-physics">Subject:</label>
-                            <input type="text" id="subject-physics" value="Physics" class="form-input">
-                        </div>
+                    <div class="field">
+                        <label>Authority Exam ID:</label>
+                        <input type="text" id="authorityExamId-physics" value="kar_kect"/>
                     </div>
                 </div>
             </div>
@@ -2195,53 +2246,64 @@
             
             <!-- Metadata Editor Section -->
             <div class="metadata-editor">
-                <h4>📝 Tutorial Metadata Editor</h4>
-                <div class="metadata-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="tutorialId-chemistry">Tutorial ID:</label>
-                            <input type="text" id="tutorialId-chemistry" value="JEE_2025_Chemistry" class="form-input">
+                <h2>Tutorial JSON Builder</h2>
+                <div class="row">
+                    <div class="field">
+                        <label>State:</label>
+                        <select id="state-chemistry">
+                            <option value="Karnataka" selected>Karnataka</option>
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Center">Center</option>
+                        </select>
                         </div>
-                        <div class="form-group">
-                            <label for="tutorialTitle-chemistry">Tutorial Title:</label>
-                            <input type="text" id="tutorialTitle-chemistry" value="JEE 2025 Chemistry" class="form-input">
+                    <div class="field">
+                        <label>Board:</label>
+                        <select id="board-chemistry">
+                            <option value="KCET" selected>KCET</option>
+                            <option value="NEET">NEET</option>
+                            <option value="JEE Main">JEE Main</option>
+                            <option value="JEE Advanced">JEE Advanced</option>
+                            <option value="MH-CET">MH-CET</option>
+                            <option value="TN-Board">TN-Board</option>
+                        </select>
                         </div>
+                    <div class="field">
+                        <label>Conducted By:</label>
+                        <input type="text" id="conductedBy-chemistry" value="KEA (Karnataka Examinations Authority)" readonly />
                     </div>
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="tutorialDescription-chemistry">Tutorial Description:</label>
-                            <input type="text" id="tutorialDescription-chemistry" value="JEE 2025 Chemistry Questions with Solutions" class="form-input">
+                    <div class="field">
+                        <label>Year:</label>
+                        <select id="year-chemistry">
+                            <option value="2025" selected>2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                        </select>
                         </div>
+                    <div class="field">
+                        <label>Subject:</label>
+                        <select id="subject-chemistry">
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Physics">Physics</option>
+                            <option value="Chemistry" selected>Chemistry</option>
+                            <option value="Biology">Biology</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="authorityExamId-chemistry">Authority Exam ID:</label>
-                            <input type="text" id="authorityExamId-chemistry" value="jee_2025" class="form-input">
+                    <div class="field">
+                        <label>Tutorial ID:</label>
+                        <input type="text" id="tutorialId-chemistry" value="KCET_2025_Chemistry" readonly/>
                         </div>
-                        <div class="form-group">
-                            <label for="state-chemistry">State:</label>
-                            <input type="text" id="state-chemistry" value="All India" class="form-input">
                         </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Tutorial Title:</label>
+                        <input type="text" id="tutorialTitle-chemistry" value="KCET 2025 Chemistry"/>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="board-chemistry">Board:</label>
-                            <input type="text" id="board-chemistry" value="JEE" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="conductedBy-chemistry">Conducted By:</label>
-                            <input type="text" id="conductedBy-chemistry" value="NTA (National Testing Agency)" class="form-input">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="year-chemistry">Year:</label>
-                            <input type="text" id="year-chemistry" value="2025" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="subject-chemistry">Subject:</label>
-                            <input type="text" id="subject-chemistry" value="Chemistry" class="form-input">
-                        </div>
+                    <div class="field">
+                        <label>Authority Exam ID:</label>
+                        <input type="text" id="authorityExamId-chemistry" value="kar_kect"/>
                     </div>
                 </div>
             </div>
@@ -2391,6 +2453,7 @@
                         answer: '',
                         solution: '',
                         subject: currentSubject || 'unassigned',
+                        type: 'mcq', // Default type, will be auto-detected
                         fullContent: cleanImageReferences(questionMatch[2])
                     };
                     inSolution = false;
@@ -2445,6 +2508,7 @@
                                 answer: '',
                                 solution: '',
                                 subject: currentSubject || 'unassigned',
+                                type: 'mcq', // Default type, will be auto-detected
                                 fullContent: cleanImageReferences(nextQuestionMatch[2])
                             };
                             
@@ -2489,6 +2553,13 @@
             console.log(`Found ${questions.length} questions`);
             console.log('Question numbers:', questions.map(q => q.number).join(', '));
             allQuestions = questions;
+            
+            // Auto-detect question types for all questions
+            allQuestions.forEach(question => {
+                const detectedType = detectQuestionType(question);
+                question.type = detectedType;
+            });
+            
             displayQuestions();
             updateStats();
             
@@ -3312,6 +3383,8 @@
             if (field === 'text') {
                 question.text = value;
                 console.log('Updated text to:', value);
+                // Auto-detect question type when text changes
+                updateQuestionType(questionId);
             } else if (field === 'option' && optionIndex !== null) {
                 // Ensure options array exists
                 if (!question.options) {
@@ -3321,12 +3394,17 @@
                 const optionNumber = optionIndex + 1;
                 question.options[optionIndex] = `(${optionNumber}) ${value}`;
                 console.log(`Updated option ${optionIndex} to:`, question.options[optionIndex]);
+                // Auto-detect question type when options change
+                updateQuestionType(questionId);
             } else if (field === 'solution') {
                 question.solution = value;
                 console.log('Updated solution to:', value);
             } else if (field === 'answer') {
                 question.answer = value;
                 console.log('Updated answer to:', value);
+            } else if (field === 'type') {
+                question.type = value;
+                console.log('Updated type to:', value);
             }
             
             // Update the Live Preview immediately
@@ -3767,26 +3845,75 @@
                 return;
             }
             
-            // Create a structured JSON object
-            const jsonData = {
-                subject: subject,
-                totalQuestions: subjectQuestions.length,
-                questions: subjectQuestions.map((question, index) => ({
-                    questionNumber: index + 1,
-                    text: question.text || '',
-                    options: question.options || [],
-                    answer: question.answer || '',
-                    solution: question.solution || '',
-                    questionImages: question.questionImages || [],
-                    optionImages: question.optionImages || {},
-                    solutionImages: question.solutionImages || [],
-                    metadata: {
-                        subject: question.subject,
-                        number: question.number,
-                        id: question.id
-                    }
-                }))
+            // Get metadata values from form inputs
+            const getFormValue = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.value : '';
             };
+            
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const tutorialId = getFormValue(`tutorialId${suffix}`);
+            const tutorialTitle = getFormValue(`tutorialTitle${suffix}`);
+            const tutorialDescription = getFormValue(`tutorialDescription${suffix}`);
+            const authorityExamId = getFormValue(`authorityExamId${suffix}`);
+            const state = getFormValue(`state${suffix}`);
+            const board = getFormValue(`board${suffix}`);
+            const conductedBy = getFormValue(`conductedBy${suffix}`);
+            const year = getFormValue(`year${suffix}`);
+            const subjectValue = getFormValue(`subject${suffix}`);
+            
+            // Create JSON in the specified format
+            const jsonData = [
+                {
+                    "tutorialId": tutorialId || `${board || 'KCET'}_${year || '2025'}_${subject}`,
+                    "tutorialTitle": tutorialTitle || `${board || 'KCET'} ${year || '2025'} ${subject}`,
+                    "tutorialDescription": tutorialDescription || "",
+                    "authorityExamId": authorityExamId || "kar_kect",
+                    "state": state || "Karnataka",
+                    "board": board || "KCET",
+                    "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
+                    "year": year || "2025",
+                    "subject": subjectValue || subject,
+                    "questions": subjectQuestions.map((question, index) => ({
+                        "questionIndex": (index + 1).toString(),
+                        "questionId": `2025${subject.charAt(0)}Q${index + 1}`,
+                        "questionDetails": [
+                            {
+                                "text": question.text || '',
+                                "textImages": question.questionImages || [],
+                                "possibleAnswers": {
+                                    "A": {
+                                        "text": question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[0] ? question.optionImages[0] : null
+                                    },
+                                    "B": {
+                                        "text": question.options && question.options[1] ? question.options[1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[1] ? question.optionImages[1] : null
+                                    },
+                                    "C": {
+                                        "text": question.options && question.options[2] ? question.options[2].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[2] ? question.optionImages[2] : null
+                                    },
+                                    "D": {
+                                        "text": question.options && question.options[3] ? question.options[3].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[3] ? question.optionImages[3] : null
+                                    }
+                                },
+                                "correctAnswer": question.answer || '',
+                                "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
+                                    question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                "solution": question.solution || '',
+                                "solutionImages": question.solutionImages || [],
+                                "type": question.type || "mcq",
+                                "metadata": {
+                                    "subject": subject.toLowerCase(),
+                                    "number": question.number || (index + 1)
+                                }
+                            }
+                        ]
+                    }))
+                }
+            ];
             
             // Format JSON with proper indentation
             jsonContent.textContent = JSON.stringify(jsonData, null, 2);
@@ -3853,6 +3980,17 @@
             editorContainer.innerHTML = `
                 <div class="question-edit-item">
                     <h5>Question ${questionIndex + 1}</h5>
+                    <div class="edit-field">
+                        <label>Question Type:</label>
+                        <select class="answer-edit-select" 
+                                onchange="updateQuestion(${question.number}, 'type', this.value)">
+                            <option value="mcq" ${question.type === 'mcq' ? 'selected' : ''}>MCQ</option>
+                            <option value="integer" ${question.type === 'integer' ? 'selected' : ''}>Integer</option>
+                            <option value="truefalse" ${question.type === 'truefalse' ? 'selected' : ''}>True/False</option>
+                            <option value="fillblank" ${question.type === 'fillblank' ? 'selected' : ''}>Fill in the Blank</option>
+                        </select>
+                    </div>
+                    
                     <div class="edit-field">
                         <label>Question Text:</label>
                         <textarea class="question-edit-input" oninput="updateQuestion(${question.number}, 'text', this.value)">${question.text || ''}</textarea>
@@ -3957,10 +4095,13 @@
             let allQuestionsHTML = '';
             subjectQuestions.forEach((question, index) => {
                 const isActive = index === questionIndex;
-                allQuestionsHTML += `
-                    <div class="question-render-item ${isActive ? 'active-question' : ''}" id="render-question-${index}">
-                        <h5>Question ${index + 1}</h5>
-                        <div class="question-text">${question.text || ''}</div>
+                    allQuestionsHTML += `
+                        <div class="question-render-item ${isActive ? 'active-question' : ''}" id="render-question-${index}">
+                            <h5>Question ${index + 1}</h5>
+                            <div class="question-type" style="margin-bottom: 12px; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: var(--radius-sm); display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                                Type: ${question.type || 'mcq'}
+                            </div>
+                            <div class="question-text">${question.text || ''}</div>
                         
                         ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
                         
@@ -4190,45 +4331,82 @@
             console.log(`Downloading JSON for ${subject}`);
             
             // Filter questions for this subject
-            const subjectQuestions = allQuestions.filter(q => {
-                const assignedSubject = questionAssignments[q.number];
-                const detectedSubject = q.subject;
-                return assignedSubject === subject || 
-                       (detectedSubject && detectedSubject.toLowerCase() === subject.toLowerCase());
-            });
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
             
             if (subjectQuestions.length === 0) {
                 alert(`No questions found for ${subject}. Please assign some questions to this subject first.`);
                 return;
             }
             
-            // Generate JSON structure for this subject
-            const jsonData = [{
-                "tutorialId": `JEE_2025_${subject}`,
-                "tutorialTitle": `JEE 2025 ${subject}`,
-                "tutorialDescription": `JEE 2025 ${subject} Questions with Solutions`,
-                "authorityExamId": "jee_main",
-                "state": "All India",
-                "board": "JEE",
-                "conductedBy": "NTA (National Testing Agency)",
-                "year": "2025",
-                "subject": subject,
-                "questions": subjectQuestions.map(question => ({
-                    "questionIndex": question.number.toString(),
-                    "questionId": `2025${subject.charAt(0)}Q${question.number}`,
-                    "questionDetails": [{
-                        "text": question.text || "No text",
-                        "textImages": [],
-                        "possibleAnswers": question.options.map((opt, index) => ({
-                            "option": String.fromCharCode(65 + index),
-                            "text": opt.replace(/^\(\d+\)\s*/, '').trim(),
-                            "image": null
-                        })),
-                        "correctAnswer": question.answer || "1",
-                        "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || ""
-                    }]
-                }))
-            }];
+            // Get metadata values from form inputs
+            const getFormValue = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.value : '';
+            };
+            
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const tutorialId = getFormValue(`tutorialId${suffix}`);
+            const tutorialTitle = getFormValue(`tutorialTitle${suffix}`);
+            const tutorialDescription = getFormValue(`tutorialDescription${suffix}`);
+            const authorityExamId = getFormValue(`authorityExamId${suffix}`);
+            const state = getFormValue(`state${suffix}`);
+            const board = getFormValue(`board${suffix}`);
+            const conductedBy = getFormValue(`conductedBy${suffix}`);
+            const year = getFormValue(`year${suffix}`);
+            const subjectValue = getFormValue(`subject${suffix}`);
+            
+            // Generate JSON structure in the specified format
+            const jsonData = [
+                {
+                    "tutorialId": tutorialId || `${board || 'KCET'}_${year || '2025'}_${subject}`,
+                    "tutorialTitle": tutorialTitle || `${board || 'KCET'} ${year || '2025'} ${subject}`,
+                    "tutorialDescription": tutorialDescription || "",
+                    "authorityExamId": authorityExamId || "kar_kect",
+                    "state": state || "Karnataka",
+                    "board": board || "KCET",
+                    "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
+                    "year": year || "2025",
+                    "subject": subjectValue || subject,
+                    "questions": subjectQuestions.map((question, index) => ({
+                        "questionIndex": (index + 1).toString(),
+                        "questionId": `2025${subject.charAt(0)}Q${index + 1}`,
+                        "questionDetails": [
+                            {
+                                "text": question.text || '',
+                                "textImages": question.questionImages || [],
+                                "possibleAnswers": {
+                                    "A": {
+                                        "text": question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[0] ? question.optionImages[0] : null
+                                    },
+                                    "B": {
+                                        "text": question.options && question.options[1] ? question.options[1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[1] ? question.optionImages[1] : null
+                                    },
+                                    "C": {
+                                        "text": question.options && question.options[2] ? question.options[2].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[2] ? question.optionImages[2] : null
+                                    },
+                                    "D": {
+                                        "text": question.options && question.options[3] ? question.options[3].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "image": question.optionImages && question.optionImages[3] ? question.optionImages[3] : null
+                                    }
+                                },
+                                "correctAnswer": question.answer || '',
+                                "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
+                                    question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                "solution": question.solution || '',
+                                "solutionImages": question.solutionImages || [],
+                                "type": question.type || "mcq",
+                                "metadata": {
+                                    "subject": subject.toLowerCase(),
+                                    "number": question.number || (index + 1)
+                                }
+                            }
+                        ]
+                    }))
+                }
+            ];
             
             // Create and download the file
             const jsonString = JSON.stringify(jsonData, null, 2);
@@ -4237,7 +4415,7 @@
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = `JEE_2025_${subject}_Questions.json`;
+            a.download = `KCET_2025_${subject}_Questions.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -4252,39 +4430,73 @@
             const subjects = ['Mathematics', 'Physics', 'Chemistry'];
             const allJsonData = [];
             
+            // Get metadata values from form inputs
+            const getFormValue = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.value : '';
+            };
+            
             subjects.forEach(subject => {
-                const subjectQuestions = allQuestions.filter(q => {
-                    const assignedSubject = questionAssignments[q.number];
-                    const detectedSubject = q.subject;
-                    return assignedSubject === subject || 
-                           (detectedSubject && detectedSubject.toLowerCase() === subject.toLowerCase());
-                });
+                const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
                 
                 if (subjectQuestions.length > 0) {
+                    const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+                    const tutorialId = getFormValue(`tutorialId${suffix}`);
+                    const tutorialTitle = getFormValue(`tutorialTitle${suffix}`);
+                    const tutorialDescription = getFormValue(`tutorialDescription${suffix}`);
+                    const authorityExamId = getFormValue(`authorityExamId${suffix}`);
+                    const state = getFormValue(`state${suffix}`);
+                    const board = getFormValue(`board${suffix}`);
+                    const conductedBy = getFormValue(`conductedBy${suffix}`);
+                    const year = getFormValue(`year${suffix}`);
+                    const subjectValue = getFormValue(`subject${suffix}`);
+                    
                     allJsonData.push({
-                        "tutorialId": `JEE_2025_${subject}`,
-                        "tutorialTitle": `JEE 2025 ${subject}`,
-                        "tutorialDescription": `JEE 2025 ${subject} Questions with Solutions`,
-                        "authorityExamId": "jee_main",
-                        "state": "All India",
-                        "board": "JEE",
-                        "conductedBy": "NTA (National Testing Agency)",
-                        "year": "2025",
-                        "subject": subject,
-                        "questions": subjectQuestions.map(question => ({
-                            "questionIndex": question.number.toString(),
-                            "questionId": `2025${subject.charAt(0)}Q${question.number}`,
-                            "questionDetails": [{
-                                "text": question.text || "No text",
-                                "textImages": [],
-                                "possibleAnswers": question.options.map((opt, index) => ({
-                                    "option": String.fromCharCode(65 + index),
-                                    "text": opt.replace(/^\(\d+\)\s*/, '').trim(),
-                                    "image": null
-                                })),
-                                "correctAnswer": question.answer || "1",
-                                "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || ""
-                            }]
+                        "tutorialId": tutorialId || `${board || 'KCET'}_${year || '2025'}_${subject}`,
+                        "tutorialTitle": tutorialTitle || `${board || 'KCET'} ${year || '2025'} ${subject}`,
+                        "tutorialDescription": tutorialDescription || "",
+                        "authorityExamId": authorityExamId || "kar_kect",
+                        "state": state || "Karnataka",
+                        "board": board || "KCET",
+                        "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
+                        "year": year || "2025",
+                        "subject": subjectValue || subject,
+                        "questions": subjectQuestions.map((question, index) => ({
+                            "questionIndex": (index + 1).toString(),
+                            "questionId": `2025${subject.charAt(0)}Q${index + 1}`,
+                            "questionDetails": [
+                                {
+                                    "text": question.text || '',
+                                    "textImages": question.questionImages || [],
+                                    "possibleAnswers": {
+                                        "A": {
+                                            "text": question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "image": question.optionImages && question.optionImages[0] ? question.optionImages[0] : null
+                                        },
+                                        "B": {
+                                            "text": question.options && question.options[1] ? question.options[1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "image": question.optionImages && question.optionImages[1] ? question.optionImages[1] : null
+                                        },
+                                        "C": {
+                                            "text": question.options && question.options[2] ? question.options[2].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "image": question.optionImages && question.optionImages[2] ? question.optionImages[2] : null
+                                        },
+                                        "D": {
+                                            "text": question.options && question.options[3] ? question.options[3].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "image": question.optionImages && question.optionImages[3] ? question.optionImages[3] : null
+                                        }
+                                    },
+                                    "correctAnswer": question.answer || '',
+                                    "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
+                                        question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                    "solution": question.solution || '',
+                                    "solutionImages": question.solutionImages || [],
+                                    "metadata": {
+                                        "subject": subject.toLowerCase(),
+                                        "number": question.number || (index + 1)
+                                    }
+                                }
+                            ]
                         }))
                     });
                 }
@@ -4302,7 +4514,7 @@
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'JEE_2025_All_Subjects_Questions.json';
+            a.download = 'KCET_2025_All_Subjects_Questions.json';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -4640,6 +4852,184 @@
             // Update Live Preview
             updateLivePreview();
         }
+        
+        // Initialize metadata editors for all subjects
+        function initializeMetadataEditors() {
+            const subjects = ['', '-physics', '-chemistry'];
+            
+            subjects.forEach(suffix => {
+                const stateSelect = document.getElementById(`state${suffix}`);
+                const boardSelect = document.getElementById(`board${suffix}`);
+                const yearSelect = document.getElementById(`year${suffix}`);
+                const subjectSelect = document.getElementById(`subject${suffix}`);
+                const tutorialTitleInput = document.getElementById(`tutorialTitle${suffix}`);
+                const authorityExamIdInput = document.getElementById(`authorityExamId${suffix}`);
+                
+                if (stateSelect && boardSelect && yearSelect && subjectSelect) {
+                    // Add event listeners for dropdowns
+                    stateSelect.addEventListener('change', () => updateMetadata(suffix));
+                    boardSelect.addEventListener('change', () => updateMetadata(suffix));
+                    yearSelect.addEventListener('change', () => updateMetadata(suffix));
+                    subjectSelect.addEventListener('change', () => updateMetadata(suffix));
+                    
+                    // Add event listeners for manual input fields
+                    if (tutorialTitleInput) {
+                        tutorialTitleInput.addEventListener('input', () => updateJSONInRealTime(suffix));
+                    }
+                    if (authorityExamIdInput) {
+                        authorityExamIdInput.addEventListener('input', () => updateJSONInRealTime(suffix));
+                    }
+                    
+                    // Initial update
+                    updateMetadata(suffix);
+                }
+            });
+        }
+        
+        // Update metadata based on selections
+        function updateMetadata(suffix) {
+            const state = document.getElementById(`state${suffix}`).value;
+            const board = document.getElementById(`board${suffix}`).value;
+            const year = document.getElementById(`year${suffix}`).value;
+            const subject = document.getElementById(`subject${suffix}`).value;
+            
+            // Update conducted by based on board
+            const conductedByInput = document.getElementById(`conductedBy${suffix}`);
+            if (conductedByInput) {
+                conductedByInput.value = getConductedBy(board);
+            }
+            
+            // Update authority exam ID
+            const authorityExamIdInput = document.getElementById(`authorityExamId${suffix}`);
+            if (authorityExamIdInput) {
+                authorityExamIdInput.value = getAuthorityExamId(state, board);
+            }
+            
+            // Update tutorial ID
+            const tutorialIdInput = document.getElementById(`tutorialId${suffix}`);
+            if (tutorialIdInput && board && year && subject) {
+                tutorialIdInput.value = `${board}_${year}_${subject}`;
+            }
+            
+            // Update tutorial title
+            const tutorialTitleInput = document.getElementById(`tutorialTitle${suffix}`);
+            if (tutorialTitleInput && board && year && subject) {
+                tutorialTitleInput.value = `${board} ${year} ${subject}`;
+            }
+            
+            // Trigger real-time JSON update
+            updateJSONInRealTime(suffix);
+        }
+        
+        // Update JSON in real-time when metadata changes
+        function updateJSONInRealTime(suffix) {
+            // Determine which subject this corresponds to
+            let subject = '';
+            if (suffix === '') subject = 'Mathematics';
+            else if (suffix === '-physics') subject = 'Physics';
+            else if (suffix === '-chemistry') subject = 'Chemistry';
+            
+            // Check if this subject is currently active and JSON viewer is open
+            const jsonPanel = document.getElementById(`jsonViewer-${subject}`);
+            if (jsonPanel && jsonPanel.style.display !== 'none') {
+                // Regenerate JSON content with updated metadata
+                generateJSONContent(subject);
+            }
+        }
+        
+        // Get conducted by based on board
+        function getConductedBy(board) {
+            const conductedByMap = {
+                'KCET': 'KEA (Karnataka Examinations Authority)',
+                'NEET': 'NTA (National Testing Agency)',
+                'JEE Main': 'NTA (National Testing Agency)',
+                'JEE Advanced': 'IITs via JAB',
+                'MH-CET': 'DTE Maharashtra',
+                'TN-Board': 'Tamil Nadu Board of Secondary Education'
+            };
+            return conductedByMap[board] || '';
+        }
+        
+        // Get authority exam ID based on state and board
+        function getAuthorityExamId(state, board) {
+            const examIdMap = {
+                'Karnataka': {
+                    'KCET': 'kar_kect',
+                    'NEET': 'nta_neet',
+                    'JEE Main': 'nta_jee_main',
+                    'JEE Advanced': 'iit_jee_advanced'
+                },
+                'Maharashtra': {
+                    'MH-CET': 'mhcet',
+                    'NEET': 'nta_neet',
+                    'JEE Main': 'nta_jee_main',
+                    'JEE Advanced': 'iit_jee_advanced'
+                },
+                'Tamil Nadu': {
+                    'TN-Board': 'tn_board',
+                    'NEET': 'nta_neet',
+                    'JEE Main': 'nta_jee_main',
+                    'JEE Advanced': 'iit_jee_advanced'
+                },
+                'Center': {
+                    'NEET': 'nta_neet',
+                    'JEE Main': 'nta_jee_main',
+                    'JEE Advanced': 'iit_jee_advanced'
+                }
+            };
+            return examIdMap[state]?.[board] || '';
+        }
+        
+        // Auto-detect question type based on content
+        function detectQuestionType(question) {
+            const text = question.text || '';
+            const options = question.options || [];
+            
+            // Check for fill in the blank
+            if (text.includes('____') || text.includes('______') || text.includes('_ _ _ _')) {
+                return 'fillblank';
+            }
+            
+            // Check for true/false (only 2 options)
+            if (options.length === 2) {
+                const optionTexts = options.map(opt => opt.replace(/^\(\d+\)\s*/, '').trim().toLowerCase());
+                if (optionTexts.includes('true') && optionTexts.includes('false')) {
+                    return 'truefalse';
+                }
+            }
+            
+            // Check for integer type (numeric answer expected)
+            if (text.toLowerCase().includes('integer') || 
+                text.toLowerCase().includes('numerical') ||
+                text.toLowerCase().includes('number')) {
+                return 'integer';
+            }
+            
+            // Default to MCQ if options A, B, C, D have values
+            const hasOptions = options.length >= 4 && 
+                              options[0] && options[0].replace(/^\(\d+\)\s*/, '').trim() &&
+                              options[1] && options[1].replace(/^\(\d+\)\s*/, '').trim() &&
+                              options[2] && options[2].replace(/^\(\d+\)\s*/, '').trim() &&
+                              options[3] && options[3].replace(/^\(\d+\)\s*/, '').trim();
+            
+            return hasOptions ? 'mcq' : 'fillblank';
+        }
+        
+        // Update question type when question content changes
+        function updateQuestionType(questionNumber) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (question) {
+                const detectedType = detectQuestionType(question);
+                if (!question.type || question.type === 'mcq') { // Only auto-detect if no type set or default MCQ
+                    question.type = detectedType;
+                }
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            initializeMetadataEditors();
+        });
     </script>
         </div> <!-- Close main-content -->
     </div> <!-- Close container -->
