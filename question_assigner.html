@@ -2413,8 +2413,16 @@
             const questions = [];
             let currentQuestion = null;
             let currentSubject = '';
+            // Subject activation only after pattern: ## <Subject> then ## SECTION-A
+            let pendingSubject = '';
+            let inSubjectSection = false;
             let debugContent = '';
             let inSolution = false;
+            // Option capture state for inline options like "... (1) ... (2) ..."
+            let inOptionCapture = false;
+            let currentOptionNumber = 0;
+            // Track when we're in a Quick Tip section to skip content
+            let inQuickTip = false;
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
@@ -2422,12 +2430,54 @@
                 // Skip empty lines
                 if (line === '') continue;
                 
-                // Check for section breaks
-                if (line.includes('## MATHEMATICS') || line.includes('## PHYSICS') || line.includes('## CHEMISTRY')) {
-                    currentSubject = line.replace('## ', '').toLowerCase();
-                    console.log(`Line ${i+1}: Found section: ${currentSubject}`);
-                    debugContent += `<div style="color: #007bff; margin: 2px 0;">Line ${i+1}: Found section: ${currentSubject}</div>`;
-                    continue;
+                // Skip all content when in Quick Tip section until next question
+                if (inQuickTip) {
+                    // If a subject header appears inside a Quick Tip, activate it immediately
+                    const lt = line.toLowerCase();
+                    if (lt.startsWith('## ')) {
+                        const hdr = lt.replace('## ', '').trim();
+                        if (hdr === 'mathematics' || hdr === 'physics' || hdr === 'chemistry') {
+                            currentSubject = hdr;
+                            pendingSubject = hdr;
+                            debugContent += `<div style=\"color: #17a2b8; margin: 2px 0;\">Line ${i+1}: Subject header inside Quick Tip → set subject: ${currentSubject}</div>`;
+                            // keep skipping until next question
+                            continue;
+                        }
+                    }
+                    const nextQuestionMatch = line.match(/^(\d+)\.\s*(.*)/);
+                    if (nextQuestionMatch && !line.match(/^\d+\.\d/) && !/continued/i.test(nextQuestionMatch[2] || '')) {
+                        inQuickTip = false;
+                        debugContent += `<div style=\"color: #6c757d; margin: 2px 0;\">Line ${i+1}: Exiting Quick Tip section, found next question ${nextQuestionMatch[1]}</div>`;
+                        // Continue processing this line as a new question
+                    } else {
+                        debugContent += `<div style=\"color: #6c757d; margin: 2px 0;\">Line ${i+1}: Skipping Quick Tip content: ${line.substring(0, 50)}...</div>`;
+                        continue;
+                    }
+                }
+                
+                // Check for section breaks and subject activation pattern
+                const lowerLine = line.toLowerCase();
+                if (lowerLine.startsWith('## ')) {
+                    const headerText = lowerLine.replace('## ', '').trim();
+                    // Subject header encountered
+                    if (headerText === 'mathematics' || headerText === 'physics' || headerText === 'chemistry') {
+                        pendingSubject = headerText;
+                        currentSubject = pendingSubject;
+                        inSubjectSection = true;
+                        console.log(`Line ${i+1}: Activated subject: ${currentSubject}`);
+                        debugContent += `<div style=\"color: #007bff; margin: 2px 0;\">Line ${i+1}: Activated subject: ${currentSubject}</div>`;
+                        continue;
+                    }
+                    // SECTION-A header encountered, activate subject if pending
+                    if (/^section\s*-?\s*a\b/.test(headerText)) {
+                        if (pendingSubject) {
+                            currentSubject = pendingSubject;
+                            inSubjectSection = true;
+                            console.log(`Line ${i+1}: Activated subject section: ${currentSubject}`);
+                            debugContent += `<div style=\"color: #17a2b8; margin: 2px 0;\">Line ${i+1}: Activated subject section: ${currentSubject}</div>`;
+                            continue;
+                        }
+                    }
                 }
                 
                 // Check for new question - number followed by dot
@@ -2437,6 +2487,17 @@
                 if (questionMatch && line.match(/^\d+\.\d/)) {
                     debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Ignored decimal number: ${line.substring(0, 50)}...</div>`;
                     questionMatch = null;
+                }
+                
+                // Handle lines like "4. Continued." as part of previous solution, not a new question
+                if (questionMatch && /continued/i.test(questionMatch[2] || '')) {
+                    if (currentQuestion) {
+                        // Treat as continuation of solution
+                        inSolution = true;
+                        currentQuestion.solution += '\n' + cleanImageReferences(line);
+                        debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Continued solution detected.</div>`;
+                        continue;
+                    }
                 }
                 
                 if (questionMatch) {
@@ -2452,16 +2513,38 @@
                         options: [],
                         answer: '',
                         solution: '',
-                        subject: currentSubject || 'unassigned',
+                        subject: (inSubjectSection && currentSubject) ? currentSubject : 'unassigned',
                         type: 'mcq', // Default type, will be auto-detected
                         fullContent: cleanImageReferences(questionMatch[2])
                     };
                     inSolution = false;
+                    inOptionCapture = false;
+                    currentOptionNumber = 0;
+                    inQuickTip = false;
                     
                     debugContent += `<div style="color: #28a745; margin: 2px 0; font-weight: bold;">Line ${i+1}: Found question ${currentQuestion.number}: ${questionMatch[2].substring(0, 100)}...</div>`;
                 } else if (currentQuestion) {
-                    // Check if we hit "Ans." - this means we're done with question text and options
-                    if (line.startsWith('Ans.')) {
+                    // Check for "Correct Answer:" format
+                    if (lowerLine.startsWith('correct answer')) {
+                        // Accept both formats: (3) or 3
+                        const caMatch = line.match(/Correct Answer:\s*(?:\(([1-4])\)|([1-4]))/i);
+                        if (caMatch) {
+                            currentQuestion.answer = (caMatch[1] || caMatch[2]);
+                            debugContent += `<div style=\"color: #dc3545; margin: 2px 0;\">Line ${i+1}: Found correct answer: ${line}</div>`;
+                        }
+                        // Do not auto-enter solution mode yet; wait for explicit Solution header
+                        // End option capture when correct answer encountered
+                        inOptionCapture = false;
+                        currentOptionNumber = 0;
+                    }
+                    // Check if we hit explicit Solution header
+                    else if (lowerLine.startsWith('## solution') || /\\section\*\{\s*solution\s*:?\s*\}/i.test(line)) {
+                        inSolution = true;
+                        currentQuestion.solution = '';
+                        debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Started solution collection (Solution header).</div>`;
+                    }
+                    // Backward compatibility: older format had "Ans." then solution lines
+                    else if (line.startsWith('Ans.')) {
                         // Extract answer - look for (1), (2), (3), (4) format
                         const answerMatch = line.match(/^Ans\.\s*\(([1-4])\)/);
                         if (answerMatch) {
@@ -2476,10 +2559,87 @@
                     }
                     // Check for options (1), (2), (3), (4) - only if not in solution
                     else if (!inSolution) {
-                        const optionMatch = line.match(/^\(([1-4])\)\s*(.*)/);
-                        if (optionMatch) {
-                            currentQuestion.options.push(cleanImageReferences(line));
-                            debugContent += `<div style="color: #007bff; margin: 2px 0;">Line ${i+1}: Found option ${optionMatch[1]}: ${optionMatch[2].substring(0, 30)}...</div>`;
+                        // Check if this is a fill-in-the-blank question (has $\_\_\_\_$)
+                        const isFillInTheBlank = /\$\_\_\_\_\$/.test(currentQuestion.text + '\n' + line);
+                        
+                        // Support inline options: (1)...(2)...(3)...(4)... possibly across lines
+                        // But don't treat "Correct Answer: (3)" as option markers
+                        const hasAnyOptionMarker = /(\(1\)|\(2\)|\(3\)|\(4\))/.test(line) && !lowerLine.startsWith('correct answer');
+                        
+                        if ((hasAnyOptionMarker || inOptionCapture) && !isFillInTheBlank) {
+                            // Initialize options array to fixed 4 slots on first encounter
+                            if (!inOptionCapture) {
+                                inOptionCapture = true;
+                                currentOptionNumber = 0;
+                                currentQuestion.options = ['', '', '', ''];
+                            }
+                            // Process markers in this line sequentially
+                            let remaining = line;
+                            // Helper to consume next marker and capture text until next marker or end
+                            const markers = ['(1)', '(2)', '(3)', '(4)'];
+                            while (remaining.length > 0) {
+                                // Find next marker index among 1..4 that is >= currentOptionNumber+1
+                                let nextIdx = -1;
+                                let nextWhich = -1;
+                                for (let m = 0; m < 4; m++) {
+                                    const idx = remaining.indexOf(markers[m]);
+                                    if (idx !== -1 && (nextIdx === -1 || idx < nextIdx)) {
+                                        nextIdx = idx;
+                                        nextWhich = m + 1; // option number
+                                    }
+                                }
+                                if (nextIdx === -1) {
+                                    // No marker in remaining; append to current option if we started
+                                    if (currentOptionNumber >= 1 && currentOptionNumber <= 4) {
+                                        currentQuestion.options[currentOptionNumber - 1] = (currentQuestion.options[currentOptionNumber - 1] + ' ' + cleanImageReferences(remaining)).trim();
+                                    } else {
+                                        // Before markers begin: treat as question text
+                                        currentQuestion.text += '\n' + cleanImageReferences(remaining);
+                                        currentQuestion.fullContent += '\n' + cleanImageReferences(remaining);
+                                    }
+                                    break;
+                                }
+                                // Content before next marker belongs to previous marker (if any)
+                                const before = remaining.slice(0, nextIdx).trim();
+                                if (before) {
+                                    if (currentOptionNumber >= 1 && currentOptionNumber <= 4) {
+                                        currentQuestion.options[currentOptionNumber - 1] = (currentQuestion.options[currentOptionNumber - 1] + ' ' + cleanImageReferences(before)).trim();
+                                    } else {
+                                        currentQuestion.text += '\n' + cleanImageReferences(before);
+                                        currentQuestion.fullContent += '\n' + cleanImageReferences(before);
+                                    }
+                                }
+                                // Advance past marker and set current option number
+                                remaining = remaining.slice(nextIdx + markers[nextWhich - 1].length);
+                                currentOptionNumber = nextWhich;
+                                // Now, look ahead for the next marker in the updated remaining to capture text chunk for this option
+                                let following = remaining;
+                                let nextIdx2 = -1;
+                                let nextWhich2 = -1;
+                                for (let m2 = 0; m2 < 4; m2++) {
+                                    const idx2 = following.indexOf(markers[m2]);
+                                    if (idx2 !== -1 && (nextIdx2 === -1 || idx2 < nextIdx2)) {
+                                        nextIdx2 = idx2;
+                                        nextWhich2 = m2 + 1;
+                                    }
+                                }
+                                let chunk;
+                                if (nextIdx2 === -1) {
+                                    chunk = following;
+                                    remaining = '';
+                                } else {
+                                    chunk = following.slice(0, nextIdx2);
+                                    remaining = following.slice(nextIdx2);
+                                }
+                                if (chunk && currentOptionNumber >= 1 && currentOptionNumber <= 4) {
+                                    currentQuestion.options[currentOptionNumber - 1] = (currentQuestion.options[currentOptionNumber - 1] + ' ' + cleanImageReferences(chunk)).trim();
+                                }
+                            }
+                        } else if (isFillInTheBlank) {
+                            // For fill-in-the-blank questions, add all content to question text
+                            currentQuestion.text += '\n' + cleanImageReferences(line);
+                            currentQuestion.fullContent += '\n' + cleanImageReferences(line);
+                            debugContent += `<div style="color: #17a2b8; margin: 2px 0;">Line ${i+1}: Fill-in-the-blank question content: ${line.substring(0, 50)}...</div>`;
                         } else {
                             // If not an option and not in solution, add to question text
                             currentQuestion.text += '\n' + cleanImageReferences(line);
@@ -2488,9 +2648,16 @@
                     }
                     // If in solution, continue collecting until next question
                     else if (inSolution) {
+                        // Stop solution at Quick Tip headers (both markdown and LaTeX formats)
+                        if (lowerLine.startsWith('## quick tip') || /\\section\*\{\s*quick\s+tip\s*:?\s*\}/i.test(line)) {
+                            inSolution = false;
+                            inQuickTip = true;
+                            debugContent += `<div style=\"color: #6c757d; margin: 2px 0;\">Line ${i+1}: Quick Tip header - ending solution collection and starting tip skip.</div>`;
+                            continue;
+                        }
                         // Check if this is the start of a new question
                         const nextQuestionMatch = line.match(/^(\d+)\.\s*(.*)/);
-                        if (nextQuestionMatch && !line.match(/^\d+\.\d/)) {
+                        if (nextQuestionMatch && !line.match(/^\d+\.\d/) && !/continued/i.test(nextQuestionMatch[2] || '')) {
                             // This is a new question, stop collecting solution and process current question
                             inSolution = false;
                             
@@ -2507,7 +2674,7 @@
                                 options: [],
                                 answer: '',
                                 solution: '',
-                                subject: currentSubject || 'unassigned',
+                                subject: (inSubjectSection && currentSubject) ? currentSubject : 'unassigned',
                                 type: 'mcq', // Default type, will be auto-detected
                                 fullContent: cleanImageReferences(nextQuestionMatch[2])
                             };
@@ -2522,8 +2689,8 @@
                 }
             }
             
-            // Process the last question if we're still in solution mode
-            if (currentQuestion && inSolution) {
+            // Ensure the last question is captured even if solution ended with a Quick Tip or EOF
+            if (currentQuestion) {
                 questions.push(currentQuestion);
             }
             
@@ -5009,7 +5176,7 @@
             const options = question.options || [];
             
             // Check for fill in the blank
-            if (text.includes('____') || text.includes('______') || text.includes('_ _ _ _')) {
+            if (text.includes('____') || text.includes('______') || text.includes('_ _ _ _') || text.includes('$\_\_\_\_$')) {
                 return 'fillblank';
             }
             
