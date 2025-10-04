@@ -2441,7 +2441,7 @@
                             pendingSubject = hdr;
                             debugContent += `<div style=\"color: #17a2b8; margin: 2px 0;\">Line ${i+1}: Subject header inside Quick Tip → set subject: ${currentSubject}</div>`;
                             // keep skipping until next question
-                            continue;
+                    continue;
                         }
                     }
                     const nextQuestionMatch = line.match(/^(\d+)\.\s*(.*)/);
@@ -2698,21 +2698,23 @@
             debugContent += `<div style="color: #007bff; font-weight: bold; margin: 10px 0; font-size: 16px;">Total questions found: ${questions.length}</div>`;
             debugContent += `<div style="color: #28a745; font-weight: bold; margin: 5px 0;">Question numbers: ${questions.map(q => q.number).join(', ')}</div>`;
             
-            // Show which question numbers are missing or extra
+            // Show which question numbers are found (preserving original numbers from .md)
             const questionNumbers = questions.map(q => parseInt(q.number)).sort((a, b) => a - b);
-            const expectedNumbers = Array.from({length: 75}, (_, i) => i + 1);
-            const missing = expectedNumbers.filter(n => !questionNumbers.includes(n));
-            const extra = questionNumbers.filter(n => n > 75 || n < 1);
             
             debugContent += `<div style="color: #6c757d; margin: 5px 0;">Found question numbers: ${questionNumbers.join(', ')}</div>`;
-            debugContent += `<div style="color: #6c757d; margin: 5px 0;">Expected question numbers: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75</div>`;
+            debugContent += `<div style="color: #6c757d; margin: 5px 0;">Total questions parsed: ${questions.length}</div>`;
             
-            if (missing.length > 0) {
-                debugContent += `<div style="color: #dc3545; font-weight: bold; margin: 5px 0;">Missing question numbers: ${missing.join(', ')}</div>`;
-            }
-            if (extra.length > 0) {
-                debugContent += `<div style="color: #dc3545; font-weight: bold; margin: 5px 0;">Extra question numbers: ${extra.join(', ')}</div>`;
-            }
+            // Group by subject for better overview
+            const bySubject = {};
+            questions.forEach(q => {
+                if (!bySubject[q.subject]) bySubject[q.subject] = [];
+                bySubject[q.subject].push(q.number);
+            });
+            
+            Object.keys(bySubject).forEach(subject => {
+                const subjectQuestions = bySubject[subject].sort((a, b) => a - b);
+                debugContent += `<div style="color: #17a2b8; margin: 5px 0;">${subject}: Q${subjectQuestions.join(', Q')}</div>`;
+            });
             
             // Debug info removed - console logging only
             console.log('Debug info:', debugContent);
@@ -3097,7 +3099,7 @@
                 const subjectQuestions = allQuestions
                     .filter(q => questionAssignments[q.number] === subject)
                     .map((q, index) => ({
-                        questionIndex: (index + 1).toString(),
+                        questionIndex: q.number.toString(),
                         questionId: `Q${q.number}`,
                         questionDetails: [{
                             text: q.text,
@@ -3932,7 +3934,7 @@
             subjectQuestions.forEach((question, index) => {
                 const questionItem = document.createElement('button');
                 questionItem.className = 'question-item';
-                questionItem.textContent = `${index + 1}`;
+                questionItem.textContent = `${question.number}`;
                 questionItem.onclick = () => selectQuestion(subject, index);
                 questionListContainer.appendChild(questionItem);
             });
@@ -4042,8 +4044,8 @@
                     "year": year || "2025",
                     "subject": subjectValue || subject,
                     "questions": subjectQuestions.map((question, index) => ({
-                        "questionIndex": (index + 1).toString(),
-                        "questionId": `2025${subject.charAt(0)}Q${index + 1}`,
+                        "questionIndex": question.number.toString(),
+                        "questionId": `2025${subject.charAt(0)}Q${question.number}`,
                         "questionDetails": [
                             {
                                 "text": question.text || '',
@@ -4158,7 +4160,7 @@
             const editorContainer = document.getElementById(`editQuestionsList-${subject}`);
             editorContainer.innerHTML = `
                 <div class="question-edit-item">
-                    <h5>Question ${questionIndex + 1}</h5>
+                    <h5>Question ${question.number}</h5>
                     <div class="edit-field">
                         <label>Question Type:</label>
                         <select class="answer-edit-select" 
@@ -4276,7 +4278,7 @@
                 const isActive = index === questionIndex;
                     allQuestionsHTML += `
                         <div class="question-render-item ${isActive ? 'active-question' : ''}" id="render-question-${index}">
-                            <h5>Question ${index + 1}</h5>
+                            <h5>Question ${question.number}</h5>
                             <div class="question-type" style="margin-bottom: 12px; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: var(--radius-sm); display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase;">
                                 Type: ${question.type || 'mcq'}
                             </div>
@@ -4462,7 +4464,7 @@
                         "year": "2025",
                         "subject": subject,
                         "questions": subjectQuestions.map((q, index) => ({
-                            "questionIndex": (index + 1).toString(),
+                            "questionIndex": q.number.toString(),
                             "questionId": `2025${subject.charAt(0)}Q${q.number}`,
                             "questionDetails": [{
                                 "text": q.text,
@@ -4547,8 +4549,8 @@
                     "year": year || "2025",
                     "subject": subjectValue || subject,
                     "questions": subjectQuestions.map((question, index) => ({
-                        "questionIndex": (index + 1).toString(),
-                        "questionId": `2025${subject.charAt(0)}Q${index + 1}`,
+                        "questionIndex": question.number.toString(),
+                        "questionId": `2025${subject.charAt(0)}Q${question.number}`,
                         "questionDetails": [
                             {
                                 "text": question.text || '',
