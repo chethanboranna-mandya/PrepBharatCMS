@@ -148,11 +148,18 @@
             background: rgba(255, 255, 255, 0.5);
         }
         
-        .sidebar-header {
-            text-align: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
+        .header-upload-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 20px 0;
             border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .sidebar-header {
+            flex: 1;
+            text-align: left;
         }
         
         .sidebar-header h1 {
@@ -183,26 +190,28 @@
         
         .upload-section {
             background: rgba(255, 255, 255, 0.15);
-            padding: 20px;
+            padding: 16px;
             border-radius: var(--radius-lg);
             border: 1px solid rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(20px);
             box-shadow: var(--shadow-sm);
+            flex: 1;
+            min-width: 0;
         }
         
         .upload-section h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
+            margin: 0 0 8px 0;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         
         .upload-section p {
-            margin: 0 0 15px 0;
-            font-size: 13px;
+            margin: 0 0 12px 0;
+            font-size: 12px;
             opacity: 0.9;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         
         .main-content {
@@ -218,6 +227,20 @@
         
         /* Responsive design */
         @media (max-width: 768px) {
+            .header-upload-row {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+            
+            .sidebar-header {
+            text-align: center;
+            }
+            
+            .upload-section {
+                min-width: auto;
+            }
+            
             .sidebar-content {
                 flex-direction: column;
             }
@@ -239,14 +262,14 @@
             background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
             color: white;
             border: none;
-            padding: 14px 28px;
+            padding: 10px 20px;
             border-radius: var(--radius-md);
             cursor: pointer;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 600;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
-            margin-top: 12px;
+            margin-top: 8px;
             box-shadow: var(--shadow-sm);
             letter-spacing: 0.025em;
         }
@@ -1960,21 +1983,25 @@
     <div class="container">
         <!-- Left Sidebar -->
         <div class="sidebar">
-            <div class="sidebar-header">
-                <h1>📚 Markdown to Json Converter</h1>
-                <p>Professional Question Management</p>
+            <!-- Header and Upload Row -->
+            <div class="header-upload-row">
+                <div class="sidebar-header">
+                    <h1>📚 Markdown to Json Converter</h1>
+                    <p>Professional Question Management</p>
         </div>
         
-            <div class="sidebar-content">
-                <div class="sidebar-section">
         <div class="upload-section">
-                        <h3>📁 Upload File</h3>
-                        <p>Select your markdown file containing questions to get started</p>
+                    <h3>📁 Upload File</h3>
+                    <p>Select your markdown file containing questions to get started</p>
             <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
             <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                 Choose File
             </button>
+                </div>
         </div>
+        
+            <div class="sidebar-content">
+                <div class="sidebar-section">
         
             <!-- Download Buttons -->
             <div class="sidebar-download" id="sidebarDownload" style="display: none;">
