@@ -609,6 +609,17 @@
             box-shadow: var(--shadow-sm);
         }
         
+        #inlineMathRender, #inlinePhysicsRender, #inlineChemistryRender {
+            overflow-y: auto;
+            max-height: 60vh;
+            min-height: 400px;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+            width: 100%;
+        }
+        
         .question-render-item {
             width: 100%;
             margin-bottom: 32px;
@@ -698,16 +709,18 @@
             background: var(--background-color);
             border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
+            justify-content: flex-start;
         }
         
         .inline-panels-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             padding: 6px 16px;
             background: var(--surface-color);
             border-bottom: 1px solid var(--border-color);
             min-height: 40px;
+            gap: 16px;
         }
         
         .inline-panels-header h3 {
@@ -719,19 +732,21 @@
         
         .viewer-toggle-btn {
             flex: 1;
-            padding: 4px 8px;
+            padding: 6px 12px;
             border: none;
             border-radius: var(--radius-sm);
             background: transparent;
             color: var(--text-secondary);
-            font-size: 11px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            min-height: 28px;
+            min-height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
         }
         
         .viewer-toggle-btn.active {
@@ -788,9 +803,9 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             border: 1px solid #334155;
-            max-height: 50vh;
+            max-height: 70vh;
             overflow-y: auto;
-            min-height: 300px;
+            min-height: 500px;
         }
         
         .json-content::-webkit-scrollbar {
@@ -2224,11 +2239,11 @@
             <!-- Always show edit interface for Mathematics -->
             <div id="inlineEditInterface-Mathematics" class="inline-edit-interface">
                 <div class="inline-panels-header">
-                    <h3>Question Editor</h3>
                     <!-- Viewer Toggle -->
                     <div class="viewer-toggle" id="viewerToggle-Mathematics" style="display: none;">
-                        <button class="viewer-toggle-btn active" onclick="switchViewer('Mathematics', 'editor')">✏️ Question Editor</button>
+                        <button class="viewer-toggle-btn active" onclick="switchViewer('Mathematics', 'editor')">✏️ Edit</button>
                         <button class="viewer-toggle-btn" onclick="switchViewer('Mathematics', 'json')">📄 JSON Viewer</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Mathematics', 'preview')">👁️ Live Preview</button>
                     </div>
                 </div>
                 <div class="edit-interface-content">
@@ -2251,11 +2266,6 @@
                         <div class="json-content" id="jsonContent-Mathematics">
                             <!-- JSON content will be populated here -->
                         </div>
-                        <div class="json-actions">
-                            <button class="json-action-btn primary" onclick="copyJSON('Mathematics')">📋 Copy JSON</button>
-                            <button class="json-action-btn" onclick="downloadJSON('Mathematics')">💾 Download JSON</button>
-                            <button class="json-action-btn" onclick="refreshJSON('Mathematics')">🔄 Refresh</button>
-                    </div>
                     </div>
                     
                     <div class="question-render-panel" id="questionRender-Mathematics" style="display: none;">
@@ -2342,11 +2352,11 @@
             <!-- Always show edit interface for Physics -->
             <div id="inlineEditInterface-Physics" class="inline-edit-interface">
                 <div class="inline-panels-header">
-                    <h3>Question Editor</h3>
                     <!-- Viewer Toggle -->
                     <div class="viewer-toggle" id="viewerToggle-Physics" style="display: none;">
-                        <button class="viewer-toggle-btn active" onclick="switchViewer('Physics', 'editor')">✏️ Question Editor</button>
+                        <button class="viewer-toggle-btn active" onclick="switchViewer('Physics', 'editor')">✏️ Edit</button>
                         <button class="viewer-toggle-btn" onclick="switchViewer('Physics', 'json')">📄 JSON Viewer</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Physics', 'preview')">👁️ Live Preview</button>
                     </div>
                 </div>
                 <div class="edit-interface-content">
@@ -2369,11 +2379,6 @@
                         <div class="json-content" id="jsonContent-Physics">
                             <!-- JSON content will be populated here -->
                         </div>
-                        <div class="json-actions">
-                            <button class="json-action-btn primary" onclick="copyJSON('Physics')">📋 Copy JSON</button>
-                            <button class="json-action-btn" onclick="downloadJSON('Physics')">💾 Download JSON</button>
-                            <button class="json-action-btn" onclick="refreshJSON('Physics')">🔄 Refresh</button>
-                    </div>
                     </div>
                     
                     <div class="question-render-panel" id="questionRender-Physics" style="display: none;">
@@ -2460,11 +2465,11 @@
             <!-- Always show edit interface for Chemistry -->
             <div id="inlineEditInterface-Chemistry" class="inline-edit-interface">
                 <div class="inline-panels-header">
-                    <h3>Question Editor</h3>
                     <!-- Viewer Toggle -->
                     <div class="viewer-toggle" id="viewerToggle-Chemistry" style="display: none;">
-                        <button class="viewer-toggle-btn active" onclick="switchViewer('Chemistry', 'editor')">✏️ Question Editor</button>
+                        <button class="viewer-toggle-btn active" onclick="switchViewer('Chemistry', 'editor')">✏️ Edit</button>
                         <button class="viewer-toggle-btn" onclick="switchViewer('Chemistry', 'json')">📄 JSON Viewer</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Chemistry', 'preview')">👁️ Live Preview</button>
                     </div>
                 </div>
                 <div class="edit-interface-content">
@@ -2487,11 +2492,6 @@
                         <div class="json-content" id="jsonContent-Chemistry">
                             <!-- JSON content will be populated here -->
                         </div>
-                        <div class="json-actions">
-                            <button class="json-action-btn primary" onclick="copyJSON('Chemistry')">📋 Copy JSON</button>
-                            <button class="json-action-btn" onclick="downloadJSON('Chemistry')">💾 Download JSON</button>
-                            <button class="json-action-btn" onclick="refreshJSON('Chemistry')">🔄 Refresh</button>
-                    </div>
                     </div>
                     
                     <div class="question-render-panel" id="questionRender-Chemistry" style="display: none;">
@@ -3646,6 +3646,23 @@
         function showSubject(subject) {
             console.log(`Switching to subject: ${subject}`);
             
+            // Debug: Check current active subject
+            const currentActiveTab = document.querySelector('.subject-tab.active');
+            const currentActiveSubject = currentActiveTab ? currentActiveTab.id.replace('tab-', '') : 'none';
+            console.log(`Current active subject: ${currentActiveSubject}, switching to: ${subject}`);
+            
+            // Debug: Show all questions and their subjects
+            console.log(`=== DEBUGGING ALL QUESTIONS ===`);
+            console.log(`Total questions: ${allQuestions.length}`);
+            console.log(`All subjects found:`, [...new Set(allQuestions.map(q => q.subject))]);
+            console.log(`Questions by subject:`, {
+                mathematics: allQuestions.filter(q => q.subject === 'mathematics').length,
+                physics: allQuestions.filter(q => q.subject === 'physics').length,
+                chemistry: allQuestions.filter(q => q.subject === 'chemistry').length,
+                unassigned: allQuestions.filter(q => q.subject === 'unassigned').length
+            });
+            console.log(`Sample questions:`, allQuestions.slice(0, 5).map(q => ({number: q.number, subject: q.subject})));
+            
             // Update main tab buttons
             document.querySelectorAll('.subject-tab').forEach(btn => {
                 btn.classList.remove('active');
@@ -3682,8 +3699,36 @@
                 // Generate and display questions for this subject
                 generateSubjectView(subject);
                 
+                // Ensure the render panel is visible and properly initialized
+                const renderPanel = document.getElementById(`questionRender-${subject}`);
+                if (renderPanel) {
+                    renderPanel.style.display = 'block';
+                    console.log(`Set render panel display to block for ${subject}`);
+                    
+                    // Force the same initialization as Mathematics
+                    const renderContainer = document.getElementById(subject === 'Mathematics' ? 'inlineMathRender' : 
+                                                                  subject === 'Physics' ? 'inlinePhysicsRender' : 'inlineChemistryRender');
+                    if (renderContainer) {
+                        // Force layout recalculation
+                        renderContainer.offsetHeight;
+                        console.log(`Forced layout recalculation for ${subject} container`);
+                    }
+                }
+                
                 // Generate the full Live Preview with all questions for this subject
+                console.log(`Generating question render for ${subject} with question index 0`);
                 generateQuestionRender(subject, 0); // Start with question 0
+                
+                // Auto-select the first question in the sidebar
+                setTimeout(() => {
+                    const firstQuestionItem = document.querySelector(`#questionList-${subject} .question-item`);
+                    if (firstQuestionItem) {
+                        firstQuestionItem.click();
+                        console.log(`Auto-selected first question for ${subject}`);
+                    } else {
+                        console.log(`No question items found for ${subject}`);
+                    }
+                }, 100);
             } else {
                 console.error(`Element subjectView-${subject} not found!`);
             }
@@ -3691,8 +3736,8 @@
         
         function renderAllQuestions(context) {
             const renderElement = document.getElementById(context === 'all' ? 'allQuestionsRender' : 
-                                                      context === 'Mathematics' ? 'mathRender' :
-                                                      context === 'Physics' ? 'physicsRender' : 'chemistryRender');
+                                                      context === 'Mathematics' ? 'inlineMathRender' :
+                                                      context === 'Physics' ? 'inlinePhysicsRender' : 'inlineChemistryRender');
             
             if (!renderElement) return;
             
@@ -3743,8 +3788,8 @@
         
         function scrollToQuestion(questionNumber, context) {
             const renderElement = document.getElementById(context === 'all' ? 'allQuestionsRender' : 
-                                                      context === 'Mathematics' ? 'mathRender' :
-                                                      context === 'Physics' ? 'physicsRender' : 'chemistryRender');
+                                                      context === 'Mathematics' ? 'inlineMathRender' :
+                                                      context === 'Physics' ? 'inlinePhysicsRender' : 'inlineChemistryRender');
             
             if (!renderElement) return;
             
@@ -3890,6 +3935,7 @@
             const conductedBy = getFormValue(`conductedBy${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
             const year = getFormValue(`year${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
             const subjectValue = getFormValue(`subject${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
+            const dayAndShift = getFormValue(`dayAndShift${subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry'}`);
             
             // Generate JSON structure
             const jsonData = [{
@@ -3902,6 +3948,7 @@
                 "conductedBy": conductedBy || "NTA (National Testing Agency)",
                 "year": year || "2025",
                 "subject": subjectValue || subject,
+                "dayAndShift": dayAndShift || "2 April 2025 Shift - 2",
                 "questions": subjectQuestions.map(question => ({
                     "questionIndex": question.number.toString(),
                     "questionId": `2025${subject.charAt(0)}Q${question.number}`,
@@ -4426,25 +4473,69 @@
                 questionItem.textContent = `${question.number}`;
                 questionItem.onclick = () => selectQuestion(subject, index);
                 questionListContainer.appendChild(questionItem);
+                
+                // Debug: Log the mapping between question number and index
+                if (index < 5 || index >= subjectQuestions.length - 5) { // Log first 5 and last 5
+                    console.log(`Sidebar mapping: index=${index}, questionNumber=${question.number}, subject=${subject}`);
+                }
             });
         }
         
         function selectQuestion(subject, questionIndex) {
+            console.log(`=== SELECTING QUESTION ===`);
+            console.log(`Subject: ${subject}, Question Index: ${questionIndex}`);
+            
+            // Debug: Show the actual question being selected
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            if (subjectQuestions[questionIndex]) {
+                const questionNumber = subjectQuestions[questionIndex].number;
+                console.log(`Selected question details:`, {
+                    index: questionIndex,
+                    questionNumber: questionNumber,
+                    totalQuestions: subjectQuestions.length
+                });
+            }
+            
             // Remove active class from all question items
             const questionItems = document.querySelectorAll(`#questionList-${subject} .question-item`);
+            console.log(`Found ${questionItems.length} question items for ${subject}`);
             questionItems.forEach(item => item.classList.remove('active'));
             
             // Add active class to selected question
-            questionItems[questionIndex].classList.add('active');
+            if (questionItems[questionIndex]) {
+                questionItems[questionIndex].classList.add('active');
+                console.log(`Activated question item at index ${questionIndex}`);
+            } else {
+                console.log(`Question item at index ${questionIndex} not found!`);
+            }
             
             // Show the viewer toggle and render panels
-            document.getElementById(`viewerToggle-${subject}`).style.display = 'flex';
-            document.getElementById(`questionRender-${subject}`).style.display = 'block';
+            const viewerToggle = document.getElementById(`viewerToggle-${subject}`);
+            const renderPanel = document.getElementById(`questionRender-${subject}`);
+            
+            if (viewerToggle) {
+                viewerToggle.style.display = 'flex';
+                console.log(`Set viewer toggle display to flex for ${subject}`);
+            } else {
+                console.log(`Viewer toggle not found for ${subject}`);
+            }
+            
+            if (renderPanel) {
+                renderPanel.style.display = 'block';
+                console.log(`Set render panel display to block for ${subject}`);
+                console.log(`Render panel properties:`, {
+                    display: renderPanel.style.display,
+                    offsetHeight: renderPanel.offsetHeight,
+                    clientHeight: renderPanel.clientHeight
+                });
+            } else {
+                console.log(`Render panel not found for ${subject}`);
+            }
             
             // Check which viewer is currently active and show only that one
             const editorPanel = document.getElementById(`questionEditor-${subject}`);
             const jsonPanel = document.getElementById(`jsonViewer-${subject}`);
-            const renderPanel = document.getElementById(`questionRender-${subject}`);
+            // renderPanel already declared above
             const toggleButtons = document.querySelectorAll(`#viewerToggle-${subject} .viewer-toggle-btn`);
             
             // Check if JSON viewer is active (has active class on second button)
@@ -4465,8 +4556,35 @@
             }
             
             // Always generate the render (Live Preview)
+            console.log(`Calling generateQuestionRender for ${subject}, questionIndex: ${questionIndex}`);
             generateQuestionRender(subject, questionIndex);
         }
+        
+        // Debug function to check question data
+        function debugQuestions() {
+            console.log(`=== QUESTION DEBUG INFO ===`);
+            console.log(`Total questions: ${allQuestions.length}`);
+            console.log(`All subjects:`, [...new Set(allQuestions.map(q => q.subject))]);
+            
+            const subjects = ['mathematics', 'physics', 'chemistry'];
+            subjects.forEach(subject => {
+                const questions = allQuestions.filter(q => q.subject === subject);
+                console.log(`${subject}: ${questions.length} questions`);
+                if (questions.length > 0) {
+                    console.log(`  Sample:`, questions.slice(0, 3).map(q => ({number: q.number, subject: q.subject})));
+                }
+            });
+            
+            // Check containers
+            const containers = ['inlineMathRender', 'inlinePhysicsRender', 'inlineChemistryRender'];
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                console.log(`${containerId}:`, container ? 'Found' : 'NOT FOUND');
+            });
+        }
+        
+        // Make debug function available globally
+        window.debugQuestions = debugQuestions;
         
         // JSON Viewer Functions
         function switchViewer(subject, viewerType) {
@@ -4474,6 +4592,7 @@
             const jsonPanel = document.getElementById(`jsonViewer-${subject}`);
             const renderPanel = document.getElementById(`questionRender-${subject}`);
             const toggleButtons = document.querySelectorAll(`#viewerToggle-${subject} .viewer-toggle-btn`);
+            const questionSidebar = document.getElementById(`questionList-${subject}`);
             
             // Remove active class from all toggle buttons
             toggleButtons.forEach(btn => btn.classList.remove('active'));
@@ -4482,15 +4601,97 @@
                 editorPanel.style.display = 'block';
                 jsonPanel.style.display = 'none';
                 renderPanel.style.display = 'block';
+                if (questionSidebar) questionSidebar.style.display = 'block'; // Show sidebar for editor
                 toggleButtons[0].classList.add('active');
             } else if (viewerType === 'json') {
                 editorPanel.style.display = 'none';
                 jsonPanel.style.display = 'flex';
-                renderPanel.style.display = 'block'; // Keep Live Preview visible
+                renderPanel.style.display = 'none'; // Hide Live Preview when JSON viewer is active
+                if (questionSidebar) questionSidebar.style.display = 'none'; // Hide sidebar for JSON viewer
                 toggleButtons[1].classList.add('active');
                 
                 // Generate JSON content when switching to JSON viewer
                 generateJSONContent(subject);
+            } else if (viewerType === 'preview') {
+                editorPanel.style.display = 'none';
+                jsonPanel.style.display = 'none';
+                renderPanel.style.display = 'block'; // Show Live Preview
+                if (questionSidebar) questionSidebar.style.display = 'none'; // Hide sidebar for preview
+                toggleButtons[2].classList.add('active');
+                
+                // Generate full preview with all questions
+                generateFullPreview(subject);
+            }
+        }
+        
+        function generateFullPreview(subject) {
+            console.log(`=== GENERATING FULL PREVIEW FOR ${subject} ===`);
+            
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            console.log(`Total questions for ${subject}: ${subjectQuestions.length}`);
+            
+            if (subjectQuestions.length === 0) {
+                console.log(`No questions found for ${subject}`);
+                return;
+            }
+            
+            // Map subject names to correct container IDs
+            const containerIdMap = {
+                'Mathematics': 'inlineMathRender',
+                'Physics': 'inlinePhysicsRender', 
+                'Chemistry': 'inlineChemistryRender'
+            };
+            
+            const renderContainer = document.getElementById(containerIdMap[subject]);
+            console.log(`Container ID: ${containerIdMap[subject]}`);
+            console.log(`Render container found:`, renderContainer);
+            
+            if (!renderContainer) {
+                console.log(`ERROR: Render container not found for ${subject}!`);
+                return;
+            }
+            
+            // Generate HTML for all questions
+            let allQuestionsHTML = '';
+            subjectQuestions.forEach((question, index) => {
+                allQuestionsHTML += `
+                    <div class="question-render-item" id="render-question-${index}">
+                        <h5>Question ${question.number}</h5>
+                        <div class="question-type" style="margin-bottom: 12px; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: var(--radius-sm); display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                            Type: ${question.type || 'mcq'}
+                        </div>
+                        <div class="question-text">${question.text || ''}</div>
+                    
+                    ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                    
+                    <div class="options">
+                        ${['A', 'B', 'C', 'D'].map((option, idx) => `
+                            <div class="option">
+                                <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
+                                ${question.optionImages && question.optionImages[idx] ? `<img src="${question.optionImages[idx]}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
+                        Answer: ${question.answer || ''}
+                    </div>
+                    
+                    <div class="solution">
+                        <strong>Solution:</strong>
+                        <div>${question.solution || ''}</div>
+                        ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                    </div>
+                </div>
+                `;
+            });
+            
+            renderContainer.innerHTML = allQuestionsHTML;
+            console.log(`Rendered ${subjectQuestions.length} questions for ${subject}`);
+            
+            // Re-render MathJax
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise([renderContainer]);
             }
         }
         
@@ -4519,6 +4720,7 @@
             const conductedBy = getFormValue(`conductedBy${suffix}`);
             const year = getFormValue(`year${suffix}`);
             const subjectValue = getFormValue(`subject${suffix}`);
+            const dayAndShift = getFormValue(`dayAndShift${suffix}`);
             
             // Create JSON in the specified format
             const jsonData = [
@@ -4532,6 +4734,7 @@
                     "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
                     "year": year || "2025",
                     "subject": subjectValue || subject,
+                    "dayAndShift": dayAndShift || "2 April 2025 Shift - 2",
                     "questions": subjectQuestions.map((question, index) => ({
                         "questionIndex": question.number.toString(),
                         "questionId": `2025${subject.charAt(0)}Q${question.number}`,
@@ -4611,8 +4814,22 @@
             const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
             const yearValue = getFormValue(`year${suffix}`) || '2025';
             const boardValue = getFormValue(`board${suffix}`) || 'KCET';
+            const dayAndShift = getFormValue(`dayAndShift${suffix}`) || '2 April 2025 Shift - 2';
             const subjectLower = subject.toLowerCase();
-            const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_${subjectLower}.json`;
+            
+            // Parse day and shift from dayAndShift field
+            let dayShiftSuffix = '';
+            if (dayAndShift) {
+                const dayShiftMatch = dayAndShift.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                if (dayShiftMatch) {
+                    const day = dayShiftMatch[1];
+                    const month = dayShiftMatch[2].toLowerCase();
+                    const shift = dayShiftMatch[4];
+                    dayShiftSuffix = `_${day}_${month}_shift_${shift}`;
+                }
+            }
+            
+            const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_${subjectLower}${dayShiftSuffix}.json`;
             
             const blob = new Blob([text], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -4748,9 +4965,24 @@
         }
         
         function generateQuestionRender(subject, questionIndex) {
-            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            console.log(`=== GENERATING SINGLE QUESTION RENDER ===`);
+            console.log(`Subject: ${subject}, Question Index: ${questionIndex}`);
             
-            if (subjectQuestions.length === 0) return;
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            console.log(`Filtered questions for ${subject}: ${subjectQuestions.length}`);
+            
+            if (subjectQuestions.length === 0) {
+                console.log(`No questions found for ${subject}, returning early`);
+                return;
+            }
+            
+            if (questionIndex < 0 || questionIndex >= subjectQuestions.length) {
+                console.log(`Invalid question index ${questionIndex} for ${subject}, using index 0`);
+                questionIndex = 0;
+            }
+            
+            const question = subjectQuestions[questionIndex];
+            console.log(`Rendering single question: ${question.number} at index ${questionIndex}`);
             
             // Map subject names to correct container IDs
             const containerIdMap = {
@@ -4760,56 +4992,48 @@
             };
             
             const renderContainer = document.getElementById(containerIdMap[subject]);
+            console.log(`Container ID: ${containerIdMap[subject]}`);
+            console.log(`Render container found:`, renderContainer);
             
-            // Generate HTML for all questions
-            let allQuestionsHTML = '';
-            subjectQuestions.forEach((question, index) => {
-                const isActive = index === questionIndex;
-                    allQuestionsHTML += `
-                        <div class="question-render-item ${isActive ? 'active-question' : ''}" id="render-question-${index}">
-                            <h5>Question ${question.number}</h5>
-                            <div class="question-type" style="margin-bottom: 12px; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: var(--radius-sm); display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase;">
-                                Type: ${question.type || 'mcq'}
-                            </div>
-                            <div class="question-text">${question.text || ''}</div>
-                        
-                        ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
-                        
-                        <div class="options">
-                            ${['A', 'B', 'C', 'D'].map((option, idx) => `
-                                <div class="option">
-                                    <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
-                                    ${question.optionImages && question.optionImages[idx] ? `<img src="${question.optionImages[idx]}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
-                            Answer: ${question.answer || ''}
-                        </div>
-                        
-                        <div class="solution">
-                            <strong>Solution:</strong>
-                            <div>${question.solution || ''}</div>
-                            ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
-                        </div>
+            if (!renderContainer) {
+                console.log(`ERROR: Render container not found for ${subject}!`);
+                return;
+            }
+            
+            // Generate HTML for only the selected question
+            const singleQuestionHTML = `
+                <div class="question-render-item active-question" id="render-question-${questionIndex}">
+                    <h5>Question ${question.number}</h5>
+                    <div class="question-type" style="margin-bottom: 12px; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: var(--radius-sm); display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                        Type: ${question.type || 'mcq'}
                     </div>
-                `;
-            });
+                    <div class="question-text">${question.text || ''}</div>
+                
+                ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                
+                <div class="options">
+                    ${['A', 'B', 'C', 'D'].map((option, idx) => `
+                        <div class="option">
+                            <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
+                            ${question.optionImages && question.optionImages[idx] ? `<img src="${question.optionImages[idx]}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
+                    Answer: ${question.answer || ''}
+                </div>
+                
+                <div class="solution">
+                    <strong>Solution:</strong>
+                    <div>${question.solution || ''}</div>
+                    ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                </div>
+            </div>
+            `;
             
-            renderContainer.innerHTML = allQuestionsHTML;
-            
-            // Scroll to the selected question
-            setTimeout(() => {
-                const targetQuestion = document.getElementById(`render-question-${questionIndex}`);
-                if (targetQuestion) {
-                    targetQuestion.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start',
-                        inline: 'nearest'
-                    });
-                }
-            }, 100);
+            renderContainer.innerHTML = singleQuestionHTML;
+            console.log(`Rendered single question: ${question.number} in ${subject}`);
             
             // Re-render MathJax
             if (typeof MathJax !== 'undefined') {
@@ -5024,6 +5248,7 @@
             const conductedBy = getFormValue(`conductedBy${suffix}`);
             const year = getFormValue(`year${suffix}`);
             const subjectValue = getFormValue(`subject${suffix}`);
+            const dayAndShift = getFormValue(`dayAndShift${suffix}`);
             
             // Generate JSON structure in the specified format
             const jsonData = [
@@ -5037,6 +5262,7 @@
                     "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
                     "year": year || "2025",
                     "subject": subjectValue || subject,
+                    "dayAndShift": dayAndShift || "2 April 2025 Shift - 2",
                     "questions": subjectQuestions.map((question, index) => ({
                         "questionIndex": question.number.toString(),
                         "questionId": `2025${subject.charAt(0)}Q${question.number}`,
@@ -5083,11 +5309,24 @@
                 const blob = new Blob([jsonString], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 
-                // Generate dynamic filename based on form values
+                // Generate dynamic filename based on form values including day and shift
                 const yearValue = year || '2025';
                 const boardValue = board || 'KCET';
                 const subjectLower = subject.toLowerCase();
-                const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_${subjectLower}.json`;
+                
+                // Parse day and shift from dayAndShift field
+                let dayShiftSuffix = '';
+                if (dayAndShift) {
+                    const dayShiftMatch = dayAndShift.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                    if (dayShiftMatch) {
+                        const day = dayShiftMatch[1];
+                        const month = dayShiftMatch[2].toLowerCase();
+                        const shift = dayShiftMatch[4];
+                        dayShiftSuffix = `_${day}_${month}_shift_${shift}`;
+                    }
+                }
+                
+                const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_${subjectLower}${dayShiftSuffix}.json`;
                 
                 const a = document.createElement('a');
                 a.href = url;
@@ -5126,6 +5365,7 @@
                     const conductedBy = getFormValue(`conductedBy${suffix}`);
                     const year = getFormValue(`year${suffix}`);
                     const subjectValue = getFormValue(`subject${suffix}`);
+                    const dayAndShift = getFormValue(`dayAndShift${suffix}`);
                     
                     allJsonData.push({
                         "tutorialId": tutorialId || `${board || 'KCET'}_${year || '2025'}_${subject}`,
@@ -5137,6 +5377,7 @@
                         "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
                         "year": year || "2025",
                         "subject": subjectValue || subject,
+                        "dayAndShift": dayAndShift || "2 April 2025 Shift - 2",
                         "questions": subjectQuestions.map((question, index) => ({
                             "questionIndex": (index + 1).toString(),
                             "questionId": `2025${subject.charAt(0)}Q${index + 1}`,
@@ -5188,10 +5429,24 @@
                 const blob = new Blob([jsonString], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 
-                // Generate dynamic filename based on form values (use Mathematics as reference)
+                // Generate dynamic filename based on form values including day and shift (use Mathematics as reference)
                 const yearValue = getFormValue('year') || '2025';
                 const boardValue = getFormValue('board') || 'KCET';
-                const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_all_subjects.json`;
+                const dayAndShift = getFormValue('dayAndShift') || '2 April 2025 Shift - 2';
+                
+                // Parse day and shift from dayAndShift field
+                let dayShiftSuffix = '';
+                if (dayAndShift) {
+                    const dayShiftMatch = dayAndShift.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                    if (dayShiftMatch) {
+                        const day = dayShiftMatch[1];
+                        const month = dayShiftMatch[2].toLowerCase();
+                        const shift = dayShiftMatch[4];
+                        dayShiftSuffix = `_${day}_${month}_shift_${shift}`;
+                    }
+                }
+                
+                const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_all_subjects${dayShiftSuffix}.json`;
                 
                 const a = document.createElement('a');
                 a.href = url;
