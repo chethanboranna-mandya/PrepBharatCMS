@@ -151,11 +151,16 @@
         .header-upload-row {
             display: flex;
             align-items: flex-start;
-            gap: 20px;
+            gap: 15px;
             margin-bottom: 20px;
             padding: 20px 0;
             border-bottom: 1px solid rgba(255,255,255,0.2);
             justify-content: space-between;
+        }
+        
+        .summary-section {
+            flex: 1;
+            min-width: 0;
         }
         
         .sidebar-header {
@@ -164,16 +169,21 @@
         
         .sidebar-header h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
-            letter-spacing: -0.025em;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
         
         .sidebar-header p {
-            margin: 8px 0 0 0;
-            font-size: 14px;
-            opacity: 0.9;
-            font-weight: 400;
+            margin: 6px 0 0 0;
+            font-size: 13px;
+            opacity: 0.85;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            color: rgba(255, 255, 255, 0.9);
         }
         
         .sidebar-content {
@@ -189,30 +199,43 @@
         }
         
         .upload-section {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 12px;
-            border-radius: var(--radius-lg);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(20px);
-            box-shadow: var(--shadow-sm);
+            background: rgba(255, 255, 255, 0.12);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(24px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
             width: 200px;
             min-width: 200px;
             max-width: 200px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
         }
         
         .upload-section h3 {
-            margin: 0 0 6px 0;
-            font-size: 13px;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            color: #ffffff;
+            letter-spacing: 0.01em;
         }
         
         .upload-section p {
-            margin: 0 0 8px 0;
-            font-size: 11px;
-            opacity: 0.9;
-            line-height: 1.2;
+            margin: 0 0 12px 0;
+            font-size: 12px;
+            opacity: 0.85;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
         }
         
         .main-content {
@@ -238,6 +261,10 @@
             text-align: center;
             }
             
+            .summary-section {
+                min-width: auto;
+            }
+            
             .upload-section {
                 min-width: auto;
             }
@@ -260,19 +287,20 @@
         }
         
         .upload-btn {
-            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: var(--radius-md);
+            padding: 10px 18px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
-            margin-top: 6px;
-            box-shadow: var(--shadow-sm);
-            letter-spacing: 0.025em;
+            margin-top: 8px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3), 0 1px 3px rgba(0, 0, 0, 0.1);
+            letter-spacing: 0.02em;
+            text-transform: none;
         }
         
         .upload-btn:hover {
@@ -342,14 +370,38 @@
         }
         
         .sidebar-stats {
-            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(24px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-stats:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .sidebar-stats h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.01em;
         }
         
         .stats-summary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 14px;
         }
         
         .stat-item {
@@ -1984,11 +2036,28 @@
     <div class="container">
         <!-- Left Sidebar -->
         <div class="sidebar">
-            <!-- Header and Upload Row -->
+            <!-- Header, Summary, and Upload Row -->
             <div class="header-upload-row">
                 <div class="sidebar-header">
                     <h1>📚 Markdown to Json Converter</h1>
                     <p>Professional Question Management</p>
+                </div>
+                
+                <!-- Summary Section in Middle -->
+                <div class="summary-section">
+                    <div class="sidebar-stats" id="sidebarStats" style="display: none;">
+                        <h3>📊 Summary</h3>
+                        <div class="stats-summary">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Questions</span>
+                                <span class="stat-number" id="sidebar-total-questions">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Extracted</span>
+                                <span class="stat-number" id="sidebar-extracted-questions">0</span>
+                            </div>
+                        </div>
+                    </div>
         </div>
         
         <div class="upload-section">
@@ -2032,23 +2101,6 @@
             </div>
             </div>
         
-            
-            <!-- Statistics Summary in Sidebar -->
-                <div class="sidebar-section">
-                    <div class="sidebar-stats" id="sidebarStats" style="display: none;">
-                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📊 Summary</h3>
-                        <div class="stats-summary">
-                            <div class="stat-item">
-                                <span class="stat-label">Total Questions</span>
-                                <span class="stat-number" id="sidebar-total-questions">0</span>
-            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Extracted</span>
-                                <span class="stat-number" id="sidebar-extracted-questions">0</span>
-            </div>
-            </div>
-            </div>
-        </div>
 
             </div>
             
@@ -2056,7 +2108,7 @@
         
         <!-- Main Content Area -->
         <div class="main-content">
-        
+
         <!-- Subject Tabs -->
         <div class="subject-tabs-container" id="subjectTabsContainer" style="display: none;">
             <button class="subject-tab active" onclick="showSubject('Mathematics')" id="tab-Mathematics">
