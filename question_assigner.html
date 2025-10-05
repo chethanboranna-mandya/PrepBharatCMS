@@ -2203,12 +2203,16 @@
                         <label>Tutorial ID:</label>
                         <input type="text" id="tutorialId" value="KCET_2025_Mathematics" readonly/>
                         </div>
+                    <div class="field">
+                        <label>Day and Shift:</label>
+                        <input type="text" id="dayAndShift" value="2 April 2025 Shift - 2" placeholder="e.g., 2 April 2025 Shift - 2"/>
                         </div>
+                    </div>
                 <div class="row">
                     <div class="field">
                         <label>Tutorial Title:</label>
                         <input type="text" id="tutorialTitle" value="KCET 2025 Mathematics"/>
-                    </div>
+                        </div>
                     <div class="field">
                         <label>Authority Exam ID:</label>
                         <input type="text" id="authorityExamId" value="kar_kect"/>
@@ -2317,12 +2321,16 @@
                         <label>Tutorial ID:</label>
                         <input type="text" id="tutorialId-physics" value="KCET_2025_Physics" readonly/>
                         </div>
+                    <div class="field">
+                        <label>Day and Shift:</label>
+                        <input type="text" id="dayAndShift-physics" value="2 April 2025 Shift - 2" placeholder="e.g., 2 April 2025 Shift - 2"/>
                         </div>
+                    </div>
                 <div class="row">
                     <div class="field">
                         <label>Tutorial Title:</label>
                         <input type="text" id="tutorialTitle-physics" value="KCET 2025 Physics"/>
-                    </div>
+                        </div>
                     <div class="field">
                         <label>Authority Exam ID:</label>
                         <input type="text" id="authorityExamId-physics" value="kar_kect"/>
@@ -2431,12 +2439,16 @@
                         <label>Tutorial ID:</label>
                         <input type="text" id="tutorialId-chemistry" value="KCET_2025_Chemistry" readonly/>
                         </div>
+                    <div class="field">
+                        <label>Day and Shift:</label>
+                        <input type="text" id="dayAndShift-chemistry" value="2 April 2025 Shift - 2" placeholder="e.g., 2 April 2025 Shift - 2"/>
                         </div>
+                    </div>
                 <div class="row">
                     <div class="field">
                         <label>Tutorial Title:</label>
                         <input type="text" id="tutorialTitle-chemistry" value="KCET 2025 Chemistry"/>
-                    </div>
+                        </div>
                     <div class="field">
                         <label>Authority Exam ID:</label>
                         <input type="text" id="authorityExamId-chemistry" value="kar_kect"/>
@@ -2499,6 +2511,7 @@
     <script>
         let allQuestions = [];
         let questionAssignments = {};
+        let originalMarkdownContent = '';
         
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
         
@@ -2508,6 +2521,15 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const content = e.target.result;
+                    
+                    // Store original content for later use
+                    originalMarkdownContent = content;
+                    
+                    // Parse exam details from content
+                    const examDetails = parseExamDetails(content, 'Mathematics');
+                    updateTutorialFields(examDetails);
+                    
+                    // Parse questions
                     parseQuestions(content);
                 };
                 reader.readAsText(file);
@@ -2540,6 +2562,320 @@
             text = text.replace(/\s+/g, ' ').trim();
             
             return text;
+        }
+        
+        function parseExamDetails(content, currentSubject = 'Mathematics') {
+            const lines = content.split('\n');
+            let examDetails = {
+                examType: 'JEE Main',
+                board: 'JEE Main',
+                state: 'Center',
+                conductedBy: 'National Testing Agency (NTA)',
+                date: '',
+                shift: '',
+                dayAndShift: '2 April 2025 Shift - 2',
+                tutorialTitle: `JEE Main, ${currentSubject} - 2 April 2025 Shift - 2`
+            };
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Stop scanning when we reach "## IMPORTANT INSTRUCTIONS:"
+                if (line.includes('## IMPORTANT INSTRUCTIONS:')) {
+                    break;
+                }
+                
+                // Check for JEE Main pattern
+                if (line.includes('JEE (Main)') || line.includes('JEE Main')) {
+                    examDetails.examType = 'JEE Main';
+                    examDetails.board = 'JEE Main';
+                    examDetails.state = 'Center';
+                    examDetails.conductedBy = 'National Testing Agency (NTA)';
+                }
+                
+                // Check for JEE Advanced pattern
+                if (line.includes('JEE (Advanced)') || line.includes('JEE Advanced')) {
+                    examDetails.examType = 'JEE Advanced';
+                    examDetails.board = 'JEE Advanced';
+                    examDetails.state = 'Center';
+                    examDetails.conductedBy = 'Indian Institute of Technology (IIT)';
+                }
+                
+                // Check for NEET pattern
+                if (line.includes('NEET') || line.includes('National Eligibility cum Entrance Test')) {
+                    examDetails.examType = 'NEET';
+                    examDetails.board = 'NEET';
+                    examDetails.state = 'Center';
+                    examDetails.conductedBy = 'National Testing Agency (NTA)';
+                }
+                
+                // Check for KCET pattern
+                if (line.includes('KCET') || line.includes('Karnataka Common Entrance Test')) {
+                    examDetails.examType = 'KCET';
+                    examDetails.board = 'KCET';
+                    examDetails.state = 'Karnataka';
+                    examDetails.conductedBy = 'Karnataka Examinations Authority (KEA)';
+                }
+                
+                // Check for day and shift pattern (e.g., "## 2 April 2025 Shift - 2")
+                const dayShiftMatch = line.match(/##\s*(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                if (dayShiftMatch) {
+                    const day = dayShiftMatch[1];
+                    const month = dayShiftMatch[2];
+                    const year = dayShiftMatch[3];
+                    const shift = dayShiftMatch[4];
+                    
+                    examDetails.date = `${day} ${month} ${year}`;
+                    examDetails.shift = `Shift - ${shift}`;
+                    examDetails.dayAndShift = `${day} ${month} ${year} Shift - ${shift}`;
+                }
+                
+                // Check for date pattern (e.g., "2 April 2025")
+                const dateMatch = line.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i);
+                if (dateMatch && !examDetails.date) {
+                    examDetails.date = `${dateMatch[1]} ${dateMatch[2]} ${dateMatch[3]}`;
+                }
+                
+                // Check for shift pattern (e.g., "Shift - 2")
+                const shiftMatch = line.match(/Shift\s*-\s*(\d+)/i);
+                if (shiftMatch && !examDetails.shift) {
+                    examDetails.shift = `Shift - ${shiftMatch[1]}`;
+                }
+                
+                // Check for session pattern (e.g., "Session-2")
+                const sessionMatch = line.match(/Session\s*-\s*(\d+)/i);
+                if (sessionMatch && !examDetails.shift) {
+                    examDetails.shift = `Session - ${sessionMatch[1]}`;
+                }
+                
+                // Build tutorial title with current subject
+                if (examDetails.date && examDetails.shift) {
+                    examDetails.tutorialTitle = `${examDetails.examType}, ${currentSubject} - ${examDetails.date} ${examDetails.shift}`;
+                } else if (examDetails.date) {
+                    examDetails.tutorialTitle = `${examDetails.examType}, ${currentSubject} - ${examDetails.date}`;
+                } else {
+                    examDetails.tutorialTitle = `${examDetails.examType}, ${currentSubject}`;
+                }
+            }
+            
+            return examDetails;
+        }
+        
+        function updateTutorialFields(examDetails) {
+            // Update Tutorial Title
+            const tutorialTitleField = document.getElementById('tutorialTitle');
+            if (tutorialTitleField) {
+                tutorialTitleField.value = examDetails.tutorialTitle;
+            }
+            
+            // Update Authority Exam ID
+            const authorityExamIdField = document.getElementById('authorityExamId');
+            if (authorityExamIdField) {
+                authorityExamIdField.value = examDetails.examType;
+            }
+            
+            // Update Board
+            const boardField = document.getElementById('board');
+            if (boardField) {
+                boardField.value = examDetails.board;
+            }
+            
+            // Update State
+            const stateField = document.getElementById('state');
+            if (stateField) {
+                stateField.value = examDetails.state;
+            }
+            
+            // Update Conducted By
+            const conductedByField = document.getElementById('conductedBy');
+            if (conductedByField) {
+                conductedByField.value = examDetails.conductedBy;
+            }
+            
+            // Update Date
+            const dateField = document.getElementById('date');
+            if (dateField) {
+                dateField.value = examDetails.date;
+            }
+            
+            // Update Shift
+            const shiftField = document.getElementById('shift');
+            if (shiftField) {
+                shiftField.value = examDetails.shift;
+            }
+            
+            // Update Year (extract from date if available)
+            const yearField = document.getElementById('year');
+            let year = '2025'; // default year
+            if (yearField && examDetails.date) {
+                const yearMatch = examDetails.date.match(/(\d{4})/);
+                if (yearMatch) {
+                    year = yearMatch[1];
+                    yearField.value = year;
+                }
+            }
+            
+            // Update Day and Shift field
+            const dayAndShiftField = document.getElementById('dayAndShift');
+            if (dayAndShiftField) {
+                dayAndShiftField.value = examDetails.dayAndShift;
+            }
+            
+            // Generate Tutorial ID for Mathematics (default subject on upload)
+            updateTutorialId('Mathematics', examDetails.board, year);
+            
+            // Trigger real-time JSON update
+            updateJSONInRealTime('');
+        }
+        
+        function updateTutorialTitleOnly(subject) {
+            // Get current exam details from existing fields
+            const authorityExamIdField = document.getElementById('authorityExamId');
+            const dateField = document.getElementById('date');
+            const shiftField = document.getElementById('shift');
+            const boardField = document.getElementById('board');
+            const yearField = document.getElementById('year');
+            const stateField = document.getElementById('state');
+            const conductedByField = document.getElementById('conductedBy');
+            
+            // Determine board and other details based on subject
+            // Since all questions are from JEE Main, all subjects use JEE Main
+            let board, state, conductedBy, examType;
+            
+            if (subject === 'Mathematics') {
+                board = 'JEE Main';
+                state = 'Center';
+                conductedBy = 'National Testing Agency (NTA)';
+                examType = 'JEE Main';
+            } else if (subject === 'Physics') {
+                board = 'JEE Main';
+                state = 'Center';
+                conductedBy = 'National Testing Agency (NTA)';
+                examType = 'JEE Main';
+            } else if (subject === 'Chemistry') {
+                board = 'JEE Main';
+                state = 'Center';
+                conductedBy = 'National Testing Agency (NTA)';
+                examType = 'JEE Main';
+            }
+            
+            const date = dateField ? dateField.value : '';
+            const shift = shiftField ? shiftField.value : '';
+            const year = yearField ? yearField.value : '2025';
+            
+            console.log(`Tab switch to ${subject}: Board="${board}", Year="${year}", ExamType="${examType}"`);
+            
+            // Update Board field (subject-specific)
+            const boardSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const subjectBoardField = document.getElementById(`board${boardSuffix}`);
+            if (subjectBoardField) {
+                subjectBoardField.value = board;
+            }
+            
+            // Update State field (subject-specific)
+            const stateSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const subjectStateField = document.getElementById(`state${stateSuffix}`);
+            if (subjectStateField) {
+                subjectStateField.value = state;
+            }
+            
+            // Update Conducted By field (subject-specific)
+            const conductedBySuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const subjectConductedByField = document.getElementById(`conductedBy${conductedBySuffix}`);
+            if (subjectConductedByField) {
+                subjectConductedByField.value = conductedBy;
+            }
+            
+            // Update Authority Exam ID field (subject-specific)
+            const authoritySuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const subjectAuthorityField = document.getElementById(`authorityExamId${authoritySuffix}`);
+            if (subjectAuthorityField) {
+                subjectAuthorityField.value = examType;
+            }
+            
+            // Update Day and Shift field (subject-specific)
+            const dayShiftSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const subjectDayShiftField = document.getElementById(`dayAndShift${dayShiftSuffix}`);
+            if (subjectDayShiftField) {
+                // Get the current day and shift value from the main field
+                const mainDayShiftField = document.getElementById('dayAndShift');
+                if (mainDayShiftField) {
+                    subjectDayShiftField.value = mainDayShiftField.value;
+                }
+            }
+            
+            // Build new tutorial title with current subject
+            let newTitle = `${examType}, ${subject}`;
+            if (date && shift) {
+                newTitle = `${examType}, ${subject} - ${date} ${shift}`;
+            } else if (date) {
+                newTitle = `${examType}, ${subject} - ${date}`;
+            }
+            
+            // Update Tutorial Title field (subject-specific)
+            const titleSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const subjectTutorialTitleField = document.getElementById(`tutorialTitle${titleSuffix}`);
+            if (subjectTutorialTitleField) {
+                subjectTutorialTitleField.value = newTitle;
+            }
+            
+            // Generate and update Tutorial ID based on CURRENT Board, Year, and Subject
+            updateTutorialId(subject, board, year);
+            
+            // Trigger real-time JSON update
+            updateJSONInRealTime('');
+        }
+        
+        function updateTutorialId(subject, board, year) {
+            // Get the Day and Shift field value
+            const dayShiftSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const dayShiftField = document.getElementById(`dayAndShift${dayShiftSuffix}`);
+            
+            let tutorialId = '';
+            
+            if (dayShiftField && dayShiftField.value) {
+                // Parse the day and shift value (e.g., "2 April 2025 Shift - 2")
+                const dayShiftValue = dayShiftField.value.trim();
+                
+                // Extract components from day and shift string
+                const dayShiftMatch = dayShiftValue.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                
+                if (dayShiftMatch) {
+                    const day = dayShiftMatch[1];
+                    const month = dayShiftMatch[2].toLowerCase();
+                    const year = dayShiftMatch[3];
+                    const shift = dayShiftMatch[4];
+                    const subjectId = subject.toLowerCase();
+                    
+                    // Convert board to lowercase and replace spaces with underscores
+                    const boardId = board.toLowerCase().replace(/\s+/g, '_');
+                    
+                    // Generate tutorial ID: board_day_month_year_subject_shift_shiftNumber
+                    tutorialId = `${boardId}_${day}_${month}_${year}_${subjectId}_shift_${shift}`;
+                } else {
+                    // Fallback to old format if parsing fails
+                    const boardId = board.replace(/\s+/g, '_');
+                    const subjectId = subject.toLowerCase();
+                    tutorialId = `${boardId}_${year}_${subjectId}`;
+                }
+            } else {
+                // Fallback to old format if no day and shift value
+                const boardId = board.replace(/\s+/g, '_');
+                const subjectId = subject.toLowerCase();
+                tutorialId = `${boardId}_${year}_${subjectId}`;
+            }
+            
+            console.log(`Updating Tutorial ID for ${subject}: Board="${board}", Year="${year}", DayShift="${dayShiftField ? dayShiftField.value : 'N/A'}", ID="${tutorialId}"`);
+            
+            // Update Tutorial ID field based on subject
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const tutorialIdField = document.getElementById(`tutorialId${suffix}`);
+            if (tutorialIdField) {
+                tutorialIdField.value = tutorialId;
+                console.log(`Updated Tutorial ID field ${tutorialIdField.id} to: ${tutorialId}`);
+            } else {
+                console.log(`Tutorial ID field not found: tutorialId${suffix}`);
+            }
         }
         
         function parseQuestions(content) {
@@ -3334,6 +3670,9 @@
                 subjectViewElement.classList.add('active');
                 console.log(`Activated subject view for ${subject}`);
                 
+                // Update only the tutorial title when switching tabs (keep other fields unchanged)
+                updateTutorialTitleOnly(subject);
+                
                 // Populate the question list for the selected subject (if not already populated)
                 const questionListContainer = document.getElementById(`questionList-${subject}`);
                 if (questionListContainer && questionListContainer.children.length <= 1) {
@@ -3615,13 +3954,25 @@
             const formInputs = [
                 `tutorialId${suffix}`, `tutorialTitle${suffix}`, `tutorialDescription${suffix}`,
                 `authorityExamId${suffix}`, `state${suffix}`, `board${suffix}`,
-                `conductedBy${suffix}`, `year${suffix}`, `subject${suffix}`
+                `conductedBy${suffix}`, `year${suffix}`, `subject${suffix}`, `dayAndShift${suffix}`
             ];
             
             formInputs.forEach(inputId => {
                 const input = document.getElementById(inputId);
                 if (input) {
                     input.addEventListener('input', () => {
+                        // If this is a dayAndShift field, also update the Tutorial ID
+                        if (inputId.includes('dayAndShift')) {
+                            const currentSubject = subject;
+                            const boardField = document.getElementById(`board${suffix}`);
+                            const yearField = document.getElementById(`year${suffix}`);
+                            
+                            const board = boardField ? boardField.value : 'JEE Main';
+                            const year = yearField ? yearField.value : '2025';
+                            
+                            updateTutorialId(currentSubject, board, year);
+                        }
+                        
                         // Regenerate JSON with updated values
                         displaySubjectJSON(subject);
                     });
