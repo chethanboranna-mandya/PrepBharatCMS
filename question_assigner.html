@@ -361,50 +361,51 @@
         
         .download-buttons {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 8px;
+            flex-wrap: wrap;
         }
         
         .download-btn, .download-all-btn {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
+            gap: 8px;
+            padding: 10px 12px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             color: rgba(255, 255, 255, 0.8);
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 14px;
-            text-align: left;
-            width: 100%;
+            font-size: 13px;
+            text-align: center;
+            flex: 1;
+            min-width: 0;
+            justify-content: center;
         }
         
         .download-btn:hover {
             background: rgba(79, 172, 254, 0.1);
             color: #4facfe;
             border-color: rgba(79, 172, 254, 0.3);
-            transform: translateX(3px);
+            transform: translateY(-2px);
         }
         
         .download-all-btn {
             background: rgba(39, 174, 96, 0.1);
             border-color: rgba(39, 174, 96, 0.2);
             color: #27ae60;
-            margin-top: 8px;
         }
         
         .download-all-btn:hover {
             background: rgba(39, 174, 96, 0.2);
             border-color: rgba(39, 174, 96, 0.4);
             color: #2ecc71;
-            transform: translateX(3px);
+            transform: translateY(-2px);
         }
         
         .download-icon {
-            margin-left: auto;
-            font-size: 16px;
+            font-size: 14px;
         }
         
         
@@ -1082,6 +1083,66 @@
         .subject-view {
             display: none;
         }
+        
+        /* Subject Tabs Container */
+        .subject-tabs-container {
+            display: flex;
+            background: rgba(79, 172, 254, 0.1);
+            border-radius: 8px;
+            padding: 4px;
+            margin: 20px 0;
+            border: 1px solid rgba(79, 172, 254, 0.2);
+            box-shadow: 0 2px 8px rgba(79, 172, 254, 0.1);
+        }
+        
+        .subject-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: rgba(79, 172, 254, 0.7);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .subject-tab:hover {
+            background: rgba(79, 172, 254, 0.1);
+            color: #4facfe;
+        }
+        
+        .subject-tab.active {
+            background: rgba(79, 172, 254, 0.2);
+            color: #4facfe;
+            font-weight: 600;
+        }
+        
+        .subject-tab span:first-child {
+            font-size: 16px;
+        }
+        
+        .subject-tab .question-count {
+            background: rgba(79, 172, 254, 0.2);
+            color: #4facfe;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .subject-tab.active .question-count {
+            background: rgba(79, 172, 254, 0.3);
+            color: #4facfe;
+        }
+        
         
         .subject-view.active {
             display: block;
@@ -1913,32 +1974,36 @@
             <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                 Choose File
             </button>
-                    </div>
         </div>
         
-                <div class="sidebar-section">
-                    <!-- Subject Tabs in Sidebar -->
-                    <div class="sidebar-subjects" id="sidebarSubjectTabs" style="display: none;">
-                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">📚 Subjects</h3>
-                        <div class="subject-tabs-sidebar">
-                            <button class="subject-tab-sidebar active" onclick="showSubject('Mathematics')" id="sidebar-tab-Mathematics">
-                                <span>🔢</span>
-                                <span>Mathematics</span>
-                                <span class="question-count" id="sidebar-count-Mathematics">0</span>
-                            </button>
-                            <button class="subject-tab-sidebar" onclick="showSubject('Physics')" id="sidebar-tab-Physics">
-                                <span>⚛️</span>
-                                <span>Physics</span>
-                                <span class="question-count" id="sidebar-count-Physics">0</span>
-                            </button>
-                            <button class="subject-tab-sidebar" onclick="showSubject('Chemistry')" id="sidebar-tab-Chemistry">
-                                <span>🧪</span>
-                                <span>Chemistry</span>
-                                <span class="question-count" id="sidebar-count-Chemistry">0</span>
-                            </button>
+            <!-- Download Buttons -->
+            <div class="sidebar-download" id="sidebarDownload" style="display: none;">
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">💾 Download JSON</h3>
+                <div class="download-buttons">
+                    <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
+                        <span>🔢</span>
+                        <span>Mathematics</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
+                    <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
+                        <span>⚛️</span>
+                        <span>Physics</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
+                    <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
+                        <span>🧪</span>
+                        <span>Chemistry</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
+                    <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
+                        <span>📦</span>
+                        <span>Download All</span>
+                        <span class="download-icon">⬇️</span>
+                    </button>
             </div>
             </div>
             </div>
+        
             
             <!-- Statistics Summary in Sidebar -->
                 <div class="sidebar-section">
@@ -1948,49 +2013,40 @@
                             <div class="stat-item">
                                 <span class="stat-label">Total Questions</span>
                                 <span class="stat-number" id="sidebar-total-questions">0</span>
-                            </div>
+            </div>
                             <div class="stat-item">
                                 <span class="stat-label">Extracted</span>
                                 <span class="stat-number" id="sidebar-extracted-questions">0</span>
-                            </div>
-                        </div>
+            </div>
+            </div>
             </div>
         </div>
 
-                <div class="sidebar-section">
-                    <!-- Download Section in Sidebar -->
-                    <div class="sidebar-download" id="sidebarDownload" style="display: none;">
-                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">💾 Download JSON</h3>
-                        <div class="download-buttons">
-                            <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
-                                <span>🔢</span>
-                                <span>Mathematics</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                            <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
-                                <span>⚛️</span>
-                                <span>Physics</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                            <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
-                                <span>🧪</span>
-                                <span>Chemistry</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                            <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
-                                <span>📦</span>
-                                <span>Download All</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                        </div>
-                    </div>
             </div>
-        </div>
             
         </div>
         
         <!-- Main Content Area -->
         <div class="main-content">
+        
+        <!-- Subject Tabs -->
+        <div class="subject-tabs-container" id="subjectTabsContainer" style="display: none;">
+            <button class="subject-tab active" onclick="showSubject('Mathematics')" id="tab-Mathematics">
+                <span>🔢</span>
+                <span>Mathematics</span>
+                <span class="question-count" id="count-Mathematics">0</span>
+            </button>
+            <button class="subject-tab" onclick="showSubject('Physics')" id="tab-Physics">
+                <span>⚛️</span>
+                <span>Physics</span>
+                <span class="question-count" id="count-Physics">0</span>
+            </button>
+            <button class="subject-tab" onclick="showSubject('Chemistry')" id="tab-Chemistry">
+                <span>🧪</span>
+                <span>Chemistry</span>
+                <span class="question-count" id="count-Chemistry">0</span>
+            </button>
+        </div>
         
 
         
@@ -3024,7 +3080,7 @@
             populateInlineEditFields('Physics');
             populateInlineEditFields('Chemistry');
             
-            document.getElementById('sidebarSubjectTabs').style.display = 'block';
+            document.getElementById('subjectTabsContainer').style.display = 'flex';
         }
         
         function assignSubject(questionIndex, subject) {
@@ -3064,9 +3120,11 @@
             
             // Update sidebar statistics
             document.getElementById('sidebar-total-questions').textContent = total;
-            document.getElementById('sidebar-count-Mathematics').textContent = math;
-            document.getElementById('sidebar-count-Physics').textContent = physics;
-            document.getElementById('sidebar-count-Chemistry').textContent = chemistry;
+            
+            // Update main tab statistics
+            document.getElementById('count-Mathematics').textContent = math;
+            document.getElementById('count-Physics').textContent = physics;
+            document.getElementById('count-Chemistry').textContent = chemistry;
             
             // Calculate extracted questions (questions that have been assigned or detected)
             const extracted = math + physics + chemistry;
@@ -3172,11 +3230,11 @@
         function showSubject(subject) {
             console.log(`Switching to subject: ${subject}`);
             
-            // Update sidebar tab buttons
-            document.querySelectorAll('.subject-tab-sidebar').forEach(btn => {
+            // Update main tab buttons
+            document.querySelectorAll('.subject-tab').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.getElementById(`sidebar-tab-${subject}`).classList.add('active');
+            document.getElementById(`tab-${subject}`).classList.add('active');
             
             // Hide all subject views
             document.querySelectorAll('.subject-view').forEach(view => {
