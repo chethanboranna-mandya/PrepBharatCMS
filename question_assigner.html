@@ -591,6 +591,44 @@
             box-shadow: var(--shadow-md);
         }
         
+        .question-item.manual-edit-needed {
+            background: #dc3545 !important;
+            border-color: #dc3545 !important;
+            color: white !important;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        }
+        
+        .question-item.manual-edit-needed:hover {
+            background: #c82333 !important;
+            border-color: #c82333 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+        
+        /* Red label styling for edit areas that need manual editing */
+        .manual-edit-label {
+            color: #dc3545 !important;
+            font-weight: bold !important;
+        }
+        
+        /* Red label for question text */
+        .question-label.manual-edit-label {
+            color: #dc3545 !important;
+            font-weight: bold !important;
+        }
+        
+        /* Red label for solution text */
+        .solution-label.manual-edit-label {
+            color: #dc3545 !important;
+            font-weight: bold !important;
+        }
+        
+        /* Red label for option inputs */
+        .option-label.manual-edit-label {
+            color: #dc3545 !important;
+            font-weight: bold !important;
+        }
+        
         .question-editor-panel {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
@@ -3226,6 +3264,11 @@
             populateQuestionList('Mathematics');
             populateQuestionList('Physics');
             populateQuestionList('Chemistry');
+            
+            // Update button styling for manual editing indicators
+            updateQuestionButtonStyling();
+            // Update edit area styling for manual editing indicators
+            updateEditAreaStyling();
         }
         
         function extractImagesFromText(text) {
@@ -3923,6 +3966,9 @@
             
             // Render all questions in the right panel
             renderAllQuestions(subject);
+            
+            // Update edit area styling for manual editing indicators
+            updateEditAreaStyling();
         }
         
         function displaySubjectJSON(subject) {
@@ -4054,6 +4100,10 @@
                 renderAllQuestions(subject);
                 // Update JSON
                 displaySubjectJSON(subject);
+                // Update button styling
+                updateQuestionButtonStyling();
+                // Update edit area styling
+                updateEditAreaStyling();
             }
         }
         
@@ -4089,6 +4139,10 @@
                 renderAllQuestions(subject);
                 // Update JSON
                 displaySubjectJSON(subject);
+                // Update button styling
+                updateQuestionButtonStyling();
+                // Update edit area styling
+                updateEditAreaStyling();
             }
         }
         
@@ -4108,6 +4162,10 @@
                 console.log('Updated text to:', value);
                 // Auto-detect question type when text changes
                 updateQuestionType(questionId);
+                // Update button styling
+                updateQuestionButtonStyling();
+                // Update edit area styling
+                updateEditAreaStyling();
             } else if (field === 'option' && optionIndex !== null) {
                 // Ensure options array exists
                 if (!question.options) {
@@ -4122,6 +4180,10 @@
             } else if (field === 'solution') {
                 question.solution = value;
                 console.log('Updated solution to:', value);
+                // Update button styling
+                updateQuestionButtonStyling();
+                // Update edit area styling
+                updateEditAreaStyling();
             } else if (field === 'answer') {
                 question.answer = value;
                 console.log('Updated answer to:', value);
@@ -4393,6 +4455,10 @@
             if (question) {
                 question.text = newText;
                 populateInlineRenderView(subject);
+                // Update button styling
+                updateQuestionButtonStyling();
+                // Update edit area styling
+                updateEditAreaStyling();
             }
         }
         
@@ -4418,6 +4484,10 @@
             if (question) {
                 question.solution = newSolution;
                 populateInlineRenderView(subject);
+                // Update button styling
+                updateQuestionButtonStyling();
+                // Update edit area styling
+                updateEditAreaStyling();
             }
         }
         
@@ -4488,6 +4558,13 @@
             subjectQuestions.forEach((question, index) => {
                 const questionItem = document.createElement('button');
                 questionItem.className = 'question-item';
+                
+                // Add red styling if question needs manual editing
+                if (needsManualEditing(question)) {
+                    questionItem.classList.add('manual-edit-needed');
+                    questionItem.title = 'This question needs manual editing (images or tables)';
+                }
+                
                 questionItem.textContent = `${question.number}`;
                 questionItem.onclick = () => selectQuestion(subject, index);
                 questionListContainer.appendChild(questionItem);
@@ -4576,6 +4653,11 @@
             // Always generate the render (Live Preview)
             console.log(`Calling generateQuestionRender for ${subject}, questionIndex: ${questionIndex}`);
             generateQuestionRender(subject, questionIndex);
+            
+            // Update edit area styling for the selected question
+            setTimeout(() => {
+                updateEditAreaStyling();
+            }, 100);
         }
         
         // Debug function to check question data
@@ -5932,6 +6014,175 @@
                 }
             };
             return examIdMap[state]?.[board] || '';
+        }
+        
+        // Check if question needs manual editing (images or tables)
+        function needsManualEditing(question) {
+            const text = question.text || '';
+            const solution = question.solution || '';
+            const options = question.options || [];
+            
+            // Check for [Image] placeholder
+            const hasImagePlaceholder = text.includes('[Image]') || 
+                                      solution.includes('[Image]') ||
+                                      options.some(opt => opt.includes('[Image]'));
+            
+            // Check for markdown table separators
+            const hasTableSeparator = text.includes('| :---: |') || 
+                                    solution.includes('| :---: |') ||
+                                    options.some(opt => opt.includes('| :---: |'));
+            
+            return hasImagePlaceholder || hasTableSeparator;
+        }
+        
+        // Update question button styling for all subjects
+        function updateQuestionButtonStyling() {
+            const subjects = ['Mathematics', 'Physics', 'Chemistry'];
+            subjects.forEach(subject => {
+                const questionListContainer = document.getElementById(`questionList-${subject}`);
+                if (questionListContainer) {
+                    const questionItems = questionListContainer.querySelectorAll('.question-item');
+                    const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+                    
+                    questionItems.forEach((item, index) => {
+                        if (index < subjectQuestions.length) {
+                            const question = subjectQuestions[index];
+                            if (needsManualEditing(question)) {
+                                item.classList.add('manual-edit-needed');
+                                item.title = 'This question needs manual editing (images or tables)';
+                            } else {
+                                // Reset to default styling
+                                item.classList.remove('manual-edit-needed');
+                                item.title = '';
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Update edit area styling for questions that need manual editing
+        function updateEditAreaStyling() {
+            console.log('=== UPDATE EDIT AREA STYLING ===');
+            
+            // Use the same logic as forceRedLabels() but for all visible textareas
+            const allTextareas = document.querySelectorAll('textarea');
+            console.log(`Found ${allTextareas.length} total textareas`);
+            
+            allTextareas.forEach((textarea, index) => {
+                const value = textarea.value || '';
+                const hasTable = value.includes('|:---:|') || value.includes('| :---: |');
+                const hasImage = value.includes('[Image]');
+                
+                if (hasTable || hasImage) {
+                    console.log(`Textarea ${index} needs manual editing:`, {
+                        hasTable,
+                        hasImage,
+                        value: value.substring(0, 50) + '...'
+                    });
+                    
+                    // Find the label for this textarea using the same logic as forceRedLabels()
+                    let label = null;
+                    
+                    // Method 1: Previous sibling
+                    if (textarea.previousElementSibling && textarea.previousElementSibling.tagName === 'LABEL') {
+                        label = textarea.previousElementSibling;
+                    }
+                    
+                    // Method 2: Parent element's label
+                    if (!label && textarea.parentElement) {
+                        label = textarea.parentElement.querySelector('label');
+                    }
+                    
+                    // Method 3: Look for any label in the same container
+                    if (!label) {
+                        const container = textarea.closest('.question-card') || textarea.closest('.edit-field') || textarea.closest('.edit-field-group');
+                        if (container) {
+                            label = container.querySelector('label');
+                        }
+                    }
+                    
+                    if (label) {
+                        label.style.color = '#dc3545';
+                        label.style.fontWeight = 'bold';
+                        label.style.fontSize = '16px';
+                        console.log(`✅ Auto-applied red label to: "${label.textContent}"`);
+                    } else {
+                        console.log(`❌ No label found for textarea ${index}`);
+                    }
+                }
+            });
+            
+            console.log('=== END UPDATE EDIT AREA STYLING ===');
+        }
+        
+        // Manual function to test red border styling - call this from console
+        function testRedBorders() {
+            console.log('=== TESTING RED BORDERS ===');
+            updateEditAreaStyling();
+            
+            // Also check if CSS is loaded
+            const testElement = document.createElement('div');
+            testElement.className = 'manual-edit-textarea';
+            document.body.appendChild(testElement);
+            const styles = window.getComputedStyle(testElement);
+            console.log('Red border CSS test:', {
+                border: styles.border,
+                borderColor: styles.borderColor
+            });
+            document.body.removeChild(testElement);
+        }
+        
+        // Simple direct function to add red labels - call this from console
+        function forceRedLabels() {
+            console.log('=== FORCING RED LABELS ===');
+            const allTextareas = document.querySelectorAll('textarea');
+            console.log(`Found ${allTextareas.length} total textareas`);
+            
+            allTextareas.forEach((textarea, index) => {
+                const value = textarea.value || '';
+                console.log(`Textarea ${index}:`, {
+                    value: value.substring(0, 100),
+                    hasTable: value.includes('|:---:|') || value.includes('| :---: |'),
+                    hasImage: value.includes('[Image]')
+                });
+                
+                if (value.includes('|:---:|') || value.includes('| :---: |') || value.includes('[Image]')) {
+                    console.log(`Adding red label to textarea ${index}`);
+                    
+                    // Find the label for this textarea - try multiple methods
+                    let label = null;
+                    
+                    // Method 1: Previous sibling
+                    if (textarea.previousElementSibling && textarea.previousElementSibling.tagName === 'LABEL') {
+                        label = textarea.previousElementSibling;
+                    }
+                    
+                    // Method 2: Parent element's label
+                    if (!label && textarea.parentElement) {
+                        label = textarea.parentElement.querySelector('label');
+                    }
+                    
+                    // Method 3: Look for any label in the same container
+                    if (!label) {
+                        const container = textarea.closest('.question-card') || textarea.closest('.edit-field') || textarea.closest('.edit-field-group');
+                        if (container) {
+                            label = container.querySelector('label');
+                        }
+                    }
+                    
+                    if (label) {
+                        label.style.color = '#dc3545';
+                        label.style.fontWeight = 'bold';
+                        label.style.fontSize = '16px';
+                        console.log(`✅ Applied red label to: "${label.textContent}"`);
+                    } else {
+                        console.log(`❌ No label found for textarea ${index}`);
+                        console.log('Textarea parent:', textarea.parentElement);
+                        console.log('Textarea container:', textarea.closest('.question-card') || textarea.closest('.edit-field'));
+                    }
+                }
+            });
         }
         
         // Auto-detect question type based on content
