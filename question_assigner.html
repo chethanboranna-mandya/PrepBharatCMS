@@ -154,17 +154,37 @@
             gap: 15px;
             margin-bottom: 20px;
             padding: 20px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
             justify-content: space-between;
+        }
+        
+        .title-upload-container {
+            width: 300px;
+            min-width: 300px;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding-right: 20px;
         }
         
         .summary-section {
             flex: 1;
             min-width: 0;
+            padding-left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .horizontal-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 10px 0;
         }
         
         .sidebar-header {
-            text-align: left;
+            text-align: center;
         }
         
         .sidebar-header h1 {
@@ -205,9 +225,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(24px);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-            width: 200px;
-            min-width: 200px;
-            max-width: 200px;
+            width: 100%;
             transition: all 0.3s ease;
         }
         
@@ -254,6 +272,25 @@
             .header-upload-row {
                 flex-direction: column;
                 gap: 15px;
+                align-items: stretch;
+            }
+            
+            .title-upload-container {
+                width: 100%;
+                min-width: auto;
+                max-width: none;
+                border-right: none;
+                padding-right: 0;
+            }
+            
+            .summary-section {
+                padding-left: 0;
+                gap: 10px;
+            }
+            
+            .stats-summary {
+                flex-direction: column;
+                gap: 10px;
                 align-items: stretch;
             }
             
@@ -370,20 +407,7 @@
         }
         
         .sidebar-stats {
-            background: rgba(255, 255, 255, 0.12);
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(24px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar-stats:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);
-            transform: translateY(-1px);
+            padding: 0;
         }
         
         .sidebar-stats h3 {
@@ -398,22 +422,16 @@
         }
         
         .stats-summary {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            padding: 14px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
         }
         
         .stat-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            gap: 8px;
             font-size: 13px;
-        }
-        
-        .stat-item:last-child {
-            margin-bottom: 0;
         }
         
         .stat-label {
@@ -432,7 +450,7 @@
         }
         
         .sidebar-download {
-            margin-top: 20px;
+            margin-top: 0;
         }
         
         .download-buttons {
@@ -2051,14 +2069,26 @@
     <div class="container">
         <!-- Left Sidebar -->
         <div class="sidebar">
-            <!-- Header, Summary, and Upload Row -->
+            <!-- Header, Upload, and Summary Row -->
             <div class="header-upload-row">
-                <div class="sidebar-header">
-                    <h1>📚 Markdown to Json Converter</h1>
-                    <p>Professional Question Management</p>
-                </div>
-                
-                <!-- Summary Section in Middle -->
+                <!-- Title and Upload Section (300px) -->
+                <div class="title-upload-container">
+                    <div class="sidebar-header">
+                        <h1>📚 Markdown to Json Converter</h1>
+                        <p>Professional Question Management</p>
+        </div>
+        
+        <div class="upload-section">
+                        <h3>📁 Upload File</h3>
+                        <p>Select your markdown file containing questions to get started</p>
+            <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose File
+            </button>
+                    </div>
+        </div>
+        
+                <!-- Summary Section (remaining space) -->
                 <div class="summary-section">
                     <div class="sidebar-stats" id="sidebarStats" style="display: none;">
                         <h3>📊 Summary</h3>
@@ -2066,58 +2096,46 @@
                             <div class="stat-item">
                                 <span class="stat-label">Total Questions</span>
                                 <span class="stat-number" id="sidebar-total-questions">0</span>
-                            </div>
+            </div>
                             <div class="stat-item">
                                 <span class="stat-label">Extracted</span>
                                 <span class="stat-number" id="sidebar-extracted-questions">0</span>
-                            </div>
+            </div>
+            </div>
+                    </div>
+                    
+                    <!-- Horizontal Divider -->
+                    <div class="horizontal-divider"></div>
+                    
+                    <!-- Download Section -->
+                    <div class="sidebar-download" id="sidebarDownload" style="display: none;">
+                        <h3>💾 Download JSON</h3>
+                        <div class="download-buttons">
+                            <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
+                                <span>🔢</span>
+                                <span>Mathematics</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
+                            <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
+                                <span>⚛️</span>
+                                <span>Physics</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
+                            <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
+                                <span>🧪</span>
+                                <span>Chemistry</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
+                            <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
+                                <span>📦</span>
+                                <span>Download All</span>
+                                <span class="download-icon">⬇️</span>
+                            </button>
                         </div>
                     </div>
+            </div>
         </div>
-        
-        <div class="upload-section">
-                    <h3>📁 Upload File</h3>
-                    <p>Select your markdown file containing questions to get started</p>
-            <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
-            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                Choose File
-            </button>
-                </div>
-        </div>
-        
-            <div class="sidebar-content">
-                <div class="sidebar-section">
-        
-            <!-- Download Buttons -->
-            <div class="sidebar-download" id="sidebarDownload" style="display: none;">
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: rgba(255,255,255,0.9);">💾 Download JSON</h3>
-                <div class="download-buttons">
-                    <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
-                        <span>🔢</span>
-                        <span>Mathematics</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-                    <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
-                        <span>⚛️</span>
-                        <span>Physics</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-                    <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
-                        <span>🧪</span>
-                        <span>Chemistry</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-                    <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
-                        <span>📦</span>
-                        <span>Download All</span>
-                        <span class="download-icon">⬇️</span>
-                    </button>
-            </div>
-            </div>
-            </div>
-        
 
-            </div>
             
         </div>
         
