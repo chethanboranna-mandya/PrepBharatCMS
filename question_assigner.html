@@ -5934,21 +5934,25 @@
                 }
             }
             
-            // Check for integer type (numeric answer expected)
-            if (text.toLowerCase().includes('integer') || 
-                text.toLowerCase().includes('numerical') ||
-                text.toLowerCase().includes('number')) {
-                return 'integer';
-            }
-            
-            // Default to MCQ if options A, B, C, D have values
+            // Check for MCQ first - if we have proper A, B, C, D options, it's MCQ regardless of keywords
             const hasOptions = options.length >= 4 && 
                               options[0] && options[0].replace(/^\(\d+\)\s*/, '').trim() &&
                               options[1] && options[1].replace(/^\(\d+\)\s*/, '').trim() &&
                               options[2] && options[2].replace(/^\(\d+\)\s*/, '').trim() &&
                               options[3] && options[3].replace(/^\(\d+\)\s*/, '').trim();
             
-            return hasOptions ? 'mcq' : 'fillblank';
+            if (hasOptions) {
+                return 'mcq';
+            }
+            
+            // Only check for integer type if no proper MCQ options exist
+            if (text.toLowerCase().includes('integer') || 
+                text.toLowerCase().includes('numerical') ||
+                text.toLowerCase().includes('number')) {
+                return 'integer';
+            }
+            
+            return 'fillblank';
         }
         
         // Update question type when question content changes
@@ -5956,9 +5960,8 @@
             const question = allQuestions.find(q => q.number === questionNumber);
             if (question) {
                 const detectedType = detectQuestionType(question);
-                if (!question.type || question.type === 'mcq') { // Only auto-detect if no type set or default MCQ
-                    question.type = detectedType;
-                }
+                // Always update the type to ensure correct detection
+                question.type = detectedType;
             }
         }
         
