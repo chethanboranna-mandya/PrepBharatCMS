@@ -6074,41 +6074,40 @@
                 const hasTable = value.includes('|:---:|') || value.includes('| :---: |');
                 const hasImage = value.includes('[Image]');
                 
-                if (hasTable || hasImage) {
-                    console.log(`Textarea ${index} needs manual editing:`, {
-                        hasTable,
-                        hasImage,
-                        value: value.substring(0, 50) + '...'
-                    });
-                    
-                    // Find the label for this textarea using the same logic as forceRedLabels()
-                    let label = null;
-                    
-                    // Method 1: Previous sibling
-                    if (textarea.previousElementSibling && textarea.previousElementSibling.tagName === 'LABEL') {
-                        label = textarea.previousElementSibling;
+                // Find the label for this textarea
+                let label = null;
+                
+                // Method 1: Previous sibling
+                if (textarea.previousElementSibling && textarea.previousElementSibling.tagName === 'LABEL') {
+                    label = textarea.previousElementSibling;
+                }
+                
+                // Method 2: Parent element's label
+                if (!label && textarea.parentElement) {
+                    label = textarea.parentElement.querySelector('label');
+                }
+                
+                // Method 3: Look for any label in the same container
+                if (!label) {
+                    const container = textarea.closest('.question-card') || textarea.closest('.edit-field') || textarea.closest('.edit-field-group');
+                    if (container) {
+                        label = container.querySelector('label');
                     }
-                    
-                    // Method 2: Parent element's label
-                    if (!label && textarea.parentElement) {
-                        label = textarea.parentElement.querySelector('label');
-                    }
-                    
-                    // Method 3: Look for any label in the same container
-                    if (!label) {
-                        const container = textarea.closest('.question-card') || textarea.closest('.edit-field') || textarea.closest('.edit-field-group');
-                        if (container) {
-                            label = container.querySelector('label');
-                        }
-                    }
-                    
-                    if (label) {
+                }
+                
+                if (label) {
+                    if (hasTable || hasImage) {
+                        // Make label RED - needs manual editing
                         label.style.color = '#dc3545';
                         label.style.fontWeight = 'bold';
                         label.style.fontSize = '16px';
-                        console.log(`✅ Auto-applied red label to: "${label.textContent}"`);
+                        console.log(`✅ Applied red label to: "${label.textContent}"`);
                     } else {
-                        console.log(`❌ No label found for textarea ${index}`);
+                        // Reset label to NORMAL - corrected
+                        label.style.color = '';
+                        label.style.fontWeight = '';
+                        label.style.fontSize = '';
+                        console.log(`✅ Reset label to normal: "${label.textContent}"`);
                     }
                 }
             });
