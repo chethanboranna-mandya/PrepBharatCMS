@@ -6102,12 +6102,20 @@
                         label.style.fontWeight = 'bold';
                         label.style.fontSize = '16px';
                         console.log(`✅ Applied red label to: "${label.textContent}"`);
+                        
+                        // Also make textarea background RED
+                        textarea.style.setProperty('background-color', 'rgba(220, 53, 69, 0.1)', 'important');
+                        textarea.style.setProperty('border-color', 'rgba(220, 53, 69, 0.3)', 'important');
                     } else {
                         // Reset label to NORMAL - corrected
                         label.style.color = '';
                         label.style.fontWeight = '';
                         label.style.fontSize = '';
                         console.log(`✅ Reset label to normal: "${label.textContent}"`);
+                        
+                        // Reset textarea background to NORMAL
+                        textarea.style.removeProperty('background-color');
+                        textarea.style.removeProperty('border-color');
                     }
                 }
             });
@@ -6147,7 +6155,7 @@
                 });
                 
                 if (value.includes('|:---:|') || value.includes('| :---: |') || value.includes('[Image]')) {
-                    console.log(`Adding red label to textarea ${index}`);
+                    console.log(`Adding red styling to textarea ${index}`);
                     
                     // Find the label for this textarea - try multiple methods
                     let label = null;
@@ -6177,9 +6185,12 @@
                         console.log(`✅ Applied red label to: "${label.textContent}"`);
                     } else {
                         console.log(`❌ No label found for textarea ${index}`);
-                        console.log('Textarea parent:', textarea.parentElement);
-                        console.log('Textarea container:', textarea.closest('.question-card') || textarea.closest('.edit-field'));
                     }
+                    
+                    // Apply red background to textarea
+                    textarea.style.setProperty('background-color', 'rgba(220, 53, 69, 0.1)', 'important');
+                    textarea.style.setProperty('border-color', 'rgba(220, 53, 69, 0.3)', 'important');
+                    console.log(`✅ Applied red background to textarea ${index}`);
                 }
             });
         }
