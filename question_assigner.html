@@ -3363,7 +3363,7 @@
                 
                 // Extract answer from solution if not already parsed
                 if (!question.answer && question.solution) {
-                    const answerMatch = question.solution.match(/Ans\.\s*\(([1-4])\)/);
+                    const answerMatch = question.solution.match(/Ans\.\s*\(([^)]+)\)/);
                     if (answerMatch) {
                         question.answer = answerMatch[1];
                     }
@@ -3943,14 +3943,20 @@
                         <div class="question-options">${optionsHtml}</div>
                         <div class="answer-section">
                             <label>Correct Answer:</label>
-                            <select class="answer-select" data-question="${question.number}" 
+                            ${question.type === 'fillblank' || question.type === 'integer' ? 
+                                `<input type="text" value="${question.answer || ''}" 
+                                       data-question="${question.number}"
+                                       onchange="updateQuestionAnswer(${question.number}, this.value, '${subject}')"
+                                       style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">` :
+                                `<select class="answer-select" data-question="${question.number}" 
                                     onclick="event.stopPropagation()" 
                                     onchange="updateQuestionAnswer(${question.number}, this.value, '${subject}')">
                                 <option value="1" ${question.answer === '1' ? 'selected' : ''}>A</option>
                                 <option value="2" ${question.answer === '2' ? 'selected' : ''}>B</option>
                                 <option value="3" ${question.answer === '3' ? 'selected' : ''}>C</option>
                                 <option value="4" ${question.answer === '4' ? 'selected' : ''}>D</option>
-                            </select>
+                                </select>`
+                            }
                         </div>
                         <div class="solution-section">
                             <label>Solution:</label>
@@ -4356,14 +4362,20 @@
                         
                         <div class="edit-field-group">
                             <label>Correct Answer:</label>
-                            <select class="answer-edit-select" 
+                            ${question.type === 'fillblank' || question.type === 'integer' ? 
+                                `<input type="text" value="${question.answer || ''}" 
+                                       data-question="${question.number}"
+                                       oninput="updateInlineQuestionAnswer(${question.number}, this.value, '${subject}')"
+                                       style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">` :
+                                `<select class="answer-edit-select" 
                                     data-question="${question.number}" 
                                     onchange="updateInlineQuestionAnswer(${question.number}, this.value, '${subject}')">
                                 <option value="1" ${question.answer === '1' ? 'selected' : ''}>A</option>
                                 <option value="2" ${question.answer === '2' ? 'selected' : ''}>B</option>
                                 <option value="3" ${question.answer === '3' ? 'selected' : ''}>C</option>
                                 <option value="4" ${question.answer === '4' ? 'selected' : ''}>D</option>
-                            </select>
+                                </select>`
+                            }
                         </div>
                         
                         <div class="edit-field-group">
@@ -4777,7 +4789,7 @@
                     </div>
                     
                     <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
-                        Answer: ${question.answer || ''}
+                        Answer: ${question.type === 'fillblank' || question.type === 'integer' ? (question.answer || '') : (question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '')}
                     </div>
                     
                     <div class="solution">
@@ -5033,12 +5045,17 @@
                     
                     <div class="edit-field">
                         <label>Correct Answer:</label>
-                        <select class="answer-edit-select" onchange="updateQuestion(${question.number}, 'answer', this.value)">
-                            <option value="A" ${question.answer === 'A' ? 'selected' : ''}>A</option>
-                            <option value="B" ${question.answer === 'B' ? 'selected' : ''}>B</option>
-                            <option value="C" ${question.answer === 'C' ? 'selected' : ''}>C</option>
-                            <option value="D" ${question.answer === 'D' ? 'selected' : ''}>D</option>
-                        </select>
+                        ${question.type === 'fillblank' || question.type === 'integer' ? 
+                            `<input type="text" value="${question.answer || ''}" 
+                                   oninput="updateQuestion(${question.number}, 'answer', this.value)"
+                                   style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">` :
+                            `<select class="answer-edit-select" onchange="updateQuestion(${question.number}, 'answer', this.value)">
+                                <option value="1" ${question.answer === '1' ? 'selected' : ''}>A</option>
+                                <option value="2" ${question.answer === '2' ? 'selected' : ''}>B</option>
+                                <option value="3" ${question.answer === '3' ? 'selected' : ''}>C</option>
+                                <option value="4" ${question.answer === '4' ? 'selected' : ''}>D</option>
+                            </select>`
+                        }
                     </div>
                     
                     <div class="edit-field">
@@ -5124,7 +5141,7 @@
                 </div>
                 
                 <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
-                    Answer: ${question.answer || ''}
+                    Answer: ${question.type === 'fillblank' || question.type === 'integer' ? (question.answer || '') : (question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '')}
                 </div>
                 
                 <div class="solution">
