@@ -6,6 +6,9 @@
     <title>Markdown to Json Converter</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- JSZip library for creating ZIP files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script>
         window.MathJax = {
             tex: {
@@ -5439,17 +5442,44 @@
             console.log(`Downloaded JSON for ${subject} with ${subjectQuestions.length} questions`);
         }
         
-        function downloadAllSubjectsJSON() {
-            console.log('Downloading JSON for all subjects');
+        async function downloadAllSubjectsJSON() {
+            console.log('Downloading JSON for all subjects as ZIP');
             
             const subjects = ['Mathematics', 'Physics', 'Chemistry'];
-            const allJsonData = [];
             
             // Get metadata values from form inputs
             const getFormValue = (id) => {
                 const element = document.getElementById(id);
                 return element ? element.value : '';
             };
+            
+            // Get values for folder name (from Mathematics tab)
+            const yearValue = getFormValue('year') || '2025';
+            const boardValue = getFormValue('board') || 'KCET';
+            const dayAndShift = getFormValue('dayAndShift') || '2 April 2025 Shift - 2';
+            
+            // Parse day and shift to create folder name: JEE_Main_2_April_2025_Shift_2
+            let folderName = '';
+            if (dayAndShift) {
+                const dayShiftMatch = dayAndShift.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                if (dayShiftMatch) {
+                    const day = dayShiftMatch[1];
+                    const month = dayShiftMatch[2];
+                    const year = dayShiftMatch[3];
+                    const shift = dayShiftMatch[4];
+                    folderName = `${boardValue.replace(/\s+/g, '_')}_${day}_${month}_${year}_Shift_${shift}`;
+                } else {
+                    folderName = `${boardValue.replace(/\s+/g, '_')}_${yearValue}`;
+                }
+            } else {
+                folderName = `${boardValue.replace(/\s+/g, '_')}_${yearValue}`;
+            }
+            
+            // Create a new JSZip instance
+            const zip = new JSZip();
+            const folder = zip.folder(folderName);
+            
+            let fileCount = 0;
             
             subjects.forEach(subject => {
                 const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
@@ -5465,9 +5495,9 @@
                     const conductedBy = getFormValue(`conductedBy${suffix}`);
                     const year = getFormValue(`year${suffix}`);
                     const subjectValue = getFormValue(`subject${suffix}`);
-                    const dayAndShift = getFormValue(`dayAndShift${suffix}`);
+                    const dayAndShiftValue = getFormValue(`dayAndShift${suffix}`);
                     
-                    allJsonData.push({
+                    const jsonData = [{
                         "tutorialId": tutorialId || `${board || 'KCET'}_${year || '2025'}_${subject}`,
                         "tutorialTitle": tutorialTitle || `${board || 'KCET'} ${year || '2025'} ${subject}`,
                         "tutorialDescription": tutorialDescription || "",
@@ -5477,7 +5507,7 @@
                         "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
                         "year": year || "2025",
                         "subject": subjectValue || subject,
-                        "dayAndShift": dayAndShift || "2 April 2025 Shift - 2",
+                        "dayAndShift": dayAndShiftValue || "2 April 2025 Shift - 2",
                         "questions": subjectQuestions.map((question, index) => ({
                             "questionIndex": (index + 1).toString(),
                             "questionId": `2025${subject.charAt(0)}Q${index + 1}`,
@@ -5508,6 +5538,7 @@
                                         question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
                                     "solution": question.solution || '',
                                     "solutionImages": question.solutionImages || [],
+                                    "type": question.type || 'mcq',
                                     "metadata": {
                                         "subject": subject.toLowerCase(),
                                         "number": question.number || (index + 1)
@@ -5515,48 +5546,45 @@
                                 }
                             ]
                         }))
-                    });
+                    }];
+                    
+                    // Generate filename for this subject
+                    let subjectFilename = '';
+                    if (dayAndShiftValue) {
+                        const dayShiftMatch = dayAndShiftValue.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                        if (dayShiftMatch) {
+                            const day = dayShiftMatch[1];
+                            const month = dayShiftMatch[2].toLowerCase();
+                            const shift = dayShiftMatch[4];
+                            subjectFilename = `${year}_${board.toLowerCase().replace(/\s+/g, '_')}_${subject.toLowerCase()}_${day}_${month}_shift_${shift}.json`;
+                        } else {
+                            subjectFilename = `${year}_${board.toLowerCase().replace(/\s+/g, '_')}_${subject.toLowerCase()}.json`;
+                        }
+                    } else {
+                        subjectFilename = `${year}_${board.toLowerCase().replace(/\s+/g, '_')}_${subject.toLowerCase()}.json`;
+                    }
+                    
+                    // Add file to ZIP
+                    const jsonString = JSON.stringify(jsonData, null, 2);
+                    folder.file(subjectFilename, jsonString);
+                    fileCount++;
                 }
             });
             
-            if (allJsonData.length === 0) {
+            if (fileCount === 0) {
                 alert('No questions found for any subject. Please assign some questions first.');
                 return;
             }
             
-                // Create and download the file
-                const jsonString = JSON.stringify(allJsonData, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                
-                // Generate dynamic filename based on form values including day and shift (use Mathematics as reference)
-                const yearValue = getFormValue('year') || '2025';
-                const boardValue = getFormValue('board') || 'KCET';
-                const dayAndShift = getFormValue('dayAndShift') || '2 April 2025 Shift - 2';
-                
-                // Parse day and shift from dayAndShift field
-                let dayShiftSuffix = '';
-                if (dayAndShift) {
-                    const dayShiftMatch = dayAndShift.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
-                    if (dayShiftMatch) {
-                        const day = dayShiftMatch[1];
-                        const month = dayShiftMatch[2].toLowerCase();
-                        const shift = dayShiftMatch[4];
-                        dayShiftSuffix = `_${day}_${month}_shift_${shift}`;
-                    }
-                }
-                
-                const filename = `${yearValue}_${boardValue.toLowerCase().replace(/\s+/g, '_')}_all_subjects${dayShiftSuffix}.json`;
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            
-            console.log(`Downloaded JSON for all subjects with ${allJsonData.length} subject files`);
+            // Generate and download ZIP file
+            try {
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                saveAs(zipBlob, `${folderName}.zip`);
+                console.log(`Downloaded ZIP with ${fileCount} JSON files in folder: ${folderName}`);
+            } catch (error) {
+                console.error('Error generating ZIP:', error);
+                alert('Error creating ZIP file. Please try again.');
+            }
         }
         
         // Image Upload Functions
