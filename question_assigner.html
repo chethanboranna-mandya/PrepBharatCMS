@@ -67,7 +67,16 @@
                 } else {
                     fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
                 }
-                const storageRef = ref(storage, `questions/${subject}/${year}/${fileName}`);
+                
+                // Get board name for folder structure
+                const subjectSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+                const boardField = document.getElementById(`board${subjectSuffix}`);
+                const boardName = boardField ? boardField.value.replace(/\s+/g, '_') : 'Board';
+                
+                // Create folder path: Board_Subject (e.g., JEE_Main_Physics)
+                const folderName = `${boardName}_${subject.toLowerCase()}`;
+                
+                const storageRef = ref(storage, `questions/${folderName}/${year}/${fileName}`);
                 const uploadTask = uploadBytesResumable(storageRef, file);
 
                 uploadTask.on(
@@ -3424,7 +3433,7 @@
                                     "correctAnswer": question.answer,
                                     "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
                                     "solution": cleanSolutionText(question.solution),
-                                    "solutionImages": extractImagesFromOriginalText(question.solution)
+                                    "solutionTextImages": question.solutionTextImages || []
                                 }
                             ]
                         }))
@@ -3469,7 +3478,7 @@
                                     "correctAnswer": question.answer,
                                     "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
                                     "solution": cleanSolutionText(question.solution),
-                                    "solutionImages": extractImagesFromOriginalText(question.solution)
+                                    "solutionTextImages": question.solutionTextImages || []
                                 }
                             ]
                         }))
@@ -3514,7 +3523,7 @@
                                     "correctAnswer": question.answer,
                                     "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
                                     "solution": cleanSolutionText(question.solution),
-                                    "solutionImages": extractImagesFromOriginalText(question.solution)
+                                    "solutionTextImages": question.solutionTextImages || []
                                 }
                             ]
                         }))
@@ -4061,7 +4070,7 @@
                         "correctAnswer": question.answer,
                         "correctAnswerText": question.options[parseInt(question.answer) - 1]?.replace(/^\(\d+\)\s*/, '').trim() || "",
                         "solution": cleanSolutionText(question.solution),
-                        "solutionImages": extractImagesFromOriginalText(question.solution)
+                        "solutionTextImages": question.solutionTextImages || []
                     }]
                 }))
             }];
@@ -4241,7 +4250,18 @@
         }
         
         function getCurrentSubject() {
-            // Find which subject is currently active
+            // First try to find which tab is active
+            const activeTab = document.querySelector('.subject-tab.active');
+            if (activeTab) {
+                const tabText = activeTab.textContent.trim();
+                console.log('Active tab text:', tabText);
+                // Check if the text contains the subject name (handles emoji and numbers)
+                if (tabText.includes('Mathematics')) return 'Mathematics';
+                if (tabText.includes('Physics')) return 'Physics';
+                if (tabText.includes('Chemistry')) return 'Chemistry';
+            }
+            
+            // Fallback: Find which subject interface is currently visible
             const activeInterface = document.querySelector('.inline-edit-interface[style*="display: block"], .inline-edit-interface:not([style*="display: none"])');
             console.log('Active interface found:', activeInterface);
             if (activeInterface) {
@@ -4807,7 +4827,10 @@
                     <div class="solution">
                         <strong>Solution:</strong>
                         <div>${question.solution || ''}</div>
-                        ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                        ${(question.solutionTextImages || []).map(item => `
+                            ${item.image ? `<img src="${item.image}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">` : ''}
+                            ${item.text ? `<div style="margin: 10px 0;">${item.text}</div>` : ''}
+                        `).join('')}
                     </div>
                 </div>
                 `;
@@ -4891,7 +4914,7 @@
                                 "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
                                     question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
                                 "solution": question.solution || '',
-                                "solutionImages": question.solutionImages || [],
+                                "solutionTextImages": question.solutionTextImages || [],
                                 "type": question.type || "mcq",
                                 "metadata": {
                                     "subject": subject.toLowerCase(),
@@ -5097,29 +5120,38 @@
                     </div>
                     
                     <div class="image-upload-section">
-                        <label>Solution Images (Multiple):</label>
-                        <div class="image-upload-area" onclick="document.getElementById('solution-image-input-${question.number}').click()" ondrop="handleImageDrop(event, ${question.number}, 'solution')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-                            <div class="image-upload-icon">📷</div>
-                            <div class="image-upload-text">Click or drag images here</div>
-                            <div class="image-upload-hint">Multiple images allowed</div>
-                            <input type="file" id="solution-image-input-${question.number}" multiple accept="image/*" onchange="handleSolutionImageUpload(event, ${question.number})" style="display: none;">
-                        </div>
-                        <div class="uploaded-images" id="solution-images-${question.number}">
-                            ${(question.solutionImages || []).map((img, idx) => `
-                                <div class="uploaded-image-with-text">
-                                    <div class="uploaded-image">
-                                        <img src="${img}" alt="Solution image">
-                                        <button class="remove-image" onclick="removeImage(${question.number}, 'solution', this, ${idx})">×</button>
-                                    </div>
-                                    <input type="text" 
-                                           class="image-text-input" 
-                                           placeholder="Image description"
-                                           value="${question.solutionImageTexts && question.solutionImageTexts[idx] ? question.solutionImageTexts[idx] : ''}"
-                                           oninput="updateImageText(${question.number}, 'solution', ${idx}, this.value)"
-                                           style="width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <label>Solution Content (Text & Images):</label>
+                        <div id="solution-content-rows-${question.number}" style="display: flex; flex-direction: column; gap: 15px;">
+                            ${(question.solutionTextImages || []).map((item, idx) => `
+                                <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
+                                    ${item.image ? `
+                                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
+                                            <img src="${item.image}" alt="Solution image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                                        </div>
+                                    ` : `
+                                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
+                                             onclick="uploadSolutionImageForRow(${question.number}, ${idx})"
+                                             ondrop="handleSolutionRowImageDrop(event, ${question.number}, ${idx})"
+                                             ondragover="event.preventDefault(); event.currentTarget.style.background='#e3f2fd';"
+                                             ondragleave="event.currentTarget.style.background='#f8f9fa';">
+                                            <div style="text-align: center; color: #6c757d;">
+                                                <div style="font-size: 32px;">📷</div>
+                                                <div style="font-size: 14px; margin-top: 8px;">Click or drag image here</div>
+                                            </div>
+                                        </div>
+                                    `}
+                                    <textarea 
+                                        placeholder="Enter text..."
+                                        oninput="updateSolutionTextImageRow(${question.number}, ${idx}, 'text', this.value)"
+                                        style="flex: 1; min-height: 100px; padding: 12px; border: 2px solid #ccc; border-radius: 8px; resize: vertical; font-family: inherit;">${item.text || ''}</textarea>
+                                    <button onclick="removeSolutionTextImageRow(${question.number}, ${idx})" 
+                                            style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 18px; height: 40px; width: 40px;" 
+                                            title="Remove row">−</button>
                                 </div>
                             `).join('')}
                         </div>
+                        <button onclick="addSolutionTextImageRow(${question.number})" style="margin-top: 10px; background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 16px;">+ Add Row</button>
+                        <input type="file" id="solution-image-upload-${question.number}" style="display: none;" accept="image/*" onchange="handleSolutionRowImageUpload(event, ${question.number})">
                     </div>
                 </div>
             `;
@@ -5191,7 +5223,10 @@
                 <div class="solution">
                     <strong>Solution:</strong>
                     <div>${question.solution || ''}</div>
-                    ${(question.solutionImages || []).map(img => `<img src="${img}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                    ${(question.solutionTextImages || []).map(item => `
+                        ${item.image ? `<img src="${item.image}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">` : ''}
+                        ${item.text ? `<div style="margin: 10px 0;">${item.text}</div>` : ''}
+                    `).join('')}
                 </div>
             </div>
             `;
@@ -5456,7 +5491,7 @@
                                 "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
                                     question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
                                 "solution": question.solution || '',
-                                "solutionImages": question.solutionImages || [],
+                                "solutionTextImages": question.solutionTextImages || [],
                                 "type": question.type || "mcq",
                                 "metadata": {
                                     "subject": subject.toLowerCase(),
@@ -5598,7 +5633,7 @@
                                     "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
                                         question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
                                     "solution": question.solution || '',
-                                    "solutionImages": question.solutionImages || [],
+                                    "solutionTextImages": question.solutionTextImages || [],
                                     "type": question.type || 'mcq',
                                     "metadata": {
                                         "subject": subject.toLowerCase(),
@@ -5674,9 +5709,13 @@
             }
         }
         
-        // Content row management functions for textImages
+        // Content row management functions for textImages (Questions)
         let currentUploadRowIndex = null;
         let currentUploadQuestionNumber = null;
+        
+        // Solution text images management
+        let currentSolutionUploadRowIndex = null;
+        let currentSolutionUploadQuestionNumber = null;
         
         function addTextImageRow(questionNumber) {
             const question = allQuestions.find(q => q.number === questionNumber);
@@ -5761,6 +5800,232 @@
             });
         }
         
+        // Solution TextImages Functions
+        function addSolutionTextImageRow(questionNumber) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question) return;
+            
+            if (!question.solutionTextImages) {
+                question.solutionTextImages = [];
+            }
+            
+            // Add new empty row to solutionTextImages array
+            question.solutionTextImages.push({ text: '', image: null });
+            
+            // Refresh the UI
+            refreshSolutionTextImageRows(questionNumber);
+        }
+        
+        function removeSolutionTextImageRow(questionNumber, rowIndex) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question || !question.solutionTextImages) return;
+            
+            const item = question.solutionTextImages[rowIndex];
+            
+            // Delete image from Firebase if exists
+            if (item.image) {
+                deleteImageFromFirebase(item.image).then(() => {
+                    console.log('Solution image deleted from Firebase:', item.image);
+                }).catch(error => {
+                    console.error('Error deleting solution image:', error);
+                });
+            }
+            
+            // Remove from solutionTextImages array
+            question.solutionTextImages.splice(rowIndex, 1);
+            
+            // Refresh the UI
+            refreshSolutionTextImageRows(questionNumber);
+            
+            // Update live preview and JSON
+            updateLivePreview();
+            const currentSubject = getCurrentSubject();
+            if (currentSubject) {
+                displaySubjectJSON(currentSubject);
+            }
+        }
+        
+        function updateSolutionTextImageRow(questionNumber, rowIndex, field, value) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question || !question.solutionTextImages) return;
+            
+            // Auto-save: Update solutionTextImages array immediately
+            question.solutionTextImages[rowIndex][field] = value;
+            
+            // Update live preview and JSON
+            updateLivePreview();
+            const currentSubject = getCurrentSubject();
+            if (currentSubject) {
+                displaySubjectJSON(currentSubject);
+            }
+        }
+        
+        function uploadSolutionImageForRow(questionNumber, rowIndex) {
+            currentSolutionUploadRowIndex = rowIndex;
+            currentSolutionUploadQuestionNumber = questionNumber;
+            document.getElementById(`solution-image-upload-${questionNumber}`).click();
+        }
+        
+        function handleSolutionRowImageDrop(event, questionNumber, rowIndex) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.style.background = '#f8f9fa';
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                currentSolutionUploadRowIndex = rowIndex;
+                currentSolutionUploadQuestionNumber = questionNumber;
+                handleSolutionRowImageUpload({ target: { files: [files[0]] } }, questionNumber);
+            }
+        }
+        
+        function handleSolutionRowImageUpload(event, questionNumber) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question) return;
+            
+            const rowIndex = currentSolutionUploadRowIndex;
+            
+            // Initialize solutionTextImages if not exists
+            if (!question.solutionTextImages) {
+                question.solutionTextImages = [];
+            }
+            
+            // Show loading state
+            const container = document.getElementById(`solution-content-rows-${questionNumber}`);
+            const rowElement = container.querySelector(`[data-row-index="${rowIndex}"]`);
+            
+            if (rowElement) {
+                const uploadDiv = rowElement.querySelector('div[style*="flex: 1"]');
+                if (uploadDiv) {
+                    uploadDiv.innerHTML = `
+                        <div style="text-align: center; color: #6c757d;">
+                            <div class="upload-status uploading">Uploading...</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Get the current active subject from tab
+            let currentSubject = getCurrentSubject();
+            
+            // If getCurrentSubject() fails, determine from question number
+            if (!currentSubject) {
+                if (questionNumber >= 1 && questionNumber <= 25) {
+                    currentSubject = 'Mathematics';
+                } else if (questionNumber >= 26 && questionNumber <= 50) {
+                    currentSubject = 'Physics';
+                } else if (questionNumber >= 51 && questionNumber <= 75) {
+                    currentSubject = 'Chemistry';
+                }
+            }
+            
+            const year = '2025';
+            const suffix = `_SR${rowIndex}`;
+            
+            console.log('=== SOLUTION IMAGE UPLOAD DEBUG ===');
+            console.log('Current Subject (from tab/question):', currentSubject);
+            console.log('Question Number:', questionNumber);
+            console.log('Question subject property:', question.subject);
+            console.log('Solution Row Index:', rowIndex);
+            
+            // Generate custom filename using tutorial ID format
+            const tutorialId = getTutorialIdForUpload(currentSubject);
+            console.log('Tutorial ID for subject', currentSubject, ':', tutorialId);
+            
+            // Debug: Check what the actual tutorial ID fields contain
+            const mathId = document.getElementById('tutorialId')?.value;
+            const physicsId = document.getElementById('tutorialId-physics')?.value;
+            const chemId = document.getElementById('tutorialId-chemistry')?.value;
+            console.log('All Tutorial IDs - Math:', mathId, 'Physics:', physicsId, 'Chemistry:', chemId);
+            
+            const customFileName = `${tutorialId}_Q${questionNumber}_sol_${rowIndex + 1}`;
+            console.log('Uploading solution with filename:', customFileName);
+            
+            uploadImageToFirebase(
+                file, 
+                currentSubject, 
+                year, 
+                questionNumber - 1, 
+                suffix, 
+                (percent) => {
+                    console.log('Solution upload progress:', percent);
+                    if (rowElement) {
+                        const uploadDiv = rowElement.querySelector('div[style*="flex: 1"]');
+                        if (uploadDiv) {
+                            uploadDiv.innerHTML = `
+                                <div style="text-align: center; color: #6c757d;">
+                                    <div class="upload-status uploading">Uploading... ${percent}%</div>
+                                </div>
+                            `;
+                        }
+                    }
+                }, 
+                customFileName
+            ).then(url => {
+                console.log('Solution upload successful:', url);
+                // Auto-save: Update solutionTextImages array with the image URL
+                if (!question.solutionTextImages[rowIndex]) {
+                    question.solutionTextImages[rowIndex] = { text: '', image: null };
+                }
+                question.solutionTextImages[rowIndex].image = url;
+                
+                // Refresh UI
+                refreshSolutionTextImageRows(questionNumber);
+                
+                // Update live preview and JSON
+                updateLivePreview();
+                const currentSubject = getCurrentSubject();
+                if (currentSubject) {
+                    displaySubjectJSON(currentSubject);
+                }
+            }).catch(error => {
+                console.error('Solution upload failed:', error);
+                alert('Solution image upload failed: ' + error.message);
+                refreshSolutionTextImageRows(questionNumber);
+            });
+            
+            event.target.value = '';
+        }
+        
+        function refreshSolutionTextImageRows(questionNumber) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question) return;
+            
+            const container = document.getElementById(`solution-content-rows-${questionNumber}`);
+            if (!container) return;
+            
+            container.innerHTML = (question.solutionTextImages || []).map((item, idx) => `
+                <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
+                    ${item.image ? `
+                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <img src="${item.image}" alt="Solution image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                        </div>
+                    ` : `
+                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
+                             onclick="uploadSolutionImageForRow(${questionNumber}, ${idx})"
+                             ondrop="handleSolutionRowImageDrop(event, ${questionNumber}, ${idx})"
+                             ondragover="event.preventDefault(); event.currentTarget.style.background='#e3f2fd';"
+                             ondragleave="event.currentTarget.style.background='#f8f9fa';">
+                            <div style="text-align: center; color: #6c757d;">
+                                <div style="font-size: 32px;">📷</div>
+                                <div style="font-size: 14px; margin-top: 8px;">Click or drag image here</div>
+                            </div>
+                        </div>
+                    `}
+                    <textarea 
+                        placeholder="Enter text..."
+                        oninput="updateSolutionTextImageRow(${questionNumber}, ${idx}, 'text', this.value)"
+                        style="flex: 1; min-height: 100px; padding: 12px; border: 2px solid #ccc; border-radius: 8px; resize: vertical; font-family: inherit;">${item.text || ''}</textarea>
+                    <button onclick="removeSolutionTextImageRow(${questionNumber}, ${idx})" 
+                            style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 18px; height: 40px; width: 40px;" 
+                            title="Remove row">−</button>
+                </div>
+            `).join('');
+        }
+        
         function uploadImageForRow(questionNumber, rowIndex) {
             currentUploadRowIndex = rowIndex;
             currentUploadQuestionNumber = questionNumber;
@@ -5809,18 +6074,37 @@
                 }
             }
             
-            // Upload to Firebase
-            const currentSubject = getCurrentSubject();
+            // Get the current active subject from tab
+            let currentSubject = getCurrentSubject();
+            
+            // If getCurrentSubject() fails, determine from question number
+            if (!currentSubject) {
+                if (questionNumber >= 1 && questionNumber <= 25) {
+                    currentSubject = 'Mathematics';
+                } else if (questionNumber >= 26 && questionNumber <= 50) {
+                    currentSubject = 'Physics';
+                } else if (questionNumber >= 51 && questionNumber <= 75) {
+                    currentSubject = 'Chemistry';
+                }
+            }
+            
             const year = '2025';
             const suffix = `_QR${rowIndex}`;
             
-            console.log('Current Subject:', currentSubject);
+            console.log('=== QUESTION IMAGE UPLOAD DEBUG ===');
+            console.log('Current Subject (from tab/question):', currentSubject);
             console.log('Question Number:', questionNumber);
             console.log('Row Index:', rowIndex);
             
             // Generate custom filename using tutorial ID format
             const tutorialId = getTutorialIdForUpload(currentSubject);
-            console.log('Tutorial ID:', tutorialId);
+            console.log('Tutorial ID for subject', currentSubject, ':', tutorialId);
+            
+            // Debug: Check what the actual tutorial ID fields contain
+            const mathId = document.getElementById('tutorialId')?.value;
+            const physicsId = document.getElementById('tutorialId-physics')?.value;
+            const chemId = document.getElementById('tutorialId-chemistry')?.value;
+            console.log('All Tutorial IDs - Math:', mathId, 'Physics:', physicsId, 'Chemistry:', chemId);
             
             const customFileName = `${tutorialId}_Q${questionNumber}_image${rowIndex}`;
             console.log('Uploading with filename:', customFileName);
