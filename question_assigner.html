@@ -51,10 +51,22 @@
             getDownloadURL
         };
 
+        // Helper function to get tutorial ID - make it globally available
+        window.getTutorialIdForUpload = function(subject) {
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const tutorialIdField = document.getElementById(`tutorialId${suffix}`);
+            return tutorialIdField ? tutorialIdField.value : 'tutorial';
+        };
+
         // Firebase upload function with progress tracking
-        window.uploadImageToFirebase = function(file, subject, year, index, suffix, onProgress) {
+        window.uploadImageToFirebase = function(file, subject, year, index, suffix, onProgress, customFileName = null) {
             return new Promise((resolve, reject) => {
-                const fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
+                let fileName;
+                if (customFileName) {
+                    fileName = customFileName;
+                } else {
+                    fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
+                }
                 const storageRef = ref(storage, `questions/${subject}/${year}/${fileName}`);
                 const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -3390,7 +3402,7 @@
                             "questionDetails": [
                                 {
                                     "text": cleanQuestionText(question.text),
-                                    "textImages": extractImagesFromOriginalText(question.text),
+                                    "textImages": question.textImages || [],
                                     "possibleAnswers": {
                                         "A": {
                                             "text": question.options[0]?.replace(/^\(1\)\s*/, '').trim() || "",
@@ -3435,7 +3447,7 @@
                             "questionDetails": [
                                 {
                                     "text": cleanQuestionText(question.text),
-                                    "textImages": extractImagesFromOriginalText(question.text),
+                                    "textImages": question.textImages || [],
                                     "possibleAnswers": {
                                         "A": {
                                             "text": question.options[0]?.replace(/^\(1\)\s*/, '').trim() || "",
@@ -3480,7 +3492,7 @@
                             "questionDetails": [
                                 {
                                     "text": cleanQuestionText(question.text),
-                                    "textImages": extractImagesFromOriginalText(question.text),
+                                    "textImages": question.textImages || [],
                                     "possibleAnswers": {
                                         "A": {
                                             "text": question.options[0]?.replace(/^\(1\)\s*/, '').trim() || "",
@@ -4856,7 +4868,7 @@
                         "questionDetails": [
                             {
                                 "text": question.text || '',
-                                "textImages": question.questionImages || [],
+                                "textImages": question.textImages || [],
                                 "possibleAnswers": {
                                     "A": {
                                         "text": question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : '',
@@ -4999,21 +5011,42 @@
                     </div>
                     
                     <div class="image-upload-section">
-                        <label>Question Images (Multiple):</label>
-                        <div class="image-upload-area" onclick="document.getElementById('question-image-input-${question.number}').click()" ondrop="handleImageDrop(event, ${question.number}, 'question')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-                            <div class="image-upload-icon">📷</div>
-                            <div class="image-upload-text">Click or drag images here</div>
-                            <div class="image-upload-hint">Multiple images allowed</div>
-                            <input type="file" id="question-image-input-${question.number}" multiple accept="image/*" onchange="handleQuestionImageUpload(event, ${question.number})" style="display: none;">
-                        </div>
-                        <div class="uploaded-images" id="question-images-${question.number}">
-                            ${(question.questionImages || []).map((img, idx) => `
-                                <div class="uploaded-image">
-                                    <img src="${img}" alt="Question image">
-                                    <button class="remove-image" onclick="removeImage(${question.number}, 'question', this, ${idx})">×</button>
+                        <label>Question Content (Text & Images):</label>
+                        <div id="question-content-rows-${question.number}" style="display: flex; flex-direction: column; gap: 15px;">
+                            ${(question.textImages || []).map((item, idx) => `
+                                <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
+                                    ${item.image ? `
+                                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
+                                            <img src="${item.image}" alt="Question image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                                        </div>
+                                    ` : `
+                                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
+                                             onclick="uploadImageForRow(${question.number}, ${idx})"
+                                             ondrop="handleRowImageDrop(event, ${question.number}, ${idx})"
+                                             ondragover="event.preventDefault(); event.currentTarget.style.background='#e3f2fd';"
+                                             ondragleave="event.currentTarget.style.background='#f8f9fa';">
+                                            <div style="text-align: center; color: #6c757d;">
+                                                <div style="font-size: 32px;">📷</div>
+                                                <div style="font-size: 14px; margin-top: 8px;">Click or drag image here</div>
+                                            </div>
+                                        </div>
+                                    `}
+                                    <textarea 
+                                        placeholder="Enter text..."
+                                        oninput="updateTextImageRow(${question.number}, ${idx}, 'text', this.value)"
+                                        style="flex: 1; min-height: 100px; padding: 12px; border: 2px solid #ccc; border-radius: 8px; resize: vertical; font-family: inherit;">${item.text || ''}</textarea>
+                                    <button onclick="removeTextImageRow(${question.number}, ${idx})" 
+                                            style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 18px; height: 40px; width: 40px;" 
+                                            title="Remove row">−</button>
                                 </div>
                             `).join('')}
                         </div>
+                        <button onclick="addTextImageRow(${question.number})" style="margin-top: 10px; background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 16px;">+ Add Row</button>
+                        <input type="file" id="image-upload-${question.number}" style="display: none;" accept="image/*" onchange="handleRowImageUpload(event, ${question.number})">
+                    </div>
+                    
+                    <div class="edit-field" style="display: none;">
+                        <label>Question Images (Multiple) - OLD:</label>
                     </div>
                     
                     <div class="edit-field">
@@ -5073,9 +5106,17 @@
                         </div>
                         <div class="uploaded-images" id="solution-images-${question.number}">
                             ${(question.solutionImages || []).map((img, idx) => `
-                                <div class="uploaded-image">
-                                    <img src="${img}" alt="Solution image">
-                                    <button class="remove-image" onclick="removeImage(${question.number}, 'solution', this, ${idx})">×</button>
+                                <div class="uploaded-image-with-text">
+                                    <div class="uploaded-image">
+                                        <img src="${img}" alt="Solution image">
+                                        <button class="remove-image" onclick="removeImage(${question.number}, 'solution', this, ${idx})">×</button>
+                                    </div>
+                                    <input type="text" 
+                                           class="image-text-input" 
+                                           placeholder="Image description"
+                                           value="${question.solutionImageTexts && question.solutionImageTexts[idx] ? question.solutionImageTexts[idx] : ''}"
+                                           oninput="updateImageText(${question.number}, 'solution', ${idx}, this.value)"
+                                           style="width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 </div>
                             `).join('')}
                         </div>
@@ -5129,7 +5170,10 @@
                     </div>
                     <div class="question-text">${question.text || ''}</div>
                 
-                ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
+                ${(question.textImages || []).map(item => `
+                    ${item.image ? `<img src="${item.image}" alt="Question image" style="max-width: 100%; margin: 10px 0;">` : ''}
+                    ${item.text ? `<div style="margin: 10px 0;">${item.text}</div>` : ''}
+                `).join('')}
                 
                 <div class="options">
                     ${['A', 'B', 'C', 'D'].map((option, idx) => `
@@ -5389,7 +5433,7 @@
                         "questionDetails": [
                             {
                                 "text": question.text || '',
-                                "textImages": question.questionImages || [],
+                                "textImages": question.textImages || [],
                                 "possibleAnswers": {
                                     "A": {
                                         "text": question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : '',
@@ -5630,6 +5674,263 @@
             }
         }
         
+        // Content row management functions for textImages
+        let currentUploadRowIndex = null;
+        let currentUploadQuestionNumber = null;
+        
+        function addTextImageRow(questionNumber) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question) return;
+            
+            if (!question.textImages) {
+                question.textImages = [];
+            }
+            
+            // Add new empty row to textImages array
+            question.textImages.push({ text: '', image: null });
+            
+            // Refresh the UI
+            refreshTextImageRows(questionNumber);
+        }
+        
+        function removeTextImageRow(questionNumber, rowIndex) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question || !question.textImages) return;
+            
+            const item = question.textImages[rowIndex];
+            
+            // Delete image from Firebase if exists
+            if (item.image) {
+                deleteImageFromFirebase(item.image).then(() => {
+                    console.log('Image deleted from Firebase:', item.image);
+                }).catch(error => {
+                    console.error('Error deleting image:', error);
+                });
+            }
+            
+            // Remove from textImages array
+            question.textImages.splice(rowIndex, 1);
+            
+            // Refresh the UI
+            refreshTextImageRows(questionNumber);
+            
+            // Update live preview and JSON
+            updateLivePreview();
+            const currentSubject = getCurrentSubject();
+            if (currentSubject) {
+                displaySubjectJSON(currentSubject);
+            }
+        }
+        
+        function updateTextImageRow(questionNumber, rowIndex, field, value) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question || !question.textImages) return;
+            
+            // Auto-save: Update textImages array immediately
+            question.textImages[rowIndex][field] = value;
+            
+            // Update live preview and JSON
+            updateLivePreview();
+            const currentSubject = getCurrentSubject();
+            if (currentSubject) {
+                displaySubjectJSON(currentSubject);
+            }
+        }
+        
+        function deleteImageFromFirebase(imageUrl) {
+            return new Promise((resolve, reject) => {
+                try {
+                    // Extract the path from the Firebase URL
+                    const decodedUrl = decodeURIComponent(imageUrl);
+                    const pathMatch = decodedUrl.match(/\/o\/(.+?)\?/);
+                    
+                    if (!pathMatch) {
+                        reject(new Error('Could not extract path from URL'));
+                        return;
+                    }
+                    
+                    const imagePath = pathMatch[1];
+                    const imageRef = ref(storage, imagePath);
+                    
+                    deleteObject(imageRef)
+                        .then(() => resolve())
+                        .catch(error => reject(error));
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+        
+        function uploadImageForRow(questionNumber, rowIndex) {
+            currentUploadRowIndex = rowIndex;
+            currentUploadQuestionNumber = questionNumber;
+            document.getElementById(`image-upload-${questionNumber}`).click();
+        }
+        
+        function handleRowImageDrop(event, questionNumber, rowIndex) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.style.background = '#f8f9fa';
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                currentUploadRowIndex = rowIndex;
+                currentUploadQuestionNumber = questionNumber;
+                handleRowImageUpload({ target: { files: [files[0]] } }, questionNumber);
+            }
+        }
+        
+        function handleRowImageUpload(event, questionNumber) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question) return;
+            
+            const rowIndex = currentUploadRowIndex;
+            
+            // Initialize textImages if not exists
+            if (!question.textImages) {
+                question.textImages = [];
+            }
+            
+            // Show loading state
+            const container = document.getElementById(`question-content-rows-${questionNumber}`);
+            const rowElement = container.querySelector(`[data-row-index="${rowIndex}"]`);
+            
+            if (rowElement) {
+                const uploadDiv = rowElement.querySelector('div[style*="flex: 1"]');
+                if (uploadDiv) {
+                    uploadDiv.innerHTML = `
+                        <div style="text-align: center; color: #6c757d;">
+                            <div class="upload-status uploading">Uploading...</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Upload to Firebase
+            const currentSubject = getCurrentSubject();
+            const year = '2025';
+            const suffix = `_QR${rowIndex}`;
+            
+            console.log('Current Subject:', currentSubject);
+            console.log('Question Number:', questionNumber);
+            console.log('Row Index:', rowIndex);
+            
+            // Generate custom filename using tutorial ID format
+            const tutorialId = getTutorialIdForUpload(currentSubject);
+            console.log('Tutorial ID:', tutorialId);
+            
+            const customFileName = `${tutorialId}_Q${questionNumber}_image${rowIndex}`;
+            console.log('Uploading with filename:', customFileName);
+            
+            uploadImageToFirebase(
+                file, 
+                currentSubject, 
+                year, 
+                questionNumber - 1, 
+                suffix, 
+                (percent) => {
+                    console.log('Upload progress:', percent);
+                    if (rowElement) {
+                        const uploadDiv = rowElement.querySelector('div[style*="flex: 1"]');
+                        if (uploadDiv) {
+                            uploadDiv.innerHTML = `
+                                <div style="text-align: center; color: #6c757d;">
+                                    <div class="upload-status uploading">Uploading... ${percent}%</div>
+                                </div>
+                            `;
+                        }
+                    }
+                }, 
+                customFileName
+            ).then(url => {
+                console.log('Upload successful:', url);
+                // Auto-save: Update textImages array with the image URL
+                if (!question.textImages[rowIndex]) {
+                    question.textImages[rowIndex] = { text: '', image: null };
+                }
+                question.textImages[rowIndex].image = url;
+                
+                // Refresh UI
+                refreshTextImageRows(questionNumber);
+                
+                // Update live preview and JSON
+                updateLivePreview();
+                const currentSubject = getCurrentSubject();
+                if (currentSubject) {
+                    displaySubjectJSON(currentSubject);
+                }
+            }).catch(error => {
+                console.error('Upload failed:', error);
+                alert('Image upload failed: ' + error.message);
+                refreshTextImageRows(questionNumber);
+            });
+            
+            event.target.value = '';
+        }
+        
+        function refreshTextImageRows(questionNumber) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question) return;
+            
+            const container = document.getElementById(`question-content-rows-${questionNumber}`);
+            if (!container) return;
+            
+            container.innerHTML = (question.textImages || []).map((item, idx) => `
+                <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
+                    ${item.image ? `
+                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <img src="${item.image}" alt="Question image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                        </div>
+                    ` : `
+                        <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
+                             onclick="uploadImageForRow(${questionNumber}, ${idx})"
+                             ondrop="handleRowImageDrop(event, ${questionNumber}, ${idx})"
+                             ondragover="event.preventDefault(); event.currentTarget.style.background='#e3f2fd';"
+                             ondragleave="event.currentTarget.style.background='#f8f9fa';">
+                            <div style="text-align: center; color: #6c757d;">
+                                <div style="font-size: 32px;">📷</div>
+                                <div style="font-size: 14px; margin-top: 8px;">Click or drag image here</div>
+                            </div>
+                        </div>
+                    `}
+                    <textarea 
+                        placeholder="Enter text..."
+                        oninput="updateTextImageRow(${questionNumber}, ${idx}, 'text', this.value)"
+                        style="flex: 1; min-height: 100px; padding: 12px; border: 2px solid #ccc; border-radius: 8px; resize: vertical; font-family: inherit;">${item.text || ''}</textarea>
+                    <button onclick="removeTextImageRow(${questionNumber}, ${idx})" 
+                            style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 18px; height: 40px; width: 40px;" 
+                            title="Remove row">−</button>
+                </div>
+            `).join('');
+        }
+        
+        // Update image text description
+        function updateImageText(questionNumber, imageType, imageIndex, text) {
+            const question = allQuestions.find(q => q.number === questionNumber);
+            if (!question) return;
+            
+            if (imageType === 'question') {
+                if (!question.questionImageTexts) {
+                    question.questionImageTexts = [];
+                }
+                question.questionImageTexts[imageIndex] = text;
+            } else if (imageType === 'solution') {
+                if (!question.solutionImageTexts) {
+                    question.solutionImageTexts = [];
+                }
+                question.solutionImageTexts[imageIndex] = text;
+            }
+            
+            // Update JSON display
+            const currentSubject = getCurrentSubject();
+            if (currentSubject) {
+                displaySubjectJSON(currentSubject);
+            }
+        }
+        
         function handleQuestionImageUpload(event, questionNumber) {
             const files = event.target.files;
             const container = document.getElementById(`question-images-${questionNumber}`);
@@ -5668,23 +5969,34 @@
                     
                     // Get current subject and year for Firebase path
                     const currentSubject = getCurrentSubject();
-                    const year = '2025'; // You can make this dynamic if needed
+                    const year = '2025';
                     
-                    // Upload to Firebase
+                    // Generate custom filename using tutorial ID format
+                    const tutorialId = getTutorialIdForUpload(currentSubject);
+                    const customFileName = `${tutorialId}_Q${questionNumber}_image${imgIndex}`;
+                    
+                    // Upload to Firebase with custom filename
                     uploadImageToFirebase(file, currentSubject, year, questionNumber - 1, suffix, (percent) => {
                         progressFill.style.width = percent + '%';
                         progressText.textContent = percent + '%';
-                    }).then(url => {
+                    }, customFileName).then(url => {
                         // Upload successful
                         uploadStatus.textContent = '✅ Uploaded';
                         uploadStatus.className = 'upload-status success';
                         
-                        // Create image display
+                        // Create image display with text input
                         const imageDiv = document.createElement('div');
-                        imageDiv.className = 'uploaded-image';
+                        imageDiv.className = 'uploaded-image-with-text';
                         imageDiv.innerHTML = `
-                            <img src="${url}" alt="Question Image">
-                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'question', this, ${imgIndex})">×</button>
+                            <div class="uploaded-image">
+                                <img src="${url}" alt="Question Image">
+                                <button class="remove-image" onclick="removeImage(${questionNumber}, 'question', this, ${imgIndex})">×</button>
+                            </div>
+                            <input type="text" 
+                                   class="image-text-input" 
+                                   placeholder="Image description (e.g., diagram of 2px orbital)"
+                                   oninput="updateImageText(${questionNumber}, 'question', ${imgIndex}, this.value)"
+                                   style="width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #ccc; border-radius: 4px;">
                         `;
                         
                         // Replace progress with image
@@ -5692,6 +6004,12 @@
                         
                         // Store Firebase URL in question object
                         question.questionImages.push(url);
+                        
+                        // Initialize questionImageTexts array if needed
+                        if (!question.questionImageTexts) {
+                            question.questionImageTexts = [];
+                        }
+                        question.questionImageTexts.push('');
                         
                         // Update Live Preview
                         updateLivePreview();
@@ -5740,14 +6058,18 @@
                 
                 // Get current subject and year for Firebase path
                 const currentSubject = getCurrentSubject();
-                const year = '2025'; // You can make this dynamic if needed
+                const year = '2025';
                 const suffix = `_op${optionIndex + 1}`;
                 
-                // Upload to Firebase
+                // Generate custom filename using tutorial ID format
+                const tutorialId = getTutorialIdForUpload(currentSubject);
+                const customFileName = `${tutorialId}_Q${questionNumber}_op${optionIndex + 1}`;
+                
+                // Upload to Firebase with custom filename
                 uploadImageToFirebase(file, currentSubject, year, questionNumber - 1, suffix, (percent) => {
                     progressFill.style.width = percent + '%';
                     progressText.textContent = percent + '%';
-                }).then(url => {
+                }, customFileName).then(url => {
                     // Upload successful
                     uploadStatus.textContent = '✅ Uploaded';
                     uploadStatus.className = 'upload-status success';
@@ -5818,23 +6140,34 @@
                     
                     // Get current subject and year for Firebase path
                     const currentSubject = getCurrentSubject();
-                    const year = '2025'; // You can make this dynamic if needed
+                    const year = '2025';
                     
-                    // Upload to Firebase
+                    // Generate custom filename using tutorial ID format
+                    const tutorialId = getTutorialIdForUpload(currentSubject);
+                    const customFileName = `${tutorialId}_Q${questionNumber}_sol_${imgIndex + 1}`;
+                    
+                    // Upload to Firebase with custom filename
                     uploadImageToFirebase(file, currentSubject, year, questionNumber - 1, suffix, (percent) => {
                         progressFill.style.width = percent + '%';
                         progressText.textContent = percent + '%';
-                    }).then(url => {
+                    }, customFileName).then(url => {
                         // Upload successful
                         uploadStatus.textContent = '✅ Uploaded';
                         uploadStatus.className = 'upload-status success';
                         
-                        // Create image display
+                        // Create image display with text input
                         const imageDiv = document.createElement('div');
-                        imageDiv.className = 'uploaded-image';
+                        imageDiv.className = 'uploaded-image-with-text';
                         imageDiv.innerHTML = `
-                            <img src="${url}" alt="Solution Image">
-                            <button class="remove-image" onclick="removeImage(${questionNumber}, 'solution', this, ${imgIndex})">×</button>
+                            <div class="uploaded-image">
+                                <img src="${url}" alt="Solution Image">
+                                <button class="remove-image" onclick="removeImage(${questionNumber}, 'solution', this, ${imgIndex})">×</button>
+                            </div>
+                            <input type="text" 
+                                   class="image-text-input" 
+                                   placeholder="Image description"
+                                   oninput="updateImageText(${questionNumber}, 'solution', ${imgIndex}, this.value)"
+                                   style="width: 100%; padding: 8px; margin-top: 8px; border: 1px solid #ccc; border-radius: 4px;">
                         `;
                         
                         // Replace progress with image
@@ -5842,6 +6175,12 @@
                         
                         // Store Firebase URL in question object
                         question.solutionImages.push(url);
+                        
+                        // Initialize solutionImageTexts array if needed
+                        if (!question.solutionImageTexts) {
+                            question.solutionImageTexts = [];
+                        }
+                        question.solutionImageTexts.push('');
                         
                         // Update Live Preview
                         updateLivePreview();
