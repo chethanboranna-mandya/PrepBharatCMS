@@ -2611,6 +2611,9 @@
                     
                     // Parse questions
                     parseQuestions(content);
+                    
+                    // Mark work as unsaved after file upload
+                    markWorkAsUnsaved();
                 };
                 reader.readAsText(file);
             }
@@ -6911,6 +6914,29 @@
                 question.type = detectedType;
             }
         }
+        
+        // Prevent accidental page refresh/close when work is in progress
+        let hasUnsavedWork = false;
+        
+        // Mark work as unsaved when file is uploaded or any changes are made
+        function markWorkAsUnsaved() {
+            hasUnsavedWork = true;
+        }
+        
+        // Clear unsaved work flag (e.g., after successful download)
+        function markWorkAsSaved() {
+            hasUnsavedWork = false;
+        }
+        
+        // Warn user before leaving page
+        window.addEventListener('beforeunload', function(e) {
+            if (hasUnsavedWork && allQuestions.length > 0) {
+                const message = 'Are you sure you want to leave? All your work (uploaded questions, edits, and AI analyses) will be lost!';
+                e.preventDefault();
+                e.returnValue = message; // Standard for most browsers
+                return message; // For some older browsers
+            }
+        });
         
         // Initialize when page loads
         window.addEventListener('load', function() {
