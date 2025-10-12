@@ -2142,11 +2142,17 @@
         
         <div class="upload-section">
                         <h3>📁 Upload File</h3>
-                        <p>Select your markdown file containing questions to get started</p>
+                        <p>Select your markdown file or JSON folder containing questions</p>
             <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
-            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                Choose File
+            <input type="file" id="jsonFolderInput" class="file-input" accept=".json" multiple style="display: none;">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()" style="flex: 1;">
+                    📄 Choose MD File
+                </button>
+                <button class="upload-btn" onclick="document.getElementById('jsonFolderInput').click()" style="flex: 1; background: #059669;">
+                    📂 Load JSON Folder
             </button>
+            </div>
                     </div>
         </div>
         
@@ -2593,7 +2599,33 @@
         let questionAssignments = {};
         let originalMarkdownContent = '';
         
+        // Helper function to get option text from both array and object formats
+        function getOptionText(question, optionKey) {
+            if (!question || !question.options) return '';
+            
+            if (Array.isArray(question.options)) {
+                // Array format: ["(1) text1", "(2) text2", ...]
+                const optionIndex = optionKey.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+                return question.options[optionIndex] ? question.options[optionIndex].replace(/^\(\d+\)\s*/, '').trim() : '';
+            } else {
+                // Object format: {A: {text: "...", image: null}, ...}
+                return question.options[optionKey] && question.options[optionKey].text ? question.options[optionKey].text : '';
+            }
+        }
+        
+        // Helper function to get correct answer text
+        function getCorrectAnswerText(question) {
+            if (!question || !question.answer || !question.options) return '';
+            
+            const answerNum = parseInt(question.answer);
+            if (isNaN(answerNum) || answerNum < 1 || answerNum > 4) return '';
+            
+            const optionKey = String.fromCharCode(64 + answerNum); // 1=A, 2=B, 3=C, 4=D
+            return getOptionText(question, optionKey);
+        }
+        
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        document.getElementById('jsonFolderInput').addEventListener('change', handleJSONFolderSelect);
         
         function handleFileSelect(event) {
             const file = event.target.files[0];
@@ -2617,6 +2649,275 @@
                 };
                 reader.readAsText(file);
             }
+        }
+        
+        // Handle JSON folder upload
+        function handleJSONFolderSelect(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) {
+                alert('⚠️ No files selected. Please select a folder containing JSON files.');
+                return;
+            }
+            
+            console.log(`📂 Loading ${files.length} files from folder...`);
+            
+            // Find JSON files for each subject
+            const jsonFiles = {
+                mathematics: null,
+                physics: null,
+                chemistry: null
+            };
+            
+            // Scan through files to find subject JSONs
+            for (let file of files) {
+                const fileName = file.name.toLowerCase();
+                if (fileName.endsWith('.json')) {
+                    if (fileName.includes('mathematics') || fileName.includes('math')) {
+                        jsonFiles.mathematics = file;
+                    } else if (fileName.includes('physics')) {
+                        jsonFiles.physics = file;
+                    } else if (fileName.includes('chemistry') || fileName.includes('chem')) {
+                        jsonFiles.chemistry = file;
+                    }
+                }
+            }
+            
+            // Check if we found at least one JSON file
+            const foundFiles = [jsonFiles.mathematics, jsonFiles.physics, jsonFiles.chemistry].filter(f => f !== null);
+            if (foundFiles.length === 0) {
+                alert('⚠️ No valid JSON files found. Please ensure your folder contains files with "mathematics", "physics", or "chemistry" in their names.');
+                return;
+            }
+            
+            console.log('✅ Found JSON files:', {
+                mathematics: jsonFiles.mathematics?.name || 'Not found',
+                physics: jsonFiles.physics?.name || 'Not found',
+                chemistry: jsonFiles.chemistry?.name || 'Not found'
+            });
+            
+            // Load all found JSON files
+            loadJSONFiles(jsonFiles);
+        }
+        
+        // Load and parse JSON files
+        function loadJSONFiles(jsonFiles) {
+            const loadPromises = [];
+            const subjectData = {
+                mathematics: null,
+                physics: null,
+                chemistry: null
+            };
+            
+            // Create promises for each file
+            Object.keys(jsonFiles).forEach(subject => {
+                if (jsonFiles[subject]) {
+                    const promise = new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                let jsonData = JSON.parse(e.target.result);
+                                
+                                // Handle array format [{ tutorialId: ..., questions: [...] }]
+                                if (Array.isArray(jsonData) && jsonData.length > 0) {
+                                    console.log(`📦 ${subject} is an array, extracting first object`);
+                                    jsonData = jsonData[0];
+                                }
+                                
+                                console.log(`✅ Loaded ${subject}:`, jsonData);
+                                subjectData[subject] = jsonData;
+                                resolve();
+                            } catch (error) {
+                                console.error(`❌ Error parsing ${subject} JSON:`, error);
+                                reject(error);
+                            }
+                        };
+                        reader.onerror = reject;
+                        reader.readAsText(jsonFiles[subject]);
+                    });
+                    loadPromises.push(promise);
+                }
+            });
+            
+            // Wait for all files to load
+            Promise.all(loadPromises)
+                .then(() => {
+                    console.log('✅ All JSON files loaded successfully');
+                    populateUIFromJSON(subjectData);
+                    markWorkAsUnsaved();
+                })
+                .catch(error => {
+                    console.error('❌ Error loading JSON files:', error);
+                    alert('Error loading JSON files. Please check the console for details.');
+                });
+        }
+        
+        // Helper function to safely set form field values
+        function safeSetValue(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.value = value;
+            } else {
+                console.warn(`⚠️ Element not found: ${elementId}`);
+            }
+        }
+        
+        // Populate the UI with data from loaded JSON files
+        function populateUIFromJSON(subjectData) {
+            console.log('🎨 Populating UI from JSON data...');
+            
+            // Clear existing data
+            allQuestions = [];
+            questionAssignments = {};
+            
+            // Show UI panels FIRST (so form fields exist)
+            const sidebarStats = document.getElementById('sidebarStats');
+            const sidebarDownload = document.getElementById('sidebarDownload');
+            const subjectTabsContainer = document.getElementById('subjectTabsContainer');
+            
+            if (sidebarStats) sidebarStats.style.display = 'block';
+            if (sidebarDownload) sidebarDownload.style.display = 'block';
+            if (subjectTabsContainer) subjectTabsContainer.style.display = 'flex';
+            
+            // Don't show subject views yet - they will be shown by showSubject()
+            // Just make sure they exist but are hidden
+            const mathView = document.getElementById('subjectView-Mathematics');
+            const physicsView = document.getElementById('subjectView-Physics');
+            const chemistryView = document.getElementById('subjectView-Chemistry');
+            
+            if (mathView) mathView.style.display = 'none';
+            if (physicsView) physicsView.style.display = 'none';
+            if (chemistryView) chemistryView.style.display = 'none';
+            
+            // Load questions from each subject
+            console.log('📦 Subject Data Structure:', {
+                mathematics: subjectData.mathematics ? 'Found' : 'Missing',
+                physics: subjectData.physics ? 'Found' : 'Missing',
+                chemistry: subjectData.chemistry ? 'Found' : 'Missing'
+            });
+            
+            ['mathematics', 'physics', 'chemistry'].forEach((subject, subjectIndex) => {
+                if (subjectData[subject]) {
+                    console.log(`📊 ${subject} data:`, subjectData[subject]);
+                    
+                    if (subjectData[subject].questions) {
+                        const questions = subjectData[subject].questions;
+                        console.log(`📝 Loading ${questions.length} ${subject} questions...`);
+                        
+                        questions.forEach((questionData, index) => {
+                            // Extract question details
+                            const questionDetails = questionData.questionDetails ? questionData.questionDetails[0] : questionData;
+                            const questionIndex = parseInt(questionData.questionIndex) || (subjectIndex * 25 + index + 1);
+                            
+                            // Convert options from object format {A: {text, image}} to array format ["text1", "text2", ...]
+                            let optionsArray = ['', '', '', ''];
+                            if (questionDetails.possibleAnswers) {
+                                const possibleAnswers = questionDetails.possibleAnswers;
+                                if (possibleAnswers.A && possibleAnswers.A.text) optionsArray[0] = `(1) ${possibleAnswers.A.text}`;
+                                if (possibleAnswers.B && possibleAnswers.B.text) optionsArray[1] = `(2) ${possibleAnswers.B.text}`;
+                                if (possibleAnswers.C && possibleAnswers.C.text) optionsArray[2] = `(3) ${possibleAnswers.C.text}`;
+                                if (possibleAnswers.D && possibleAnswers.D.text) optionsArray[3] = `(4) ${possibleAnswers.D.text}`;
+                            }
+                            
+                            // Create question object (using array format for options, just like .md parsing)
+                            const question = {
+                                number: questionIndex,
+                                subject: subject,
+                                text: questionDetails.text || '',
+                                solution: questionDetails.solution || '',
+                                type: questionDetails.type || 'mcq',
+                                options: optionsArray,  // Now always an array
+                                answer: questionDetails.correctAnswer || '1',
+                                correctAnswer: questionDetails.correctAnswer || '1',
+                                correctAnswerText: questionDetails.correctAnswerText || '',
+                                textImages: questionDetails.textImages || [],
+                                solutionTextImages: questionDetails.solutionTextImages || [],
+                                questionImages: questionDetails.textImages || [],
+                                solutionImages: questionDetails.solutionTextImages || []
+                            };
+                            
+                            
+                            allQuestions.push(question);
+                            questionAssignments[`Q${questionIndex}`] = subject;
+                        });
+                    } else {
+                        console.warn(`⚠️ No questions array found for ${subject}`);
+                    }
+                } else {
+                    console.warn(`⚠️ No data found for ${subject}`);
+                }
+            });
+            
+            console.log(`✅ Loaded total ${allQuestions.length} questions`);
+            console.log('All questions:', allQuestions);
+            console.log('Question assignments:', questionAssignments);
+            
+            // Sort questions by number
+            allQuestions.sort((a, b) => a.number - b.number);
+            
+            // Update statistics
+            updateStats();
+            
+            // Wait a moment for DOM to be ready, then activate Mathematics
+            setTimeout(() => {
+                console.log('🎯 Calling showSubject(Mathematics)...');
+                showSubject('Mathematics');
+                
+                // Auto-select first question
+                setTimeout(() => {
+                    console.log('🎯 Auto-selecting first question...');
+                    const firstQuestionBtn = document.querySelector('#questionList-Mathematics .question-item');
+                    if (firstQuestionBtn) {
+                        firstQuestionBtn.click();
+                        console.log('✅ First question selected');
+                    } else {
+                        console.warn('⚠️ First question button not found');
+                    }
+                }, 200);
+            }, 300);
+            
+            // Now populate form fields (after UI is rendered)
+            setTimeout(() => {
+                // Update Mathematics fields
+                if (subjectData.mathematics) {
+                    const mathData = subjectData.mathematics;
+                    safeSetValue('tutorialId', mathData.tutorialId || '');
+                    safeSetValue('tutorialTitle', mathData.tutorialTitle || '');
+                    safeSetValue('board', mathData.board || '');
+                    safeSetValue('state', mathData.state || '');
+                    safeSetValue('conductedBy', mathData.conductedBy || '');
+                    safeSetValue('examType', mathData.authorityExamId || '');
+                    safeSetValue('dayAndShift', mathData.dayAndShift || '');
+                }
+                
+                // Update Physics fields
+                if (subjectData.physics) {
+                    const physicsData = subjectData.physics;
+                    safeSetValue('tutorialId-physics', physicsData.tutorialId || '');
+                    safeSetValue('tutorialTitle-physics', physicsData.tutorialTitle || '');
+                    safeSetValue('board-physics', physicsData.board || '');
+                    safeSetValue('state-physics', physicsData.state || '');
+                    safeSetValue('conductedBy-physics', physicsData.conductedBy || '');
+                    safeSetValue('examType-physics', physicsData.authorityExamId || '');
+                    safeSetValue('dayAndShift-physics', physicsData.dayAndShift || '');
+                }
+                
+                // Update Chemistry fields
+                if (subjectData.chemistry) {
+                    const chemData = subjectData.chemistry;
+                    safeSetValue('tutorialId-chemistry', chemData.tutorialId || '');
+                    safeSetValue('tutorialTitle-chemistry', chemData.tutorialTitle || '');
+                    safeSetValue('board-chemistry', chemData.board || '');
+                    safeSetValue('state-chemistry', chemData.state || '');
+                    safeSetValue('conductedBy-chemistry', chemData.conductedBy || '');
+                    safeSetValue('examType-chemistry', chemData.authorityExamId || '');
+                    safeSetValue('dayAndShift-chemistry', chemData.dayAndShift || '');
+                }
+            }, 100);
+            
+            alert(`✅ Successfully loaded ${allQuestions.length} questions!\n\n` +
+                  `📊 Mathematics: ${allQuestions.filter(q => q.subject === 'mathematics').length} questions\n` +
+                  `⚛️ Physics: ${allQuestions.filter(q => q.subject === 'physics').length} questions\n` +
+                  `🧪 Chemistry: ${allQuestions.filter(q => q.subject === 'chemistry').length} questions`);
         }
         
         // Function to clean image tags and URLs from text
@@ -3282,6 +3583,10 @@
             allQuestions.forEach(question => {
                 const detectedType = detectQuestionType(question);
                 question.type = detectedType;
+                
+                // Initialize textImages and solutionTextImages if they don't exist
+                if (!question.textImages) question.textImages = [];
+                if (!question.solutionTextImages) question.solutionTextImages = [];
             });
             
             displayQuestions();
@@ -3548,9 +3853,22 @@
                 questionCard.className = 'question-card';
                 questionCard.onclick = () => scrollToQuestion(question.number, 'all');
                 
-                const optionsHtml = question.options.map(opt => 
-                    `<div class="option">(${opt.number}) ${opt.text}</div>`
+                // Handle both array and object formats for options
+                let optionsHtml = '';
+                if (question.options) {
+                    if (Array.isArray(question.options)) {
+                        // Old array format
+                        optionsHtml = question.options.map((opt, idx) => 
+                            `<div class="option">(${idx + 1}) ${opt}</div>`
                 ).join('\n');
+                    } else {
+                        // New object format {A: {text: "...", image: null}}
+                        optionsHtml = ['A', 'B', 'C', 'D'].map(key => {
+                            const opt = question.options[key];
+                            return opt && opt.text ? `<div class="option">${key}. ${opt.text}</div>` : '';
+                        }).join('\n');
+                    }
+                }
                 
                 // Set the selected value based on the detected subject
                 const selectedSubject = question.subject === 'unassigned' ? '' : question.subject.charAt(0).toUpperCase() + question.subject.slice(1);
@@ -3784,8 +4102,9 @@
                     populateQuestionList(subject);
                 }
                 
-                // Generate and display questions for this subject
-                generateSubjectView(subject);
+                // Note: generateSubjectView() creates the old card-based view, not needed for inline edit mode
+                // If you need that view, call it separately
+                // generateSubjectView(subject);
                 
                 // Ensure the render panel is visible and properly initialized
                 const renderPanel = document.getElementById(`questionRender-${subject}`);
@@ -3842,16 +4161,15 @@
             
             let renderHtml = '';
             questionsToRender.forEach((question, index) => {
-                // Extract options from question.options array
+                // Generate options HTML (options are always in array format now)
                 const optionsHtml = question.options.map((opt, optIndex) => {
                     const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
-                    const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
+                    const cleanText = opt ? opt.replace(/^\(\d+\)\s*/, '').trim() : '';
                     return `<div class="option-render"><strong>${letter}.</strong> ${cleanText}</div>`;
                 }).join('\n');
                 
-                // Find correct answer text
-                const answerIndex = parseInt(question.answer) - 1;
-                const answerText = question.options[answerIndex]?.replace(/^\(\d+\)\s*/, '').trim() || '';
+                // Find correct answer text using helper function
+                const answerText = getCorrectAnswerText(question);
                 const answerLetter = question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '';
                 
                 renderHtml += `
@@ -3915,10 +4233,10 @@
             });
             
             console.log(`Generating view for ${subject}: ${subjectQuestions.length} questions`);
+            console.log(`Subject questions:`, subjectQuestions);
             
             // Get the questions list container for this subject
-            const questionsListId = subject === 'Mathematics' ? 'mathQuestionsList' :
-                                   subject === 'Physics' ? 'physicsQuestionsList' : 'chemistryQuestionsList';
+            const questionsListId = `questionList-${subject}`;
             const container = document.getElementById(questionsListId);
             
             if (!container) {
@@ -3926,12 +4244,51 @@
                 return;
             }
             
+            // Clear existing content but keep the header
+            const header = container.querySelector('h4');
             container.innerHTML = '';
+            if (header) {
+                container.appendChild(header);
+            } else {
+                const newHeader = document.createElement('h4');
+                newHeader.textContent = '📋 Questions';
+                container.appendChild(newHeader);
+            }
             
             if (subjectQuestions.length === 0) {
-                container.innerHTML = `<p>No questions found for ${subject}.</p>`;
+                const noQuestionsMsg = document.createElement('p');
+                noQuestionsMsg.textContent = `No questions found`;
+                noQuestionsMsg.style.padding = '20px';
+                noQuestionsMsg.style.textAlign = 'center';
+                noQuestionsMsg.style.color = '#999';
+                container.appendChild(noQuestionsMsg);
                 return;
             }
+            
+            // Create question number buttons
+            subjectQuestions.forEach((question) => {
+                const button = document.createElement('button');
+                button.className = 'question-item';
+                button.textContent = question.number;
+                button.title = `Question ${question.number}`;
+                button.onclick = () => selectQuestion(subject, subjectQuestions.findIndex(q => q.number === question.number));
+                
+                // Check if question needs manual editing (contains [Image] or table markup)
+                const needsEditing = (question.text && (question.text.includes('[Image]') || question.text.includes('| :---: |'))) ||
+                                   (question.solution && (question.solution.includes('[Image]') || question.solution.includes('| :---: |'))) ||
+                                   (question.options && Object.values(question.options).some(opt => 
+                                       (opt.text && (opt.text.includes('[Image]') || opt.text.includes('| :---: |')))));
+                
+                if (needsEditing) {
+                    button.classList.add('needs-edit');
+                    button.style.background = '#ef4444';
+                    button.style.color = 'white';
+                }
+                
+                container.appendChild(button);
+            });
+            
+            console.log(`✅ Generated ${subjectQuestions.length} question buttons for ${subject}`);
             
             // Create question cards for this subject
             subjectQuestions.forEach((question, index) => {
@@ -3939,9 +4296,10 @@
                 questionCard.className = 'question-card';
                 questionCard.onclick = () => scrollToQuestion(question.number, subject);
                 
+                // Generate options HTML (options are always in array format now)
                 const optionsHtml = question.options.map((opt, optIndex) => {
                     const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
-                    const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
+                    const cleanText = opt ? opt.replace(/^\(\d+\)\s*/, '').trim() : '';
                     return `<div class="option">
                         <strong>${letter}.</strong> 
                         <input type="text" class="option-input" value="${cleanText}" 
@@ -4316,9 +4674,10 @@
                 const questionEditItem = document.createElement('div');
                 questionEditItem.className = 'question-edit-item';
                 
+                // Generate options HTML (options are always in array format now)
                 const optionsHtml = question.options.map((opt, optIndex) => {
                     const letter = String.fromCharCode(65 + optIndex);
-                    const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
+                    const cleanText = opt ? opt.replace(/^\(\d+\)\s*/, '').trim() : '';
                     return `
                         <div class="option-edit-item">
                             <label>${letter}:</label>
@@ -4551,14 +4910,15 @@
             
             let renderHtml = '';
             subjectQuestions.forEach(question => {
+                // Generate options HTML (options are always in array format now)
                 const optionsHtml = question.options.map((opt, optIndex) => {
                     const letter = String.fromCharCode(65 + optIndex);
-                    const cleanText = opt.replace(/^\(\d+\)\s*/, '').trim();
+                    const cleanText = opt ? opt.replace(/^\(\d+\)\s*/, '').trim() : '';
                     return `<div class="option-render"><strong>${letter}.</strong> ${cleanText}</div>`;
                 }).join('\n');
                 
-                const answerIndex = parseInt(question.answer) - 1;
-                const answerText = question.options[answerIndex]?.replace(/^\(\d+\)\s*/, '').trim() || '';
+                // Find correct answer text using helper function
+                const answerText = getCorrectAnswerText(question);
                 const answerLetter = question.answer ? String.fromCharCode(64 + parseInt(question.answer)) : '';
                 
                 renderHtml += `
@@ -5078,10 +5438,22 @@
                     <div class="edit-field">
                         <label>Options:</label>
                         <div class="options-edit-grid">
-                            ${['A', 'B', 'C', 'D'].map((option, idx) => `
+                            ${['A', 'B', 'C', 'D'].map((option, idx) => {
+                                // Handle both array and object formats
+                                let optionText = '';
+                                if (question.options) {
+                                    if (Array.isArray(question.options)) {
+                                        // Array format from .md files: ["text1", "text2", ...]
+                                        optionText = question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : '';
+                                    } else if (question.options[option] && question.options[option].text) {
+                                        // Object format from JSON: {A: {text: "...", image: null}}
+                                        optionText = question.options[option].text;
+                                    }
+                                }
+                                return `
                                 <div class="option-edit-item">
                                     <label>${option}:</label>
-                                    <input type="text" class="option-edit-input" value="${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}" oninput="updateQuestion(${question.number}, 'option', this.value, ${idx})">
+                                    <input type="text" class="option-edit-input" value="${optionText}" oninput="updateQuestion(${question.number}, 'option', this.value, ${idx})">
                                     <div class="option-image-upload">
                                         <div class="image-upload-area" onclick="document.getElementById('option-image-input-${question.number}-${idx}').click()" ondrop="handleImageDrop(event, ${question.number}, 'option', ${idx})" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                                             <div class="image-upload-icon">📷</div>
@@ -5098,7 +5470,8 @@
                                         </div>
                                     </div>
                                 </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                     
@@ -5211,12 +5584,29 @@
                 `).join('')}
                 
                 <div class="options">
-                    ${['A', 'B', 'C', 'D'].map((option, idx) => `
+                    ${['A', 'B', 'C', 'D'].map((option, idx) => {
+                        // Handle both array and object formats
+                        let optionText = '';
+                        let optionImage = null;
+                        
+                        if (question.options) {
+                            if (Array.isArray(question.options)) {
+                                // Array format from .md files: ["text1", "text2", ...]
+                                optionText = question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : '';
+                            } else if (question.options[option]) {
+                                // Object format from JSON: {A: {text: "...", image: null}}
+                                optionText = question.options[option].text || '';
+                                optionImage = question.options[option].image || null;
+                            }
+                        }
+                        
+                        return `
                         <div class="option">
-                            <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
-                            ${question.optionImages && question.optionImages[idx] ? `<img src="${question.optionImages[idx]}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
+                            <strong>${option}.</strong> ${optionText}
+                            ${optionImage ? `<img src="${optionImage}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
                         </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
                 
                 <div class="answer" style="color: green; font-weight: bold; margin: 15px 0;">
@@ -5616,25 +6006,24 @@
                                     "textImages": question.questionImages || [],
                                     "possibleAnswers": {
                                         "A": {
-                                            "text": question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "text": getOptionText(question, 'A'),
                                             "image": question.optionImages && question.optionImages[0] ? question.optionImages[0] : null
                                         },
                                         "B": {
-                                            "text": question.options && question.options[1] ? question.options[1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "text": getOptionText(question, 'B'),
                                             "image": question.optionImages && question.optionImages[1] ? question.optionImages[1] : null
                                         },
                                         "C": {
-                                            "text": question.options && question.options[2] ? question.options[2].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "text": getOptionText(question, 'C'),
                                             "image": question.optionImages && question.optionImages[2] ? question.optionImages[2] : null
                                         },
                                         "D": {
-                                            "text": question.options && question.options[3] ? question.options[3].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                            "text": getOptionText(question, 'D'),
                                             "image": question.optionImages && question.optionImages[3] ? question.optionImages[3] : null
                                         }
                                     },
                                     "correctAnswer": question.answer || '',
-                                    "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
-                                        question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                    "correctAnswerText": getCorrectAnswerText(question),
                                     "solution": question.solution || '',
                                     "solutionTextImages": question.solutionTextImages || [],
                                     "type": question.type || 'mcq',
@@ -6693,15 +7082,17 @@
             const solution = question.solution || '';
             const options = question.options || [];
             
-            // Check for [Image] placeholder
-            const hasImagePlaceholder = text.includes('[Image]') || 
-                                      solution.includes('[Image]') ||
-                                      options.some(opt => opt.includes('[Image]'));
+            // Check for image placeholders (options are always arrays now)
+            let hasImagePlaceholder = text.includes('[Image]') || solution.includes('[Image]');
+            if (Array.isArray(options)) {
+                hasImagePlaceholder = hasImagePlaceholder || options.some(opt => opt && opt.includes('[Image]'));
+            }
             
-            // Check for markdown table separators
-            const hasTableSeparator = text.includes('| :---: |') || 
-                                    solution.includes('| :---: |') ||
-                                    options.some(opt => opt.includes('| :---: |'));
+            // Check for table separators (options are always arrays now)
+            let hasTableSeparator = text.includes('| :---: |') || solution.includes('| :---: |');
+            if (Array.isArray(options)) {
+                hasTableSeparator = hasTableSeparator || options.some(opt => opt && opt.includes('| :---: |'));
+            }
             
             return hasImagePlaceholder || hasTableSeparator;
         }
