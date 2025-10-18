@@ -50,10 +50,13 @@ class SophisticatedMarkdownParser {
         };
         
         this.solutionPatterns = {
-            // Sol., Solution:, Explanation:
-            solution: /(?:Sol\.|Solution:|Explanation:)\s*([\s\S]*?)(?=\n\d+\.|$)/i,
-            // Detailed solution
-            detailedSolution: /(?:Detailed\s+)?Solution:?\s*([\s\S]*?)(?=\n\d+\.|$)/i
+            // Match from "Sol." until next question (line starting with number followed by dot)
+            // Example: captures from "Sol." until it sees "3." at the start of a line
+            solution: /Sol\.\s*([\s\S]*?)(?=\n\d+\.\s|\n\d+\.|$)/m,
+            // Alternative: Solution: followed by content
+            solutionColon: /Solution:\s*([\s\S]*?)(?=\n\d+\.\s|\n\d+\.|$)/m,
+            // Alternative: Explanation: followed by content
+            explanation: /Explanation:\s*([\s\S]*?)(?=\n\d+\.\s|\n\d+\.|$)/m
         };
     }
 
@@ -268,6 +271,22 @@ class SophisticatedMarkdownParser {
             const match = content.match(pattern);
             if (match) {
                 let solution = match[1].trim();
+                
+                // Remove any markdown headers or unwanted text that might have slipped through
+                solution = solution.split('\n')
+                    .filter(line => {
+                        const trimmedLine = line.trim();
+                        // Skip lines with "TEST PAPER WITH SOLUTION"
+                        if (/TEST\s+PAPER\s+WITH\s+SOLUTION/i.test(trimmedLine)) return false;
+                        // Skip markdown headers
+                        if (/^#{1,6}\s/.test(trimmedLine)) return false;
+                        return true;
+                    })
+                    .join('\n');
+                
+                // Clean up whitespace
+                solution = solution.replace(/\n{3,}/g, '\n\n').trim();
+                
                 solution = this.cleanMarkdown(solution);
                 return solution;
             }

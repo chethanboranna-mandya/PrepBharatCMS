@@ -3408,10 +3408,27 @@
                             debugContent += `<div style="color: #dc3545; margin: 2px 0;">Line ${i+1}: Found answer: ${line}</div>`;
                         }
                         
-                        // Start collecting solution
+                        // Start collecting solution - but don't include "Ans. (X)" line itself
                         inSolution = true;
-                        currentQuestion.solution = cleanImageReferences(line);
-                        debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Started solution collection: ${line.substring(0, 50)}...</div>`;
+                        currentQuestion.solution = '';  // Start with empty, will collect from next lines
+                        debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Answer found, ready to collect solution from next lines.</div>`;
+                    }
+                    // Check for "Sol." marker - this is where solution actually starts
+                    else if (line.trim().startsWith('Sol.')) {
+                        inSolution = true;
+                        // Don't include "Sol." marker itself, start from content after it
+                        const solContent = line.replace(/^Sol\.\s*/, '').trim();
+                        if (currentQuestion && solContent) {
+                            currentQuestion.solution = cleanImageReferences(solContent);
+                        } else if (currentQuestion) {
+                            currentQuestion.solution = '';
+                        }
+                        debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Solution marker found, started collecting.</div>`;
+                    }
+                    // Skip "## TEST PAPER WITH SOLUTION" lines
+                    else if (/TEST\s+PAPER\s+WITH\s+SOLUTION/i.test(line)) {
+                        debugContent += `<div style="color: #999; margin: 2px 0;">Line ${i+1}: Skipping unwanted header: ${line.substring(0, 50)}...</div>`;
+                        continue;
                     }
                     // Check for options (1), (2), (3), (4) - only if not in solution
                     else if (!inSolution) {
@@ -3665,13 +3682,36 @@
         }
         
         function cleanSolutionText(text) {
-            // Remove markdown images from solution text
-            let cleaned = text.replace(/!\[\]\([^)]+\)/g, '').trim();
+            if (!text) return '';
             
-            // Remove "Ans. (X)\nSol." prefix since it's already in correctAnswer and correctAnswerText
-            cleaned = cleaned.replace(/^Ans\.\s*\([1-4]\)\s*\n?Sol\.\s*\n?/i, '').trim();
+            // Extract solution starting from "Sol." until next question number
+            const solMatch = text.match(/Sol\.\s*([\s\S]*?)(?=\n\d+\.\s|\n\d+\.|$)/m);
+            if (solMatch) {
+                let cleaned = solMatch[1].trim();
+                
+                // Remove any "## TEST PAPER WITH SOLUTION" lines
+                cleaned = cleaned.split('\n')
+                    .filter(line => {
+                        const trimmedLine = line.trim();
+                        // Skip lines with "TEST PAPER WITH SOLUTION"
+                        if (/TEST\s+PAPER\s+WITH\s+SOLUTION/i.test(trimmedLine)) return false;
+                        // Skip markdown headers
+                        if (/^#{1,6}\s/.test(trimmedLine)) return false;
+                        return true;
+                    })
+                    .join('\n');
+                
+                // Remove markdown images from solution text
+                cleaned = cleaned.replace(/!\[\]\([^)]+\)/g, '').trim();
+                
+                // Clean up extra whitespace
+                cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+                
+                return cleaned;
+            }
             
-            return cleaned;
+            // Fallback: if no "Sol." found, return empty
+            return '';
         }
         
         function displayQuestions() {
