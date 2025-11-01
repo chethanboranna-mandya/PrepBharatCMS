@@ -540,11 +540,39 @@
             
             console.log(`🔄 ========== Starting automatic upload of ${totalImages} images to Firebase ==========`);
             
-            // Show notification
+            // Show notification with progress bar
             const notification = document.createElement('div');
-            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2563eb; color: white; padding: 15px 20px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
-            notification.innerHTML = `📤 Uploading ${totalImages} images to Firebase...`;
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2563eb; color: white; padding: 15px 20px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 300px;';
+            
+            // Main text
+            const mainText = document.createElement('div');
+            mainText.style.cssText = 'font-size: 14px; font-weight: 500; margin-bottom: 8px;';
+            mainText.textContent = `📤 Uploading ${totalImages} images to Firebase...`;
+            notification.appendChild(mainText);
+            
+            // Progress bar container
+            const progressBarContainer = document.createElement('div');
+            progressBarContainer.style.cssText = 'width: 100%; height: 6px; background: white; border-radius: 3px; overflow: hidden;';
+            
+            const progressBar = document.createElement('div');
+            progressBar.style.cssText = 'height: 100%; background: #10b981; width: 0%; transition: width 0.3s ease; border-radius: 3px;';
+            progressBarContainer.appendChild(progressBar);
+            notification.appendChild(progressBarContainer);
+            
+            // Progress text
+            const progressText = document.createElement('div');
+            progressText.style.cssText = 'font-size: 12px; margin-top: 6px; opacity: 0.9; text-align: center;';
+            progressText.textContent = `0 / ${totalImages}`;
+            notification.appendChild(progressText);
+            
             document.body.appendChild(notification);
+            
+            // Function to update progress
+            const updateProgress = (current) => {
+                const percentage = totalImages > 0 ? (current / totalImages) * 100 : 0;
+                progressBar.style.width = `${percentage}%`;
+                progressText.textContent = `${current} / ${totalImages}`;
+            };
             
             // Process all questions
             for (const question of allQuestions) {
@@ -569,6 +597,7 @@
                         // Skip if already a Firebase URL
                         if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
                             uploadedImages++;
+                            updateProgress(uploadedImages);
                             continue;
                         }
                         
@@ -577,6 +606,7 @@
                             const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, '', 'question');
                             imgObj.image = newUrl;
                             uploadedImages++;
+                            updateProgress(uploadedImages);
                             console.log(`  ✅ Uploaded question text image ${idx} for Q${questionNumber}: ${newUrl.substring(0, 60)}...`);
                         } catch (error) {
                             console.error(`  ❌ Failed to upload question text image ${idx} for Q${questionNumber}:`, error);
@@ -599,6 +629,7 @@
                         // Skip if already a Firebase URL
                         if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
                             uploadedImages++;
+                            updateProgress(uploadedImages);
                             continue;
                         }
                         
@@ -607,6 +638,7 @@
                             const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, '', 'solution');
                             imgObj.image = newUrl;
                             uploadedImages++;
+                            updateProgress(uploadedImages);
                             console.log(`  ✅ Uploaded solution image ${idx} for Q${questionNumber}: ${newUrl.substring(0, 60)}...`);
                         } catch (error) {
                             console.error(`  ❌ Failed to upload solution image ${idx} for Q${questionNumber}:`, error);
@@ -633,6 +665,7 @@
                             // Skip if already a Firebase URL
                             if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
                                 uploadedImages++;
+                                updateProgress(uploadedImages);
                                 continue;
                             }
                             
@@ -640,6 +673,7 @@
                                 const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, `opt${optIdx}`, 'option');
                                 imgObj.image = newUrl;
                                 uploadedImages++;
+                                updateProgress(uploadedImages);
                                 console.log(`  ✅ Uploaded option ${optIdx} image ${idx} for Q${questionNumber}`);
                             } catch (error) {
                                 console.error(`  ❌ Failed to upload option ${optIdx} image ${idx} for Q${questionNumber}:`, error);
@@ -654,12 +688,17 @@
             
             console.log(`✅ ========== Uploaded ${uploadedImages}/${totalImages} images to Firebase ==========`);
             
-            // Update notification
+            // Update notification - final state
             if (notification) {
+                updateProgress(uploadedImages); // Final update
                 notification.style.background = uploadedImages === totalImages ? '#10b981' : '#f59e0b';
-                notification.innerHTML = uploadedImages === totalImages 
-                    ? `✅ Successfully uploaded ${uploadedImages} images to Firebase!`
-                    : `⚠️ Uploaded ${uploadedImages}/${totalImages} images (some may have failed)`;
+                
+                // Update the main text
+                if (mainText) {
+                    mainText.textContent = uploadedImages === totalImages 
+                        ? `✅ Successfully uploaded ${uploadedImages} images to Firebase!`
+                        : `⚠️ Uploaded ${uploadedImages}/${totalImages} images (some may have failed)`;
+                }
                 
                 // Remove notification after 5 seconds
                 setTimeout(() => {
@@ -7652,11 +7691,19 @@ Please format this solution with clear step-by-step explanations and proper math
                                 
                                 if (optionImageUrl) {
                                     // Show image if it exists
+                                    const optionImgObj = question.optionImages && question.optionImages[optIndex] && question.optionImages[optIndex].length > 0 
+                                        ? question.optionImages[optIndex][0] 
+                                        : null;
+                                    const isFirebaseUrl = optionImageUrl.includes('firebasestorage.googleapis.com');
+                                    const hasUploadFailed = optionImgObj && optionImgObj.uploadFailed;
+                                    const uploadError = hasUploadFailed ? (optionImgObj.uploadError || 'Upload failed') : '';
+                                    
                                     return `
                                     <div class="option-image-upload">
                                         <div class="uploaded-images" id="option-images-${question.number}-${optIndex}">
-                                            <div class="uploaded-image">
-                                                <img src="${optionImageUrl}" alt="Option ${letter} image" style="max-width: 200px; max-height: 150px; border-radius: 4px;">
+                                            <div class="uploaded-image" style="position: relative;">
+                                                <img src="${optionImageUrl}" alt="Option ${letter} image" style="max-width: 200px; max-height: 150px; border-radius: 4px;" onload="checkAndMarkUploadedImage(this)">
+                                                ${isFirebaseUrl ? '<div class="upload-checkmark">✅</div>' : (hasUploadFailed ? `<div class="upload-error" title="${uploadError}">❌</div>` : '')}
                                                 <button class="remove-image" onclick="removeOptionImage(${question.number}, ${optIndex})">×</button>
                                             </div>
                                         </div>
@@ -8470,11 +8517,19 @@ Please format this solution with clear step-by-step explanations and proper math
                                         
                                         if (optionImageUrl) {
                                             // Show image if it exists
+                                            const optionImgObj = question.optionImages && question.optionImages[idx] && question.optionImages[idx].length > 0 
+                                                ? question.optionImages[idx][0] 
+                                                : null;
+                                            const isFirebaseUrl = optionImageUrl.includes('firebasestorage.googleapis.com');
+                                            const hasUploadFailed = optionImgObj && optionImgObj.uploadFailed;
+                                            const uploadError = hasUploadFailed ? (optionImgObj.uploadError || 'Upload failed') : '';
+                                            
                                             return `
                                             <div class="option-image-upload">
                                                 <div class="uploaded-images" id="option-images-${question.number}-${idx}">
-                                                    <div class="uploaded-image">
-                                                        <img src="${optionImageUrl}" alt="Option ${option} image" style="max-width: 200px; max-height: 150px; border-radius: 4px;">
+                                                    <div class="uploaded-image" style="position: relative;">
+                                                        <img src="${optionImageUrl}" alt="Option ${option} image" style="max-width: 200px; max-height: 150px; border-radius: 4px;" onload="checkAndMarkUploadedImage(this)">
+                                                        ${isFirebaseUrl ? '<div class="upload-checkmark">✅</div>' : (hasUploadFailed ? `<div class="upload-error" title="${uploadError}">❌</div>` : '')}
                                                         <button class="remove-image" onclick="removeOptionImage(${question.number}, ${idx})">×</button>
                                                     </div>
                                                 </div>
