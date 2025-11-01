@@ -92,6 +92,943 @@
                 );
             });
         };
+        
+        // Extract bitmap image from img element and upload to Firebase
+        window.extractAndUploadImageFromView = function(imgElement, subject, year, questionNumber, imageIndex, suffix = '', onProgress = null) {
+            return new Promise((resolve, reject) => {
+                try {
+                    // Check if image is already a Firebase URL
+                    const currentSrc = imgElement.src;
+                    if (currentSrc && currentSrc.includes('firebasestorage.googleapis.com')) {
+                        resolve(currentSrc); // Already uploaded, return existing URL
+                        return;
+                    }
+                    
+                    // Check if image is loaded
+                    if (!imgElement.complete || imgElement.naturalHeight === 0) {
+                        // Wait for image to load
+                        imgElement.onload = function() {
+                            proceedWithExtraction();
+                        };
+                        imgElement.onerror = function() {
+                            reject(new Error('Failed to load image'));
+                        };
+                    } else {
+                        proceedWithExtraction();
+                    }
+                    
+                    function proceedWithExtraction() {
+                        // Create canvas
+                        const canvas = document.createElement('canvas');
+                        canvas.width = imgElement.naturalWidth || imgElement.width;
+                        canvas.height = imgElement.naturalHeight || imgElement.height;
+                        
+                        // Draw image to canvas
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(imgElement, 0, 0);
+                        
+                        // Convert canvas to blob
+                        canvas.toBlob((blob) => {
+                            if (!blob) {
+                                reject(new Error('Failed to extract image data'));
+                                return;
+                            }
+                            
+                            // Generate custom filename
+                            const tutorialId = getTutorialIdForUpload(subject);
+                            const customFileName = `${tutorialId}_Q${questionNumber}_image${imageIndex}${suffix ? '_' + suffix : ''}`;
+                            
+                            // Upload to Firebase
+                            uploadImageToFirebase(blob, subject, year, questionNumber - 1, suffix, onProgress, customFileName)
+                                .then(url => {
+                                    // Update img src to Firebase URL
+                                    imgElement.src = url;
+                                    
+                                    // Show checkmark indicator
+                                    showUploadCheckmark(imgElement);
+                                    
+                                    resolve(url);
+                                })
+                                .catch(reject);
+                        }, 'image/png'); // Use PNG format to preserve quality
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        };
+        
+        // Show checkmark indicator on image element
+        function showUploadCheckmark(imgElement) {
+            // Remove existing indicators if any
+            const existingCheckmark = imgElement.parentElement?.querySelector('.upload-checkmark');
+            if (existingCheckmark) {
+                existingCheckmark.remove();
+            }
+            const existingError = imgElement.parentElement?.querySelector('.upload-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Create checkmark indicator
+            const checkmark = document.createElement('div');
+            checkmark.className = 'upload-checkmark';
+            checkmark.innerHTML = '✅';
+            checkmark.title = 'Uploaded to Firebase';
+            
+            // Position checkmark (top-right corner of image parent)
+            const imgParent = imgElement.parentElement;
+            if (imgParent) {
+                if (imgParent.style.position !== 'relative' && imgParent.style.position !== 'absolute') {
+                    imgParent.style.position = 'relative';
+                }
+                imgParent.appendChild(checkmark);
+            }
+        };
+        
+        // Show error indicator on image element
+        function showUploadError(imgElement, errorMessage = 'Upload failed') {
+            // Remove existing indicators if any
+            const existingCheckmark = imgElement.parentElement?.querySelector('.upload-checkmark');
+            if (existingCheckmark) {
+                existingCheckmark.remove();
+            }
+            const existingError = imgElement.parentElement?.querySelector('.upload-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Create error indicator
+            const errorIndicator = document.createElement('div');
+            errorIndicator.className = 'upload-error';
+            errorIndicator.innerHTML = '❌';
+            errorIndicator.title = errorMessage || 'Upload failed';
+            
+            // Position error indicator (top-right corner of image parent)
+            const imgParent = imgElement.parentElement;
+            if (imgParent) {
+                if (imgParent.style.position !== 'relative' && imgParent.style.position !== 'absolute') {
+                    imgParent.style.position = 'relative';
+                }
+                imgParent.appendChild(errorIndicator);
+            }
+        };
+        
+        // Check if image is from Firebase and show checkmark or error
+        window.checkAndMarkUploadedImage = function(imgElement) {
+            if (!imgElement || !imgElement.src) return;
+            
+            const imgParent = imgElement.parentElement;
+            if (!imgParent) return;
+            
+            // Check if it's a Firebase URL
+            if (imgElement.src && imgElement.src.includes('firebasestorage.googleapis.com')) {
+                showUploadCheckmark(imgElement);
+                return;
+            }
+            
+            // Check if this image has uploadFailed flag (check in question object)
+            // Try to find question number to check question object
+            let questionNumber = null;
+            let container = imgParent;
+            for (let i = 0; i < 5 && container && !questionNumber; i++) {
+                if (container.id) {
+                    const match = container.id.match(/(?:question|solution|text)[_-]*(?:content|rows|images)[_-]*(\d+)/i) ||
+                                container.id.match(/question[_-]?(\d+)/i);
+                    if (match) {
+                        questionNumber = parseInt(match[1]);
+                        break;
+                    }
+                }
+                container = container.parentElement;
+            }
+            
+            // Check if this image failed to upload
+            if (questionNumber) {
+                const question = allQuestions.find(q => q.number === questionNumber);
+                if (question) {
+                    // Check solutionTextImages, textImages, and optionImages for this image
+                    const allImages = [
+                        ...(question.solutionTextImages || []),
+                        ...(question.textImages || []),
+                        ...(question.optionImages?.flat() || [])
+                    ];
+                    
+                    const imageObj = allImages.find(img => img && img.image === imgElement.src);
+                    if (imageObj && imageObj.uploadFailed) {
+                        showUploadError(imgElement, imageObj.uploadError || 'Upload failed - CORS restrictions');
+                        return;
+                    }
+                }
+            }
+            
+            // Don't show upload button during automatic upload
+            if (isAutoUploading) {
+                return;
+            }
+            
+            // Only show upload button if we found a question number and not during auto upload
+            if (questionNumber && !isAutoUploading) {
+                showUploadButton(imgElement, questionNumber, null);
+            }
+        };
+        
+        // Show upload button on image element (if not uploaded to Firebase)
+        function showUploadButton(imgElement, questionNumber = null, imageIndex = null) {
+            // Don't show button if already uploaded or button exists
+            if (imgElement.src && imgElement.src.includes('firebasestorage.googleapis.com')) {
+                showUploadCheckmark(imgElement);
+                return;
+            }
+            
+            // Don't show button if question number is not available
+            if (!questionNumber || isNaN(questionNumber)) {
+                console.warn('Cannot show upload button: question number not available for image:', imgElement.src);
+                return;
+            }
+            
+            const imgParent = imgElement.parentElement;
+            if (!imgParent) return;
+            
+            // Remove existing upload button if any
+            const existingBtn = imgParent.querySelector('.upload-image-btn');
+            if (existingBtn) return; // Already has button
+            
+            // Remove existing checkmark if any
+            const existingCheckmark = imgParent.querySelector('.upload-checkmark');
+            if (existingCheckmark) return; // Already uploaded
+            
+            // Ensure parent has relative positioning
+            if (imgParent.style.position !== 'relative' && imgParent.style.position !== 'absolute') {
+                imgParent.style.position = 'relative';
+            }
+            
+            // Create upload button
+            const uploadBtn = document.createElement('button');
+            uploadBtn.className = 'upload-image-btn';
+            uploadBtn.innerHTML = '⬆';
+            uploadBtn.title = 'Upload to Firebase';
+            uploadBtn.onclick = function(e) {
+                e.stopPropagation();
+                uploadImageFromView(imgElement, questionNumber, imageIndex);
+            };
+            
+            imgParent.appendChild(uploadBtn);
+        };
+        
+        // Upload image from view with automatic subject/year detection
+        function uploadImageFromView(imgElement, questionNumber = null, imageIndex = null) {
+            if (!imgElement) return;
+            
+            // Get question number from nearest parent or parameter
+            if (!questionNumber) {
+                // 1. Try data-question attribute
+                const dataQuestion = imgElement.closest('[data-question]');
+                if (dataQuestion) {
+                    questionNumber = parseInt(dataQuestion.getAttribute('data-question'));
+                }
+                
+                // 2. Try container IDs (like solution-content-rows-10)
+                if (!questionNumber) {
+                    let container = imgElement.parentElement;
+                    for (let i = 0; i < 5 && container && !questionNumber; i++) {
+                        if (container.id) {
+                            const match = container.id.match(/(?:question|solution|text)[_-]*(?:content|rows|images)[_-]*(\d+)/i) ||
+                                        container.id.match(/question[_-]?(\d+)/i);
+                            if (match) {
+                                questionNumber = parseInt(match[1]);
+                                break;
+                            }
+                        }
+                        container = container.parentElement;
+                    }
+                }
+                
+                // 3. Try question element in DOM hierarchy
+                if (!questionNumber) {
+                    const questionElement = imgElement.closest('[id*="question"], .question-container, [data-question-number]');
+                    if (questionElement) {
+                        if (questionElement.id) {
+                            const match = questionElement.id.match(/question[_-]?(\d+)/i);
+                            if (match) questionNumber = parseInt(match[1]);
+                        }
+                        if (!questionNumber && questionElement.getAttribute) {
+                            questionNumber = parseInt(questionElement.getAttribute('data-question-number'));
+                        }
+                    }
+                }
+            }
+            
+            if (!questionNumber || isNaN(questionNumber)) {
+                console.warn('Could not determine question number for image:', imgElement.src);
+                // Only show alert if user manually clicked upload button
+                const uploadBtn = imgElement.parentElement?.querySelector('.upload-image-btn');
+                if (uploadBtn && uploadBtn.onclick) {
+                    alert('Could not determine question number. Please specify.');
+                }
+                return;
+            }
+            
+            // Get subject
+            const currentSubject = getCurrentSubject ? getCurrentSubject() : 'Mathematics';
+            const year = '2025';
+            const suffix = '';
+            
+            // Show uploading indicator
+            const uploadBtn = imgElement.parentElement.querySelector('.upload-image-btn');
+            if (uploadBtn) {
+                uploadBtn.innerHTML = '⏳';
+                uploadBtn.style.pointerEvents = 'none';
+            }
+            
+            // Extract and upload
+            extractAndUploadImageFromView(imgElement, currentSubject, year, questionNumber, imageIndex || 0, suffix, (percent) => {
+                if (uploadBtn) {
+                    uploadBtn.innerHTML = `${percent}%`;
+                }
+            })
+            .then(url => {
+                console.log('Image uploaded to Firebase:', url);
+                // Button will be replaced by checkmark
+                if (uploadBtn) {
+                    uploadBtn.remove();
+                }
+                
+                // Update question object if questionNumber is available
+                const question = allQuestions.find(q => q.number === questionNumber);
+                if (question) {
+                    // Update the image URL in the appropriate array
+                    // This depends on where the image is (question text, options, solution)
+                    // You may need to identify which type it is from context
+                }
+            })
+            .catch(error => {
+                console.error('Upload failed:', error);
+                if (uploadBtn) {
+                    uploadBtn.innerHTML = '❌';
+                    uploadBtn.title = 'Upload failed. Click to retry.';
+                    uploadBtn.style.pointerEvents = 'auto';
+                }
+                alert('Failed to upload image: ' + error.message);
+            });
+        };
+        
+        // Scan all images on page and add upload buttons or checkmarks
+        window.scanAndMarkImages = function(container = null) {
+            const scope = container || document;
+            const images = scope.querySelectorAll('img[src]:not([src=""])');
+            
+            images.forEach((img, index) => {
+                // Skip if already has upload button or checkmark
+                const imgParent = img.parentElement;
+                if (!imgParent) return;
+                
+                if (imgParent.querySelector('.upload-checkmark') || imgParent.querySelector('.upload-image-btn')) {
+                    return; // Already marked
+                }
+                
+                // Check if it's a Firebase URL
+                if (img.src && img.src.includes('firebasestorage.googleapis.com')) {
+                    showUploadCheckmark(img);
+                } else if (img.src && !img.src.startsWith('data:')) {
+                    // Not a data URL and not Firebase - try to find question number from context
+                    let questionNumber = null;
+                    
+                    // Try to find question number from various contexts
+                    // 1. From closest element with data-question attribute
+                    const dataQuestion = img.closest('[data-question]');
+                    if (dataQuestion) {
+                        questionNumber = parseInt(dataQuestion.getAttribute('data-question'));
+                    }
+                    
+                    // 2. From container IDs (like solution-content-rows-10)
+                    if (!questionNumber) {
+                        let container = imgParent;
+                        for (let i = 0; i < 5 && container && !questionNumber; i++) {
+                            if (container.id) {
+                                const match = container.id.match(/(?:question|solution|text)[_-]*(?:content|rows|images)[_-]*(\d+)/i) ||
+                                            container.id.match(/question[_-]?(\d+)/i);
+                                if (match) {
+                                    questionNumber = parseInt(match[1]);
+                                    break;
+                                }
+                            }
+                            container = container.parentElement;
+                        }
+                    }
+                    
+                    // 3. From question element in DOM hierarchy
+                    if (!questionNumber) {
+                        const questionElement = img.closest('[id*="question"], .question-container, [data-question-number]');
+                        if (questionElement) {
+                            if (questionElement.id) {
+                                const match = questionElement.id.match(/question[_-]?(\d+)/i);
+                                if (match) questionNumber = parseInt(match[1]);
+                            }
+                            if (!questionNumber && questionElement.getAttribute) {
+                                questionNumber = parseInt(questionElement.getAttribute('data-question-number'));
+                            }
+                        }
+                    }
+                    
+                    // Only show upload button if we found a question number and not during auto upload
+                    // Otherwise, just show checkmark if it's Firebase URL (already handled above)
+                    if (questionNumber && !isAutoUploading) {
+                        showUploadButton(img, questionNumber, index);
+                    }
+                }
+            });
+        };
+        
+        // Flag to track if automatic upload is in progress
+        let isAutoUploading = false;
+        
+        // Upload all extracted images from questions to Firebase
+        window.uploadAllExtractedImages = async function uploadAllExtractedImages() {
+            console.log('🚀 uploadAllExtractedImages() called');
+            
+            if (!allQuestions || allQuestions.length === 0) {
+                console.warn('⚠️ No questions to process images for');
+                return;
+            }
+            
+            console.log(`📋 Found ${allQuestions.length} questions`);
+            
+            // Set flag to prevent showing upload buttons during automatic upload
+            isAutoUploading = true;
+            
+            const currentSubject = getCurrentSubject ? getCurrentSubject() : 'Mathematics';
+            const year = '2025';
+            let totalImages = 0;
+            let uploadedImages = 0;
+            
+            // Count total images to upload
+            allQuestions.forEach((question, qIdx) => {
+                const qNum = question.number || question.questionNumber || question.questionIndex;
+                let qImageCount = 0;
+                
+                if (question.textImages) {
+                    qImageCount += question.textImages.length;
+                    console.log(`  Q${qNum}: Found ${question.textImages.length} text image(s)`);
+                }
+                if (question.solutionTextImages) {
+                    qImageCount += question.solutionTextImages.length;
+                    console.log(`  Q${qNum}: Found ${question.solutionTextImages.length} solution image(s)`);
+                }
+                if (question.optionImages) {
+                    question.optionImages.forEach((optImgs, optIdx) => {
+                        if (optImgs && optImgs.length > 0) {
+                            qImageCount += optImgs.length;
+                            console.log(`  Q${qNum}: Found ${optImgs.length} option ${optIdx} image(s)`);
+                        }
+                    });
+                }
+                
+                totalImages += qImageCount;
+                if (qImageCount > 0) {
+                    console.log(`  Q${qNum}: Total ${qImageCount} image(s) for this question`);
+                }
+            });
+            
+            console.log(`📊 Total images found across all questions: ${totalImages}`);
+            
+            if (totalImages === 0) {
+                console.warn('⚠️ No images to upload - no images were extracted from the .md file');
+                isAutoUploading = false;
+                return;
+            }
+            
+            console.log(`🔄 ========== Starting automatic upload of ${totalImages} images to Firebase ==========`);
+            
+            // Show notification
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2563eb; color: white; padding: 15px 20px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            notification.innerHTML = `📤 Uploading ${totalImages} images to Firebase...`;
+            document.body.appendChild(notification);
+            
+            // Process all questions
+            for (const question of allQuestions) {
+                const questionNumber = question.number || question.questionNumber || question.questionIndex;
+                
+                // Skip if question number is invalid
+                if (!questionNumber || questionNumber === 'undefined' || questionNumber === 'null') {
+                    console.warn('⚠️ Skipping question with invalid number:', question);
+                    continue;
+                }
+                
+                console.log(`📤 Processing Q${questionNumber}...`);
+                
+                // Upload text images
+                if (question.textImages && Array.isArray(question.textImages)) {
+                    for (let idx = 0; idx < question.textImages.length; idx++) {
+                        const imgObj = question.textImages[idx];
+                        if (!imgObj || !imgObj.image) continue;
+                        
+                        const imageUrl = imgObj.image;
+                        
+                        // Skip if already a Firebase URL
+                        if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
+                            uploadedImages++;
+                            continue;
+                        }
+                        
+                        try {
+                            console.log(`  ↳ Uploading question text image ${idx} for Q${questionNumber}...`);
+                            const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, '', 'question');
+                            imgObj.image = newUrl;
+                            uploadedImages++;
+                            console.log(`  ✅ Uploaded question text image ${idx} for Q${questionNumber}: ${newUrl.substring(0, 60)}...`);
+                        } catch (error) {
+                            console.error(`  ❌ Failed to upload question text image ${idx} for Q${questionNumber}:`, error);
+                            // Keep original URL if upload fails - image will still be displayed
+                            // Mark as failed for UI indication
+                            imgObj.uploadFailed = true;
+                            imgObj.uploadError = error.message || 'Upload failed';
+                        }
+                    }
+                }
+                
+                // Upload solution images
+                if (question.solutionTextImages && Array.isArray(question.solutionTextImages)) {
+                    for (let idx = 0; idx < question.solutionTextImages.length; idx++) {
+                        const imgObj = question.solutionTextImages[idx];
+                        if (!imgObj || !imgObj.image) continue;
+                        
+                        const imageUrl = imgObj.image;
+                        
+                        // Skip if already a Firebase URL
+                        if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
+                            uploadedImages++;
+                            continue;
+                        }
+                        
+                        try {
+                            console.log(`  ↳ Uploading solution image ${idx} for Q${questionNumber}...`);
+                            const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, '', 'solution');
+                            imgObj.image = newUrl;
+                            uploadedImages++;
+                            console.log(`  ✅ Uploaded solution image ${idx} for Q${questionNumber}: ${newUrl.substring(0, 60)}...`);
+                        } catch (error) {
+                            console.error(`  ❌ Failed to upload solution image ${idx} for Q${questionNumber}:`, error);
+                            // Keep original URL if upload fails - image will still be displayed
+                            // Mark as failed for UI indication
+                            imgObj.uploadFailed = true;
+                            imgObj.uploadError = error.message || 'Upload failed';
+                        }
+                    }
+                }
+                
+                // Upload option images
+                if (question.optionImages && Array.isArray(question.optionImages)) {
+                    for (let optIdx = 0; optIdx < question.optionImages.length; optIdx++) {
+                        const optImgs = question.optionImages[optIdx];
+                        if (!optImgs || !Array.isArray(optImgs)) continue;
+                        
+                        for (let idx = 0; idx < optImgs.length; idx++) {
+                            const imgObj = optImgs[idx];
+                            if (!imgObj || !imgObj.image) continue;
+                            
+                            const imageUrl = imgObj.image;
+                            
+                            // Skip if already a Firebase URL
+                            if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
+                                uploadedImages++;
+                                continue;
+                            }
+                            
+                            try {
+                                const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, `opt${optIdx}`, 'option');
+                                imgObj.image = newUrl;
+                                uploadedImages++;
+                                console.log(`  ✅ Uploaded option ${optIdx} image ${idx} for Q${questionNumber}`);
+                            } catch (error) {
+                                console.error(`  ❌ Failed to upload option ${optIdx} image ${idx} for Q${questionNumber}:`, error);
+                                // Keep original URL if upload fails
+                                imgObj.uploadFailed = true;
+                                imgObj.uploadError = error.message || 'Upload failed';
+                            }
+                        }
+                    }
+                }
+            }
+            
+            console.log(`✅ ========== Uploaded ${uploadedImages}/${totalImages} images to Firebase ==========`);
+            
+            // Update notification
+            if (notification) {
+                notification.style.background = uploadedImages === totalImages ? '#10b981' : '#f59e0b';
+                notification.innerHTML = uploadedImages === totalImages 
+                    ? `✅ Successfully uploaded ${uploadedImages} images to Firebase!`
+                    : `⚠️ Uploaded ${uploadedImages}/${totalImages} images (some may have failed)`;
+                
+                // Remove notification after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 5000);
+            }
+            
+            // Clear flag - automatic upload is complete
+            isAutoUploading = false;
+            
+            // Refresh display and scan for checkmarks
+            setTimeout(() => {
+                console.log('🔄 Refreshing display with Firebase URLs...');
+                displayQuestions(); // Refresh to show Firebase URLs
+                
+                // Function to add checkmarks to all Firebase images
+                const addCheckmarksToFirebaseImages = () => {
+                    console.log('🔍 Scanning for Firebase images to add checkmarks...');
+                    const images = document.querySelectorAll('img[src]');
+                    let checkmarkCount = 0;
+                    let firebaseImageCount = 0;
+                    
+                    images.forEach((img, idx) => {
+                        if (img.src && img.src.includes('firebasestorage.googleapis.com')) {
+                            firebaseImageCount++;
+                            // Only add checkmarks for Firebase URLs
+                            try {
+                                checkAndMarkUploadedImage(img);
+                                checkmarkCount++;
+                                console.log(`  ✅ Added checkmark to image ${idx + 1}: ${img.src.substring(0, 50)}...`);
+                            } catch (error) {
+                                console.error(`  ❌ Failed to add checkmark to image ${idx + 1}:`, error);
+                            }
+                        }
+                    });
+                    
+                    console.log(`✅ Found ${firebaseImageCount} Firebase images, added checkmarks to ${checkmarkCount} images`);
+                    return firebaseImageCount;
+                };
+                
+                // Wait for images to load, then add checkmarks
+                const waitForImagesAndAddCheckmarks = (attempts = 0, maxAttempts = 10) => {
+                    const images = document.querySelectorAll('img[src]');
+                    const firebaseImages = Array.from(images).filter(img => 
+                        img.src && img.src.includes('firebasestorage.googleapis.com')
+                    );
+                    
+                    if (firebaseImages.length === 0 && attempts < maxAttempts) {
+                        console.log(`⏳ Waiting for Firebase images to load... (attempt ${attempts + 1}/${maxAttempts})`);
+                        setTimeout(() => waitForImagesAndAddCheckmarks(attempts + 1, maxAttempts), 500);
+                        return;
+                    }
+                    
+                    // All images loaded or max attempts reached
+                    const firebaseCount = addCheckmarksToFirebaseImages();
+                    
+                    if (firebaseCount === 0 && attempts < maxAttempts) {
+                        console.log(`⏳ No Firebase images found yet, retrying... (attempt ${attempts + 1}/${maxAttempts})`);
+                        setTimeout(() => waitForImagesAndAddCheckmarks(attempts + 1, maxAttempts), 1000);
+                    } else {
+                        // Final scan for any missed checkmarks
+                        setTimeout(() => {
+                            console.log('🔍 Final scan for checkmarks...');
+                            scanAndMarkImages();
+                        }, 1000);
+                    }
+                };
+                
+                // Start checking after a short delay
+                setTimeout(() => waitForImagesAndAddCheckmarks(), 500);
+            }, 500);
+        };
+        
+        // Temporary cache for image blobs using IndexedDB
+        const imageCacheDB = 'imageCacheDB';
+        const imageCacheStore = 'imageCache';
+        
+        async function openImageCache() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(imageCacheDB, 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(imageCacheStore)) {
+                        db.createObjectStore(imageCacheStore);
+                    }
+                };
+            });
+        }
+        
+        async function saveImageToCache(imageUrl, blob) {
+            try {
+                const db = await openImageCache();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([imageCacheStore], 'readwrite');
+                    const store = transaction.objectStore(imageCacheStore);
+                    const request = store.put(blob, imageUrl);
+                    request.onsuccess = () => {
+                        console.log(`💾 Saved image to cache: ${imageUrl.substring(0, 50)}...`);
+                        resolve();
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (error) {
+                console.warn(`⚠️ Failed to save to cache:`, error);
+                // Don't fail if cache fails
+            }
+        }
+        
+        async function getImageFromCache(imageUrl) {
+            try {
+                const db = await openImageCache();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([imageCacheStore], 'readonly');
+                    const store = transaction.objectStore(imageCacheStore);
+                    const request = store.get(imageUrl);
+                    request.onsuccess = () => {
+                        if (request.result) {
+                            console.log(`📂 Found image in cache: ${imageUrl.substring(0, 50)}...`);
+                            resolve(request.result);
+                        } else {
+                            resolve(null);
+                        }
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (error) {
+                console.warn(`⚠️ Failed to read from cache:`, error);
+                return null;
+            }
+        }
+        
+        async function deleteImageFromCache(imageUrl) {
+            try {
+                const db = await openImageCache();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([imageCacheStore], 'readwrite');
+                    const store = transaction.objectStore(imageCacheStore);
+                    const request = store.delete(imageUrl);
+                    request.onsuccess = () => {
+                        console.log(`🗑️ Deleted image from cache: ${imageUrl.substring(0, 50)}...`);
+                        resolve();
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (error) {
+                console.warn(`⚠️ Failed to delete from cache:`, error);
+                // Don't fail if cache deletion fails
+            }
+        }
+        
+        // Upload image from URL to Firebase using displayed image extraction
+        async function uploadImageFromUrl(imageUrl, subject, year, questionNumber, imageIndex, suffix = '', type = 'question') {
+            return new Promise(async (resolve, reject) => {
+                // Skip if already Firebase URL
+                if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
+                    resolve(imageUrl);
+                    return;
+                }
+                
+                console.log(`🖼️ Processing image: ${imageUrl.substring(0, 80)}...`);
+                
+                // Step 1: Check cache first
+                const cachedBlob = await getImageFromCache(imageUrl);
+                if (cachedBlob) {
+                    console.log(`📂 Using cached blob for upload...`);
+                    try {
+                        const tutorialId = getTutorialIdForUpload(subject);
+                        const typeSuffix = type === 'question' ? 'img' : type === 'solution' ? 'sol' : 'opt';
+                        const customFileName = `${tutorialId}_Q${questionNumber}_${typeSuffix}${imageIndex}${suffix ? '_' + suffix : ''}`;
+                        
+                        const firebaseUrl = await uploadImageToFirebase(cachedBlob, subject, year, questionNumber - 1, suffix, null, customFileName);
+                        console.log(`✅ Uploaded from cache: ${firebaseUrl}`);
+                        
+                        // Step 5: Delete from cache after successful upload
+                        await deleteImageFromCache(imageUrl);
+                        
+                        resolve(firebaseUrl);
+                        return;
+                    } catch (error) {
+                        console.error(`❌ Failed to upload from cache:`, error);
+                        // Fall through to fetch fresh
+                    }
+                }
+                
+                // Step 2: Render image in DOM first
+                console.log(`🖼️ Rendering image in DOM for extraction: ${imageUrl.substring(0, 50)}...`);
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // Try CORS, but may not work for all images
+                
+                // Create a container to hold the image
+                const imageContainer = document.createElement('div');
+                imageContainer.style.position = 'absolute';
+                imageContainer.style.left = '-9999px';
+                imageContainer.style.top = '-9999px';
+                imageContainer.style.width = '1px';
+                imageContainer.style.height = '1px';
+                imageContainer.style.overflow = 'hidden';
+                imageContainer.appendChild(img);
+                document.body.appendChild(imageContainer);
+                
+                const loadTimeout = setTimeout(() => {
+                    img.onload = null;
+                    img.onerror = null;
+                    if (imageContainer.parentNode) {
+                        imageContainer.parentNode.removeChild(imageContainer);
+                    }
+                    reject(new Error(`Image load timeout: ${imageUrl.substring(0, 50)}...`));
+                }, 30000);
+                
+                img.onload = async function() {
+                    clearTimeout(loadTimeout);
+                    console.log(`✅ Image rendered in DOM, extracting bitmap...`);
+                    
+                    // Step 3: Extract bitmap - try canvas first, fall back to CORS proxy
+                    let blob = null;
+                    
+                    // Try canvas extraction
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        const ctx = canvas.getContext('2d');
+                        
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Check if canvas is tainted
+                        try {
+                            ctx.getImageData(0, 0, 1, 1);
+                            
+                            // Not tainted - extract blob
+                            blob = await new Promise((resolveCanvas, rejectCanvas) => {
+                                canvas.toBlob((blobResult) => {
+                                    if (blobResult) {
+                                        console.log(`📦 Extracted bitmap from rendered view (${(blobResult.size / 1024).toFixed(2)} KB)`);
+                                        resolveCanvas(blobResult);
+                                    } else {
+                                        rejectCanvas(new Error('Canvas toBlob returned null'));
+                                    }
+                                }, 'image/png');
+                            });
+                        } catch (taintedError) {
+                            // Canvas is tainted - use CORS proxy
+                            console.warn(`⚠️ Canvas is tainted, using CORS proxy...`);
+                            blob = null;
+                        }
+                    } catch (canvasError) {
+                        console.warn(`⚠️ Canvas extraction failed:`, canvasError);
+                        blob = null;
+                    }
+                    
+                    // Clean up image container
+                    if (imageContainer.parentNode) {
+                        imageContainer.parentNode.removeChild(imageContainer);
+                    }
+                    
+                    // If canvas extraction failed, use CORS proxy
+                    if (!blob) {
+                        console.log(`🌐 Fetching via CORS proxy...`);
+                        blob = await fetchImageViaProxy(imageUrl);
+                    }
+                    
+                    if (!blob) {
+                        reject(new Error(`Failed to extract image bitmap: ${imageUrl.substring(0, 50)}...`));
+                        return;
+                    }
+                    
+                    // Step 4: Save to cache
+                    await saveImageToCache(imageUrl, blob);
+                    
+                    // Step 5: Upload to Firebase
+                    try {
+                        const tutorialId = getTutorialIdForUpload(subject);
+                        const typeSuffix = type === 'question' ? 'img' : type === 'solution' ? 'sol' : 'opt';
+                        const customFileName = `${tutorialId}_Q${questionNumber}_${typeSuffix}${imageIndex}${suffix ? '_' + suffix : ''}`;
+                        
+                        const firebaseUrl = await uploadImageToFirebase(blob, subject, year, questionNumber - 1, suffix, null, customFileName);
+                        console.log(`✅ Successfully uploaded ${type} image for Q${questionNumber}: ${firebaseUrl}`);
+                        
+                        // Step 6: Delete from cache after successful upload
+                        await deleteImageFromCache(imageUrl);
+                        
+                        resolve(firebaseUrl);
+                    } catch (uploadError) {
+                        console.error(`❌ Failed to upload to Firebase:`, uploadError);
+                        // Keep blob in cache for retry
+                        reject(uploadError);
+                    }
+                };
+                
+                img.onerror = function(error) {
+                    clearTimeout(loadTimeout);
+                    if (imageContainer.parentNode) {
+                        imageContainer.parentNode.removeChild(imageContainer);
+                    }
+                    console.warn(`⚠️ Image failed to load in DOM: ${imageUrl.substring(0, 50)}...`);
+                    
+                    // Try CORS proxy as fallback
+                    fetchImageViaProxy(imageUrl)
+                        .then(async (blob) => {
+                            if (!blob) {
+                                reject(new Error(`Failed to fetch image: ${imageUrl.substring(0, 50)}...`));
+                                return;
+                            }
+                            
+                            // Save to cache
+                            await saveImageToCache(imageUrl, blob);
+                            
+                            // Upload
+                            const tutorialId = getTutorialIdForUpload(subject);
+                            const typeSuffix = type === 'question' ? 'img' : type === 'solution' ? 'sol' : 'opt';
+                            const customFileName = `${tutorialId}_Q${questionNumber}_${typeSuffix}${imageIndex}${suffix ? '_' + suffix : ''}`;
+                            
+                            const firebaseUrl = await uploadImageToFirebase(blob, subject, year, questionNumber - 1, suffix, null, customFileName);
+                            console.log(`✅ Successfully uploaded ${type} image for Q${questionNumber} (via proxy): ${firebaseUrl}`);
+                            
+                            // Delete from cache
+                            await deleteImageFromCache(imageUrl);
+                            
+                            resolve(firebaseUrl);
+                        })
+                        .catch(proxyError => {
+                            reject(new Error(`Failed to fetch image via proxy: ${proxyError.message}`));
+                        });
+                };
+                
+                // Start loading image
+                img.src = imageUrl;
+                
+                // Helper function to fetch image via CORS proxy
+                async function fetchImageViaProxy(url) {
+                    const corsProxies = [
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+                        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                        `https://corsproxy.io/?${encodeURIComponent(url)}`
+                    ];
+                    
+                    for (let i = 0; i < corsProxies.length; i++) {
+                        try {
+                            console.log(`🔗 Trying proxy ${i + 1}/${corsProxies.length}...`);
+                            const response = await fetch(corsProxies[i], {
+                                method: 'GET',
+                                mode: 'cors'
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            }
+                            
+                            const blob = await response.blob();
+                            console.log(`📦 Fetched image via CORS proxy (${(blob.size / 1024).toFixed(2)} KB)`);
+                            return blob;
+                        } catch (error) {
+                            console.warn(`⚠️ Proxy ${i + 1} failed:`, error);
+                            if (i === corsProxies.length - 1) {
+                                throw new Error(`All CORS proxies failed: ${error.message}`);
+                            }
+                            // Wait before trying next proxy
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                    }
+                    
+                    return null;
+                }
+            });
+        };
     </script>
     <style>
         :root {
@@ -2093,6 +3030,102 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+        
+        .upload-checkmark {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            animation: checkmarkPulse 0.3s ease-in-out;
+        }
+        
+        @keyframes checkmarkPulse {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .upload-image-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(37, 99, 235, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background 0.2s;
+        }
+        
+        .upload-image-btn:hover {
+            background: rgba(37, 99, 235, 1);
+        }
+        
+        .upload-image-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .upload-error {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            animation: checkmarkPulse 0.3s ease-in-out;
+        }
+        
+        .upload-error:hover {
+            background: rgba(239, 68, 68, 1);
+        }
+        
+        .upload-error::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 5px;
+            padding: 8px 12px;
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            font-size: 12px;
+        }
+        
+        .upload-error:hover::after {
+            opacity: 1;
         }
         
         .remove-image {
@@ -4908,6 +5941,7 @@ Please format this solution with clear step-by-step explanations and proper math
                             currentQuestion.solution += '\n' + continuedResult.text;
                             // Add extracted images to solution images
                             if (continuedResult.images.length > 0) {
+                                console.log(`📸 Q${currentQuestion.number}: Extracted ${continuedResult.images.length} image(s) from continued solution line`);
                                 currentQuestion.solutionTextImages = (currentQuestion.solutionTextImages || []).concat(continuedResult.images);
                             }
                             debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Continued solution detected.</div>`;
@@ -4937,6 +5971,9 @@ Please format this solution with clear step-by-step explanations and proper math
                     // Start new question
                     // Extract images from question text
                     const questionTextResult = extractAndCleanImages(questionMatch[2]);
+                    if (questionTextResult.images && questionTextResult.images.length > 0) {
+                        console.log(`📸 Q${parseInt(questionMatch[1])}: Extracted ${questionTextResult.images.length} image(s) from question text`);
+                    }
                     currentQuestion = {
                         number: parseInt(questionMatch[1]),
                         text: questionTextResult.text,
@@ -5000,6 +6037,7 @@ Please format this solution with clear step-by-step explanations and proper math
                             currentQuestion.solution = solResult.text;
                             // Add extracted images to solution images array
                             if (solResult.images.length > 0) {
+                                console.log(`📸 Q${currentQuestion.number}: Extracted ${solResult.images.length} image(s) from solution (Sol. line)`);
                                 currentQuestion.solutionTextImages = (currentQuestion.solutionTextImages || []).concat(solResult.images);
                             }
                         } else if (currentQuestion) {
@@ -5199,6 +6237,7 @@ Please format this solution with clear step-by-step explanations and proper math
                             currentQuestion.solution += '\n' + solResult.text;
                             // Add extracted images to solution images array
                             if (solResult.images.length > 0) {
+                                console.log(`📸 Q${currentQuestion.number}: Extracted ${solResult.images.length} image(s) from solution line: ${line.substring(0, 50)}...`);
                                 currentQuestion.solutionTextImages = (currentQuestion.solutionTextImages || []).concat(solResult.images);
                             }
                             debugContent += `<div style="color: #ffc107; margin: 2px 0;">Line ${i+1}: Solution line: ${line.substring(0, 50)}...</div>`;
@@ -5256,6 +6295,23 @@ Please format this solution with clear step-by-step explanations and proper math
             
             console.log(`Found ${questions.length} questions`);
             console.log('Question numbers:', questions.map(q => q.number).join(', '));
+            
+            // Log total images extracted
+            let totalExtractedImages = 0;
+            questions.forEach(q => {
+                const qNum = q.number || q.questionNumber || q.questionIndex;
+                const textImgCount = q.textImages ? q.textImages.length : 0;
+                const solImgCount = q.solutionTextImages ? q.solutionTextImages.length : 0;
+                const optImgCount = q.optionImages ? q.optionImages.reduce((sum, opt) => sum + (opt ? opt.length : 0), 0) : 0;
+                const qTotal = textImgCount + solImgCount + optImgCount;
+                totalExtractedImages += qTotal;
+                
+                if (qTotal > 0) {
+                    console.log(`📊 Q${qNum}: ${textImgCount} text + ${solImgCount} solution + ${optImgCount} option = ${qTotal} total image(s)`);
+                }
+            });
+            console.log(`📸 ========== Total ${totalExtractedImages} images extracted from .md file ==========`);
+            
             allQuestions = questions;
             
             // Auto-detect question types for all questions
@@ -5280,6 +6336,9 @@ Please format this solution with clear step-by-step explanations and proper math
             updateQuestionButtonStyling();
             // Update edit area styling for manual editing indicators
             updateEditAreaStyling();
+            
+            // Automatically upload all images to Firebase
+            uploadAllExtractedImages();
         }
         
         function extractImagesFromText(text) {
@@ -7346,7 +8405,8 @@ Please format this solution with clear step-by-step explanations and proper math
                                 <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
                                     ${item.image ? `
                                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
-                                            <img src="${item.image}" alt="Question image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                                            <img src="${item.image}" alt="Question image" style="max-width: 100%; max-height: 120px; border-radius: 4px;" onload="checkAndMarkUploadedImage(this)">
+                                            ${item.image && item.image.includes('firebasestorage.googleapis.com') ? '<div class="upload-checkmark">✅</div>' : (item.uploadFailed ? `<div class="upload-error" title="${item.uploadError || 'Upload failed'}">❌</div>` : '')}
                                         </div>
                                     ` : `
                                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
@@ -7495,7 +8555,8 @@ Please format this solution with clear step-by-step explanations and proper math
                                 <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
                                     ${item.image ? `
                                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
-                                            <img src="${item.image}" alt="Solution image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                                            <img src="${item.image}" alt="Solution image" style="max-width: 100%; max-height: 120px; border-radius: 4px;" onload="checkAndMarkUploadedImage(this)">
+                                            ${item.image && item.image.includes('firebasestorage.googleapis.com') ? '<div class="upload-checkmark">✅</div>' : (item.uploadFailed ? `<div class="upload-error" title="${item.uploadError || 'Upload failed'}">❌</div>` : '')}
                                         </div>
                                     ` : `
                                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
@@ -8391,7 +9452,8 @@ Please format this solution with clear step-by-step explanations and proper math
                 <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
                     ${item.image ? `
                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
-                            <img src="${item.image}" alt="Solution image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                            <img src="${item.image}" alt="Solution image" style="max-width: 100%; max-height: 120px; border-radius: 4px;" onload="checkAndMarkUploadedImage(this)">
+                            ${item.image && item.image.includes('firebasestorage.googleapis.com') ? '<div class="upload-checkmark">✅</div>' : (item.uploadFailed ? `<div class="upload-error" title="${item.uploadError || 'Upload failed'}">❌</div>` : '')}
                         </div>
                     ` : `
                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
@@ -8414,6 +9476,11 @@ Please format this solution with clear step-by-step explanations and proper math
                             title="Remove row">−</button>
                 </div>
             `).join('');
+            
+            // Scan for checkmarks after rendering
+            setTimeout(() => {
+                scanAndMarkImages(container);
+            }, 100);
         }
         
         function uploadImageForRow(questionNumber, rowIndex) {
@@ -8556,7 +9623,8 @@ Please format this solution with clear step-by-step explanations and proper math
                 <div class="content-row" data-row-index="${idx}" style="display: flex; gap: 10px; align-items: stretch;">
                     ${item.image ? `
                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; position: relative;">
-                            <img src="${item.image}" alt="Question image" style="max-width: 100%; max-height: 120px; border-radius: 4px;">
+                            <img src="${item.image}" alt="Question image" style="max-width: 100%; max-height: 120px; border-radius: 4px;" onload="checkAndMarkUploadedImage(this)">
+                            ${item.image && item.image.includes('firebasestorage.googleapis.com') ? '<div class="upload-checkmark">✅</div>' : (item.uploadFailed ? `<div class="upload-error" title="${item.uploadError || 'Upload failed'}">❌</div>` : '')}
                         </div>
                     ` : `
                         <div style="flex: 1; min-height: 100px; border: 2px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8f9fa;" 
@@ -8579,6 +9647,11 @@ Please format this solution with clear step-by-step explanations and proper math
                             title="Remove row">−</button>
                 </div>
             `).join('');
+            
+            // Scan for checkmarks after rendering
+            setTimeout(() => {
+                scanAndMarkImages(container);
+            }, 100);
         }
         
         // Update image text description
