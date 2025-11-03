@@ -5001,6 +5001,16 @@ Please format this solution with clear step-by-step explanations and proper math
             return text;
         }
         
+        // Function to remove [Image] text from preview display (always removes, regardless of images)
+        function removeImageTextFromPreview(text) {
+            if (!text) return text;
+            // Remove [Image] placeholder text (case-insensitive, all occurrences)
+            text = text.replace(/\[Image\]/gi, '');
+            // Clean up extra whitespace that might result
+            text = text.replace(/\s+/g, ' ').trim();
+            return text;
+        }
+        
         function parseExamDetails(content, currentSubject = 'Mathematics') {
             const lines = content.split('\n');
             let examDetails = {
@@ -7659,14 +7669,14 @@ Please format this solution with clear step-by-step explanations and proper math
                         <div class="question-type" style="margin-bottom: 12px; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: var(--radius-sm); display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase;">
                             Type: ${question.type || 'mcq'}
                         </div>
-                        <div class="question-text">${question.text || ''}</div>
+                        <div class="question-text">${removeImageTextFromPreview(question.text || '')}</div>
                     
                     ${(question.questionImages || []).map(img => `<img src="${img}" alt="Question image" style="max-width: 100%; margin: 10px 0;">`).join('')}
                     
                     <div class="options">
                         ${['A', 'B', 'C', 'D'].map((option, idx) => `
                             <div class="option">
-                                <strong>${option}.</strong> ${question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : ''}
+                                <strong>${option}.</strong> ${removeImageTextFromPreview(question.options && question.options[idx] ? question.options[idx].replace(/^\(\d+\)\s*/, '').trim() : '')}
                                 ${(() => {
                                     if (question.optionImages && question.optionImages[idx] && question.optionImages[idx].length > 0) {
                                         const imgObj = question.optionImages[idx][0];
@@ -7687,10 +7697,10 @@ Please format this solution with clear step-by-step explanations and proper math
                     
                     <div class="solution">
                         <strong>Solution:</strong>
-                        <div>${question.solution || ''}</div>
+                        <div>${removeImageTextFromPreview(question.solution || '')}</div>
                         ${(question.solutionTextImages || []).map(item => `
                             ${item.image ? `<img src="${item.image}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">` : ''}
-                            ${item.text ? `<div style="margin: 10px 0;">${item.text}</div>` : ''}
+                            ${item.text ? `<div style="margin: 10px 0;">${removeImageTextFromPreview(item.text || '')}</div>` : ''}
                         `).join('')}
                     </div>
                 </div>
@@ -7746,36 +7756,63 @@ Please format this solution with clear step-by-step explanations and proper math
                     "year": year || "2025",
                     "subject": subjectValue || subject,
                     "dayAndShift": dayAndShift || "2 April 2025 Shift - 2",
-                    "questions": subjectQuestions.map((question, index) => ({
+                    "questions": subjectQuestions.map((question, index) => {
+                        // Clean [Image] text from textImages array
+                        const cleanedTextImages = (question.textImages || []).map(item => {
+                            if (typeof item === 'string') {
+                                return item;
+                            } else if (item && typeof item === 'object') {
+                                return {
+                                    ...item,
+                                    text: item.text ? removeImageTextFromPreview(item.text) : item.text
+                                };
+                            }
+                            return item;
+                        });
+                        
+                        // Clean [Image] text from solutionTextImages array
+                        const cleanedSolutionTextImages = (question.solutionTextImages || []).map(item => {
+                            if (typeof item === 'string') {
+                                return item;
+                            } else if (item && typeof item === 'object') {
+                                return {
+                                    ...item,
+                                    text: item.text ? removeImageTextFromPreview(item.text) : item.text
+                                };
+                            }
+                            return item;
+                        });
+                        
+                        return {
                         "questionIndex": question.number.toString(),
                         "questionId": `2025${subject.charAt(0)}Q${question.number}`,
                         "questionDetails": [
                             {
-                                "text": question.text || '',
-                                "textImages": question.textImages || [],
+                                "text": removeImageTextFromPreview(question.text || ''),
+                                "textImages": cleanedTextImages,
                                 "possibleAnswers": {
                                     "A": {
-                                        "text": question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "text": removeImageTextFromPreview(question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : ''),
                                         "image": question.optionImages && question.optionImages[0] ? question.optionImages[0] : null
                                     },
                                     "B": {
-                                        "text": question.options && question.options[1] ? question.options[1].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "text": removeImageTextFromPreview(question.options && question.options[1] ? question.options[1].replace(/^\(\d+\)\s*/, '').trim() : ''),
                                         "image": question.optionImages && question.optionImages[1] ? question.optionImages[1] : null
                                     },
                                     "C": {
-                                        "text": question.options && question.options[2] ? question.options[2].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "text": removeImageTextFromPreview(question.options && question.options[2] ? question.options[2].replace(/^\(\d+\)\s*/, '').trim() : ''),
                                         "image": question.optionImages && question.optionImages[2] ? question.optionImages[2] : null
                                     },
                                     "D": {
-                                        "text": question.options && question.options[3] ? question.options[3].replace(/^\(\d+\)\s*/, '').trim() : '',
+                                        "text": removeImageTextFromPreview(question.options && question.options[3] ? question.options[3].replace(/^\(\d+\)\s*/, '').trim() : ''),
                                         "image": question.optionImages && question.optionImages[3] ? question.optionImages[3] : null
                                     }
                                 },
                                 "correctAnswer": question.answer || '',
-                                "correctAnswerText": question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
-                                    question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : '',
-                                "solution": question.solution || '',
-                                "solutionTextImages": question.solutionTextImages || [],
+                                "correctAnswerText": removeImageTextFromPreview(question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
+                                    question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : ''),
+                                "solution": removeImageTextFromPreview(question.solution || ''),
+                                "solutionTextImages": cleanedSolutionTextImages,
                                 "type": question.type || "mcq",
                                 "metadata": {
                                     "subject": subject.toLowerCase(),
@@ -7783,7 +7820,7 @@ Please format this solution with clear step-by-step explanations and proper math
                                 }
                             }
                         ]
-                    }))
+                    }})
                 }
             ];
             
@@ -8123,6 +8160,21 @@ Please format this solution with clear step-by-step explanations and proper math
                 return;
             }
             
+            // Get current values from edit boxes if they exist (so Live Preview shows exactly what's in edit boxes)
+            let questionText = question.text || '';
+            let questionSolution = question.solution || '';
+            
+            // Try to get the actual textarea value if it exists
+            const solutionTextarea = document.querySelector(`textarea.solution-edit-input[data-question="${question.number}"], textarea.solution-edit-textarea[data-question="${question.number}"]`);
+            if (solutionTextarea) {
+                questionSolution = solutionTextarea.value || questionSolution;
+            }
+            
+            const questionTextarea = document.querySelector(`textarea.question-edit-textarea[data-question="${question.number}"], textarea[data-question="${question.number}"].question-edit-input`);
+            if (questionTextarea) {
+                questionText = questionTextarea.value || questionText;
+            }
+            
             // Generate HTML for only the selected question
             const singleQuestionHTML = `
                 <div class="question-render-item active-question" id="render-question-${questionIndex}">
@@ -8130,11 +8182,11 @@ Please format this solution with clear step-by-step explanations and proper math
                     <div class="question-type" style="margin-bottom: 12px; padding: 6px 12px; background: var(--primary-color); color: white; border-radius: var(--radius-sm); display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase;">
                         Type: ${question.type || 'mcq'}
                     </div>
-                    <div class="question-text">${question.text || ''}</div>
+                    <div class="question-text">${removeImageTextFromPreview(questionText)}</div>
                 
                 ${(question.textImages || []).map(item => `
                     ${item.image ? `<img src="${item.image}" alt="Question image" style="max-width: 100%; margin: 10px 0;">` : ''}
-                    ${item.text ? `<div style="margin: 10px 0;">${item.text}</div>` : ''}
+                    ${item.text ? `<div style="margin: 10px 0;">${removeImageTextFromPreview(item.text || '')}</div>` : ''}
                 `).join('')}
                 
                 <div class="options">
@@ -8158,6 +8210,8 @@ Please format this solution with clear step-by-step explanations and proper math
                         if (question.optionImages && question.optionImages[idx] && question.optionImages[idx].length > 0) {
                             optionText = removeImagePlaceholders(optionText, question.optionImages[idx]);
                         }
+                        // Always remove [Image] text from preview display
+                        optionText = removeImageTextFromPreview(optionText);
                         
                         // Get option image from optionImages array (primary source)
                         let optionImageUrl = null;
@@ -8185,10 +8239,10 @@ Please format this solution with clear step-by-step explanations and proper math
                 
                 <div class="solution">
                     <strong>Solution:</strong>
-                    <div>${question.solution || ''}</div>
+                    <div>${removeImageTextFromPreview(questionSolution)}</div>
                     ${(question.solutionTextImages || []).map(item => `
                         ${item.image ? `<img src="${item.image}" alt="Solution image" style="max-width: 100%; margin: 10px 0;">` : ''}
-                        ${item.text ? `<div style="margin: 10px 0;">${item.text}</div>` : ''}
+                        ${item.text ? `<div style="margin: 10px 0;">${removeImageTextFromPreview(item.text || '')}</div>` : ''}
                     `).join('')}
                 </div>
             </div>
