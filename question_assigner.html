@@ -68,10 +68,22 @@
                     fileName = `${subject.toLowerCase()}_${year}_${index + 1}${suffix}`;
                 }
                 
-                // Get board name for folder structure
-                const subjectSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
-                const boardField = document.getElementById(`board${subjectSuffix}`);
-                const boardName = boardField ? boardField.value.replace(/\s+/g, '_') : 'Board';
+                // Get board name for folder structure - always use main board field for consistency
+                const boardField = document.getElementById('board');
+                let boardName = 'Board'; // Default fallback
+                
+                if (boardField && boardField.value) {
+                    boardName = boardField.value.replace(/\s+/g, '_');
+                } else {
+                    // Fallback: try to read from any visible board field
+                    const visibleBoardField = document.querySelector('#board:not([style*="display: none"])');
+                    if (visibleBoardField && visibleBoardField.value) {
+                        boardName = visibleBoardField.value.replace(/\s+/g, '_');
+                    }
+                    console.warn(`⚠️ Board field not found or empty, using default "Board". Current folder: ${boardName}_${subject.toLowerCase()}`);
+                }
+                
+                console.log(`📁 Uploading to folder: ${boardName}_${subject.toLowerCase()} (Board field value: "${boardField?.value || 'NOT FOUND'}")`);
                 
                 // Create folder path: Board_Subject (e.g., JEE_Main_Physics)
                 const folderName = `${boardName}_${subject.toLowerCase()}`;
@@ -497,8 +509,9 @@
             // Set flag to prevent showing upload buttons during automatic upload
             isAutoUploading = true;
             
-            const currentSubject = getCurrentSubject ? getCurrentSubject() : 'Mathematics';
-            const year = '2025';
+            // Get year from form (default to 2025)
+            const yearField = document.getElementById('year');
+            const year = yearField ? yearField.value || '2025' : '2025';
             let totalImages = 0;
             let uploadedImages = 0;
             
@@ -584,7 +597,14 @@
                     continue;
                 }
                 
-                console.log(`📤 Processing Q${questionNumber}...`);
+                // Get the subject for this question
+                const questionSubject = question.subject || 
+                                      (question.questionDetails && question.questionDetails[0]?.metadata?.subject) ||
+                                      'Mathematics';
+                // Capitalize first letter to match expected format
+                const subjectForUpload = questionSubject.charAt(0).toUpperCase() + questionSubject.slice(1).toLowerCase();
+                
+                console.log(`📤 Processing Q${questionNumber} (Subject: ${subjectForUpload})...`);
                 
                 // Upload text images
                 if (question.textImages && Array.isArray(question.textImages)) {
@@ -603,7 +623,7 @@
                         
                         try {
                             console.log(`  ↳ Uploading question text image ${idx} for Q${questionNumber}...`);
-                            const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, '', 'question');
+                            const newUrl = await uploadImageFromUrl(imageUrl, subjectForUpload, year, questionNumber, idx, '', 'question');
                             imgObj.image = newUrl;
                             uploadedImages++;
                             updateProgress(uploadedImages);
@@ -635,7 +655,7 @@
                         
                         try {
                             console.log(`  ↳ Uploading solution image ${idx} for Q${questionNumber}...`);
-                            const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, '', 'solution');
+                            const newUrl = await uploadImageFromUrl(imageUrl, subjectForUpload, year, questionNumber, idx, '', 'solution');
                             imgObj.image = newUrl;
                             uploadedImages++;
                             updateProgress(uploadedImages);
@@ -670,7 +690,7 @@
                             }
                             
                             try {
-                                const newUrl = await uploadImageFromUrl(imageUrl, currentSubject, year, questionNumber, idx, `opt${optIdx}`, 'option');
+                                const newUrl = await uploadImageFromUrl(imageUrl, subjectForUpload, year, questionNumber, idx, `opt${optIdx}`, 'option');
                                 imgObj.image = newUrl;
                                 uploadedImages++;
                                 updateProgress(uploadedImages);
@@ -8223,7 +8243,7 @@ Please format this solution with clear step-by-step explanations and proper math
                                         const imgObj = question.optionImages[idx][0];
                                         const imageUrl = (typeof imgObj === 'object' && imgObj.image) ? imgObj.image : imgObj;
                                         if (imageUrl) {
-                                            return `<img src="${imageUrl}" alt="Option image" style="max-width: 100px; margin-left: 10px;">`;
+                                            return `<img src="${imageUrl}" alt="Option image" style="max-width: 100px; margin-left: 10px;" onload="checkAndMarkUploadedImage(this)">`;
                                         }
                                     }
                                     return '';
@@ -8714,10 +8734,21 @@ Please format this solution with clear step-by-step explanations and proper math
                             optionText = removeImagePlaceholders(optionText, question.optionImages[idx]);
                         }
                         
+                        // Get option image from optionImages array (primary source)
+                        let optionImageUrl = null;
+                        if (question.optionImages && question.optionImages[idx] && question.optionImages[idx].length > 0) {
+                            const imgObj = question.optionImages[idx][0];
+                            optionImageUrl = (typeof imgObj === 'object' && imgObj.image) ? imgObj.image : imgObj;
+                        }
+                        // Fallback to optionImage from question.options if optionImages is not available
+                        if (!optionImageUrl && optionImage) {
+                            optionImageUrl = optionImage;
+                        }
+                        
                         return `
                         <div class="option">
                             <strong>${option}.</strong> ${optionText}
-                            ${optionImage ? `<img src="${optionImage}" alt="Option image" style="max-width: 100px; margin-left: 10px;">` : ''}
+                            ${optionImageUrl ? `<img src="${optionImageUrl}" alt="Option image" style="max-width: 100px; margin-left: 10px;" onload="checkAndMarkUploadedImage(this)">` : ''}
                         </div>
                         `;
                     }).join('')}
@@ -10194,6 +10225,105 @@ Please format this solution with clear step-by-step explanations and proper math
                     yearSelect.addEventListener('change', () => updateMetadata(suffix));
                     subjectSelect.addEventListener('change', () => updateMetadata(suffix));
                     
+                    // Sync main field changes to all subject fields
+                    if (suffix === '') { // Only for main fields (Mathematics)
+                        // Sync board field changes
+                        boardSelect.addEventListener('change', function() {
+                            const mainBoardValue = this.value;
+                            const mainYearField = document.getElementById('year');
+                            const mainDayShiftField = document.getElementById('dayAndShift');
+                            const year = mainYearField ? mainYearField.value : '2025';
+                            const dayAndShift = mainDayShiftField ? mainDayShiftField.value : '';
+                            
+                            // Sync to Physics board field
+                            const physicsBoardField = document.getElementById('board-physics');
+                            if (physicsBoardField) {
+                                physicsBoardField.value = mainBoardValue;
+                            }
+                            // Sync to Chemistry board field
+                            const chemistryBoardField = document.getElementById('board-chemistry');
+                            if (chemistryBoardField) {
+                                chemistryBoardField.value = mainBoardValue;
+                            }
+                            
+                            // Sync dayAndShift to Physics
+                            const physicsDayShiftField = document.getElementById('dayAndShift-physics');
+                            if (physicsDayShiftField && dayAndShift) {
+                                physicsDayShiftField.value = dayAndShift;
+                            }
+                            
+                            // Sync dayAndShift to Chemistry
+                            const chemistryDayShiftField = document.getElementById('dayAndShift-chemistry');
+                            if (chemistryDayShiftField && dayAndShift) {
+                                chemistryDayShiftField.value = dayAndShift;
+                            }
+                            
+                            // Update tutorial IDs for all subjects
+                            updateTutorialId('Mathematics', mainBoardValue, year);
+                            updateTutorialId('Physics', mainBoardValue, year);
+                            updateTutorialId('Chemistry', mainBoardValue, year);
+                            
+                            console.log(`✅ Synced board value "${mainBoardValue}" to all subject fields and updated tutorial IDs`);
+                        });
+                        
+                        // Sync year field changes
+                        yearSelect.addEventListener('change', function() {
+                            const mainYearValue = this.value;
+                            const mainBoardField = document.getElementById('board');
+                            const mainDayShiftField = document.getElementById('dayAndShift');
+                            const board = mainBoardField ? mainBoardField.value : 'KCET';
+                            const dayAndShift = mainDayShiftField ? mainDayShiftField.value : '';
+                            
+                            // Sync year to Physics and Chemistry
+                            const physicsYearField = document.getElementById('year-physics');
+                            if (physicsYearField) {
+                                physicsYearField.value = mainYearValue;
+                            }
+                            const chemistryYearField = document.getElementById('year-chemistry');
+                            if (chemistryYearField) {
+                                chemistryYearField.value = mainYearValue;
+                            }
+                            
+                            // Update tutorial IDs for all subjects
+                            updateTutorialId('Mathematics', board, mainYearValue);
+                            updateTutorialId('Physics', board, mainYearValue);
+                            updateTutorialId('Chemistry', board, mainYearValue);
+                            
+                            console.log(`✅ Synced year value "${mainYearValue}" to all subject fields and updated tutorial IDs`);
+                        });
+                        
+                        // Sync dayAndShift field changes
+                        const mainDayShiftField = document.getElementById('dayAndShift');
+                        if (mainDayShiftField) {
+                            mainDayShiftField.addEventListener('change', function() {
+                                const mainDayShiftValue = this.value;
+                                const mainBoardField = document.getElementById('board');
+                                const mainYearField = document.getElementById('year');
+                                const board = mainBoardField ? mainBoardField.value : 'KCET';
+                                const year = mainYearField ? mainYearField.value : '2025';
+                                
+                                // Sync dayAndShift to Physics
+                                const physicsDayShiftField = document.getElementById('dayAndShift-physics');
+                                if (physicsDayShiftField) {
+                                    physicsDayShiftField.value = mainDayShiftValue;
+                                }
+                                
+                                // Sync dayAndShift to Chemistry
+                                const chemistryDayShiftField = document.getElementById('dayAndShift-chemistry');
+                                if (chemistryDayShiftField) {
+                                    chemistryDayShiftField.value = mainDayShiftValue;
+                                }
+                                
+                                // Update tutorial IDs for all subjects
+                                updateTutorialId('Mathematics', board, year);
+                                updateTutorialId('Physics', board, year);
+                                updateTutorialId('Chemistry', board, year);
+                                
+                                console.log(`✅ Synced dayAndShift value "${mainDayShiftValue}" to all subject fields and updated tutorial IDs`);
+                            });
+                        }
+                    }
+                    
                     // Add event listeners for manual input fields
                     if (tutorialTitleInput) {
                         tutorialTitleInput.addEventListener('input', () => updateJSONInRealTime(suffix));
@@ -10206,6 +10336,21 @@ Please format this solution with clear step-by-step explanations and proper math
                     updateMetadata(suffix);
                 }
             });
+            
+            // After all metadata editors are initialized, sync tutorial IDs if main fields exist
+            const mainBoardField = document.getElementById('board');
+            const mainYearField = document.getElementById('year');
+            const mainDayShiftField = document.getElementById('dayAndShift');
+            if (mainBoardField && mainYearField) {
+                const board = mainBoardField.value || 'KCET';
+                const year = mainYearField.value || '2025';
+                
+                // Update tutorial IDs for all subjects on initial load
+                updateTutorialId('Mathematics', board, year);
+                updateTutorialId('Physics', board, year);
+                updateTutorialId('Chemistry', board, year);
+                console.log(`📝 Initialized tutorial IDs for all subjects with board="${board}", year="${year}"`);
+            }
         }
         
         // Update metadata based on selections
