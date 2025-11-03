@@ -6074,11 +6074,33 @@ Please format this solution with clear step-by-step explanations and proper math
                     }
                     // Backward compatibility: older format had "Ans." then solution lines
                     else if (line.startsWith('Ans.')) {
-                        // Extract answer - look for (1), (2), (3), (4) format
-                        const answerMatch = line.match(/^Ans\.\s*\(([1-4])\)/);
-                        if (answerMatch) {
-                            currentQuestion.answer = answerMatch[1];
-                            debugContent += `<div style="color: #dc3545; margin: 2px 0;">Line ${i+1}: Found answer: ${line}</div>`;
+                        // First try to match (1), (2), (3), (4) format for MCQ questions
+                        const mcqAnswerMatch = line.match(/^Ans\.\s*\(([1-4])\)/);
+                        if (mcqAnswerMatch) {
+                            currentQuestion.answer = mcqAnswerMatch[1];
+                            debugContent += `<div style="color: #dc3545; margin: 2px 0;">Line ${i+1}: Found MCQ answer: ${line}</div>`;
+                        } else {
+                            // For fill-in-the-blank or integer questions: Extract any number/text in parentheses
+                            const fillBlankAnswerMatch = line.match(/^Ans\.\s*\((.+)\)/);
+                            if (fillBlankAnswerMatch) {
+                                const answerValue = fillBlankAnswerMatch[1].trim();
+                                currentQuestion.answer = answerValue;
+                                // Mark as fill-in-the-blank or integer type if not already set
+                                if (!currentQuestion.type || currentQuestion.type === 'mcq') {
+                                    // Check if question text contains fill-in-the-blank marker
+                                    if (/\$\_\_\_\_\$/.test(currentQuestion.text)) {
+                                        currentQuestion.type = 'fillblank';
+                                    } else {
+                                        // Check if answer is a number (integer type)
+                                        if (/^\d+(\.\d+)?$/.test(answerValue)) {
+                                            currentQuestion.type = 'integer';
+                                        } else {
+                                            currentQuestion.type = 'fillblank';
+                                        }
+                                    }
+                                }
+                                debugContent += `<div style="color: #dc3545; margin: 2px 0;">Line ${i+1}: Found fill-in-the-blank/integer answer: ${answerValue}</div>`;
+                            }
                         }
                         
                         // Start collecting solution - but don't include "Ans. (X)" line itself
