@@ -1668,6 +1668,93 @@
             box-shadow: var(--shadow-md);
         }
         
+        .question-item-container {
+            margin-bottom: 8px;
+        }
+        
+        .question-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .question-expand-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            padding: 0;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+        .question-expand-btn:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .question-actions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            margin-top: 0;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+        }
+        
+        .question-actions-container.expanded {
+            max-height: 100px;
+            opacity: 1;
+            margin-top: 4px;
+        }
+        
+        .question-action-btn {
+            flex: 1;
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .question-action-btn.add-btn {
+            background: #10b981;
+            color: white;
+        }
+        
+        .question-action-btn.add-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+        
+        .question-action-btn.delete-btn {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .question-action-btn.delete-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        }
+        
+        .question-action-btn:active {
+            transform: translateY(0);
+        }
+        
         .question-item.manual-edit-needed {
             background: #dc3545 !important;
             border-color: #dc3545 !important;
@@ -7498,8 +7585,18 @@ Please format this solution with clear step-by-step explanations and proper math
             }
             
             subjectQuestions.forEach((question, index) => {
+                // Create container for question item with buttons
+                const questionContainer = document.createElement('div');
+                questionContainer.className = 'question-item-container';
+                
+                // Question header with number and expand button
+                const questionHeader = document.createElement('div');
+                questionHeader.className = 'question-header';
+                
+                // Question number button
                 const questionItem = document.createElement('button');
                 questionItem.className = 'question-item';
+                questionItem.style.cssText = 'flex: 1; margin-bottom: 0;';
                 
                 // Add red styling if question needs manual editing
                 if (needsManualEditing(question)) {
@@ -7509,13 +7606,217 @@ Please format this solution with clear step-by-step explanations and proper math
                 
                 questionItem.textContent = `${question.number}`;
                 questionItem.onclick = () => selectQuestion(subject, index);
-                questionListContainer.appendChild(questionItem);
+                questionHeader.appendChild(questionItem);
+                
+                // Expand/collapse button
+                const expandButton = document.createElement('button');
+                expandButton.className = 'question-expand-btn';
+                expandButton.innerHTML = '▼';
+                expandButton.title = 'Show options';
+                expandButton.onclick = (e) => {
+                    e.stopPropagation();
+                    const isExpanded = buttonContainer.classList.contains('expanded');
+                    if (isExpanded) {
+                        buttonContainer.classList.remove('expanded');
+                        expandButton.innerHTML = '▼';
+                    } else {
+                        buttonContainer.classList.add('expanded');
+                        expandButton.innerHTML = '▲';
+                    }
+                };
+                questionHeader.appendChild(expandButton);
+                questionContainer.appendChild(questionHeader);
+                
+                // Button container for Add and Delete (hidden by default)
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'question-actions-container';
+                
+                // Add button
+                const addButton = document.createElement('button');
+                addButton.textContent = '+ Add';
+                addButton.className = 'question-action-btn add-btn';
+                addButton.title = `Add question ${question.number + 1} after question ${question.number}`;
+                addButton.onclick = (e) => {
+                    e.stopPropagation();
+                    addQuestionAfter(subject, question.number);
+                };
+                buttonContainer.appendChild(addButton);
+                
+                // Delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'question-action-btn delete-btn';
+                deleteButton.title = `Delete question ${question.number}`;
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteQuestion(subject, question.number);
+                };
+                buttonContainer.appendChild(deleteButton);
+                
+                questionContainer.appendChild(buttonContainer);
+                questionListContainer.appendChild(questionContainer);
                 
                 // Debug: Log the mapping between question number and index
                 if (index < 5 || index >= subjectQuestions.length - 5) { // Log first 5 and last 5
                     console.log(`Sidebar mapping: index=${index}, questionNumber=${question.number}, subject=${subject}`);
                 }
             });
+        }
+        
+        // Function to add a new question after a specific question number
+        function addQuestionAfter(subject, afterQuestionNumber) {
+            const newQuestionNumber = afterQuestionNumber + 1;
+            const subjectLower = subject.toLowerCase();
+            
+            console.log(`➕ Adding question ${newQuestionNumber} after question ${afterQuestionNumber} for ${subject}`);
+            
+            // Create new question object with default values
+            const newQuestion = {
+                number: newQuestionNumber,
+                subject: subjectLower,
+                text: '',
+                solution: '',
+                type: 'mcq',
+                options: ['', '', '', ''],
+                answer: '1',
+                correctAnswer: '1',
+                correctAnswerText: '',
+                textImages: [],
+                solutionTextImages: [],
+                questionImages: [],
+                solutionImages: [],
+                optionImages: [[], [], [], []]
+            };
+            
+            // Find the index where to insert (after the question with afterQuestionNumber)
+            const subjectQuestions = allQuestions.filter(q => q.subject === subjectLower);
+            const afterQuestionIndex = allQuestions.findIndex(q => q.number === afterQuestionNumber && q.subject === subjectLower);
+            
+            if (afterQuestionIndex !== -1) {
+                // Insert after the found question
+                allQuestions.splice(afterQuestionIndex + 1, 0, newQuestion);
+            } else {
+                // If not found, add at the end of subject questions
+                let lastSubjectQuestionIndex = -1;
+                for (let i = allQuestions.length - 1; i >= 0; i--) {
+                    if (allQuestions[i].subject === subjectLower) {
+                        lastSubjectQuestionIndex = i;
+                        break;
+                    }
+                }
+                if (lastSubjectQuestionIndex !== -1) {
+                    allQuestions.splice(lastSubjectQuestionIndex + 1, 0, newQuestion);
+                } else {
+                    // No questions for this subject, just append
+                    allQuestions.push(newQuestion);
+                }
+            }
+            
+            // Check if question number already exists and renumber if needed
+            const existingQuestion = allQuestions.find(q => q.number === newQuestionNumber && q !== newQuestion);
+            if (existingQuestion) {
+                // Renumber all questions after this one (including the new question)
+                const questionsToRenumber = allQuestions.filter(q => q.number >= newQuestionNumber && q !== newQuestion);
+                questionsToRenumber.forEach(q => {
+                    const oldNumber = q.number;
+                    q.number = q.number + 1;
+                    // Update question assignments
+                    questionAssignments[`Q${q.number}`] = q.subject;
+                    delete questionAssignments[`Q${oldNumber}`];
+                });
+            }
+            
+            // Update question assignments for the new question
+            questionAssignments[`Q${newQuestionNumber}`] = subjectLower;
+            
+            // Sort all questions by number
+            allQuestions.sort((a, b) => a.number - b.number);
+            
+            // Update statistics
+            updateStats();
+            
+            // Refresh the question list
+            populateQuestionList(subject);
+            
+            // Find and select the new question
+            const newSubjectQuestions = allQuestions.filter(q => q.subject === subjectLower);
+            const newQuestionIndex = newSubjectQuestions.findIndex(q => q.number === newQuestionNumber);
+            
+            if (newQuestionIndex !== -1) {
+                // Select the new question and show editor
+                setTimeout(() => {
+                    selectQuestion(subject, newQuestionIndex);
+                }, 100);
+            }
+            
+            // Mark as unsaved
+            markWorkAsUnsaved();
+        }
+        
+        // Function to delete a question
+        function deleteQuestion(subject, questionNumber) {
+            const subjectLower = subject.toLowerCase();
+            
+            // Confirm deletion
+            if (!confirm(`Are you sure you want to delete question ${questionNumber}?`)) {
+                return;
+            }
+            
+            console.log(`🗑️ Deleting question ${questionNumber} from ${subject}`);
+            
+            // Find and remove the question
+            const questionIndex = allQuestions.findIndex(q => q.number === questionNumber && q.subject === subjectLower);
+            
+            if (questionIndex !== -1) {
+                allQuestions.splice(questionIndex, 1);
+                
+                // Remove from question assignments
+                delete questionAssignments[`Q${questionNumber}`];
+                
+                // Update statistics
+                updateStats();
+                
+                // Refresh the question list
+                populateQuestionList(subject);
+                
+                // Select the first question if available, or clear the editor
+                const subjectQuestions = allQuestions.filter(q => q.subject === subjectLower);
+                if (subjectQuestions.length > 0) {
+                    const firstQuestionIndex = subjectQuestions.findIndex(q => q.subject === subjectLower);
+                    if (firstQuestionIndex !== -1) {
+                        setTimeout(() => {
+                            selectQuestion(subject, 0);
+                        }, 100);
+                    }
+                } else {
+                    // No questions left, clear the editor
+                    clearQuestionEditor(subject);
+                }
+                
+                // Mark as unsaved
+                markWorkAsUnsaved();
+            } else {
+                console.warn(`Question ${questionNumber} not found for ${subject}`);
+            }
+        }
+        
+        // Function to clear question editor when no questions are available
+        function clearQuestionEditor(subject) {
+            const subjectView = document.getElementById(`subjectView-${subject}`);
+            if (subjectView) {
+                // Clear question editor fields
+                const questionTextarea = subjectView.querySelector('.question-edit-textarea, .question-edit-input');
+                const solutionTextarea = subjectView.querySelector('.solution-edit-textarea, .solution-edit-input');
+                
+                if (questionTextarea) questionTextarea.value = '';
+                if (solutionTextarea) solutionTextarea.value = '';
+                
+                // Clear live preview
+                const renderPanel = document.getElementById(`questionRender-${subject}`);
+                if (renderPanel) {
+                    renderPanel.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">No question selected</p>';
+                }
+            }
         }
         
         function selectQuestion(subject, questionIndex) {
