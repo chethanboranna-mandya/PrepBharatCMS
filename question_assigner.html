@@ -553,15 +553,40 @@
             
             console.log(`🔄 ========== Starting automatic upload of ${totalImages} images to Firebase ==========`);
             
+            // Flag to track if upload should be cancelled
+            let isUploadCancelled = false;
+            
             // Show notification with progress bar
             const notification = document.createElement('div');
             notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2563eb; color: white; padding: 15px 20px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 300px;';
             
+            // Header with close button
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;';
+            
             // Main text
             const mainText = document.createElement('div');
-            mainText.style.cssText = 'font-size: 14px; font-weight: 500; margin-bottom: 8px;';
+            mainText.style.cssText = 'font-size: 14px; font-weight: 500; flex: 1;';
             mainText.textContent = `📤 Uploading ${totalImages} images to Firebase...`;
-            notification.appendChild(mainText);
+            header.appendChild(mainText);
+            
+            // Close button
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '✕';
+            closeButton.style.cssText = 'background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; margin-left: 10px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;';
+            closeButton.title = 'Cancel upload';
+            closeButton.onmouseover = () => closeButton.style.background = 'rgba(255, 255, 255, 0.3)';
+            closeButton.onmouseout = () => closeButton.style.background = 'rgba(255, 255, 255, 0.2)';
+            closeButton.onclick = () => {
+                isUploadCancelled = true;
+                console.log('❌ Upload cancelled by user');
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+                isAutoUploading = false;
+            };
+            header.appendChild(closeButton);
+            notification.appendChild(header);
             
             // Progress bar container
             const progressBarContainer = document.createElement('div');
@@ -582,6 +607,7 @@
             
             // Function to update progress
             const updateProgress = (current) => {
+                if (isUploadCancelled) return;
                 const percentage = totalImages > 0 ? (current / totalImages) * 100 : 0;
                 progressBar.style.width = `${percentage}%`;
                 progressText.textContent = `${current} / ${totalImages}`;
@@ -589,6 +615,12 @@
             
             // Process all questions
             for (const question of allQuestions) {
+                // Check if upload was cancelled
+                if (isUploadCancelled) {
+                    console.log('⏹️ Upload cancelled - stopping processing');
+                    break;
+                }
+                
                 const questionNumber = question.number || question.questionNumber || question.questionIndex;
                 
                 // Skip if question number is invalid
@@ -609,6 +641,8 @@
                 // Upload text images
                 if (question.textImages && Array.isArray(question.textImages)) {
                     for (let idx = 0; idx < question.textImages.length; idx++) {
+                        if (isUploadCancelled) break;
+                        
                         const imgObj = question.textImages[idx];
                         if (!imgObj || !imgObj.image) continue;
                         
@@ -624,11 +658,13 @@
                         try {
                             console.log(`  ↳ Uploading question text image ${idx} for Q${questionNumber}...`);
                             const newUrl = await uploadImageFromUrl(imageUrl, subjectForUpload, year, questionNumber, idx, '', 'question');
+                            if (isUploadCancelled) break;
                             imgObj.image = newUrl;
                             uploadedImages++;
                             updateProgress(uploadedImages);
                             console.log(`  ✅ Uploaded question text image ${idx} for Q${questionNumber}: ${newUrl.substring(0, 60)}...`);
                         } catch (error) {
+                            if (isUploadCancelled) break;
                             console.error(`  ❌ Failed to upload question text image ${idx} for Q${questionNumber}:`, error);
                             // Keep original URL if upload fails - image will still be displayed
                             // Mark as failed for UI indication
@@ -641,6 +677,8 @@
                 // Upload solution images
                 if (question.solutionTextImages && Array.isArray(question.solutionTextImages)) {
                     for (let idx = 0; idx < question.solutionTextImages.length; idx++) {
+                        if (isUploadCancelled) break;
+                        
                         const imgObj = question.solutionTextImages[idx];
                         if (!imgObj || !imgObj.image) continue;
                         
@@ -656,11 +694,13 @@
                         try {
                             console.log(`  ↳ Uploading solution image ${idx} for Q${questionNumber}...`);
                             const newUrl = await uploadImageFromUrl(imageUrl, subjectForUpload, year, questionNumber, idx, '', 'solution');
+                            if (isUploadCancelled) break;
                             imgObj.image = newUrl;
                             uploadedImages++;
                             updateProgress(uploadedImages);
                             console.log(`  ✅ Uploaded solution image ${idx} for Q${questionNumber}: ${newUrl.substring(0, 60)}...`);
                         } catch (error) {
+                            if (isUploadCancelled) break;
                             console.error(`  ❌ Failed to upload solution image ${idx} for Q${questionNumber}:`, error);
                             // Keep original URL if upload fails - image will still be displayed
                             // Mark as failed for UI indication
@@ -673,10 +713,14 @@
                 // Upload option images
                 if (question.optionImages && Array.isArray(question.optionImages)) {
                     for (let optIdx = 0; optIdx < question.optionImages.length; optIdx++) {
+                        if (isUploadCancelled) break;
+                        
                         const optImgs = question.optionImages[optIdx];
                         if (!optImgs || !Array.isArray(optImgs)) continue;
                         
                         for (let idx = 0; idx < optImgs.length; idx++) {
+                            if (isUploadCancelled) break;
+                            
                             const imgObj = optImgs[idx];
                             if (!imgObj || !imgObj.image) continue;
                             
@@ -691,11 +735,13 @@
                             
                             try {
                                 const newUrl = await uploadImageFromUrl(imageUrl, subjectForUpload, year, questionNumber, idx, `opt${optIdx}`, 'option');
+                                if (isUploadCancelled) break;
                                 imgObj.image = newUrl;
                                 uploadedImages++;
                                 updateProgress(uploadedImages);
                                 console.log(`  ✅ Uploaded option ${optIdx} image ${idx} for Q${questionNumber}`);
                             } catch (error) {
+                                if (isUploadCancelled) break;
                                 console.error(`  ❌ Failed to upload option ${optIdx} image ${idx} for Q${questionNumber}:`, error);
                                 // Keep original URL if upload fails
                                 imgObj.uploadFailed = true;
@@ -706,29 +752,40 @@
                 }
             }
             
-            console.log(`✅ ========== Uploaded ${uploadedImages}/${totalImages} images to Firebase ==========`);
-            
-            // Update notification - final state
-            if (notification) {
-                updateProgress(uploadedImages); // Final update
-                notification.style.background = uploadedImages === totalImages ? '#10b981' : '#f59e0b';
+            // Check if upload was cancelled
+            if (isUploadCancelled) {
+                console.log(`⏹️ ========== Upload cancelled - ${uploadedImages}/${totalImages} images uploaded before cancellation ==========`);
+                // Notification already removed by close button handler
+            } else {
+                console.log(`✅ ========== Uploaded ${uploadedImages}/${totalImages} images to Firebase ==========`);
                 
-                // Update the main text
-                if (mainText) {
-                    mainText.textContent = uploadedImages === totalImages 
-                        ? `✅ Successfully uploaded ${uploadedImages} images to Firebase!`
-                        : `⚠️ Uploaded ${uploadedImages}/${totalImages} images (some may have failed)`;
-                }
-                
-                // Remove notification after 5 seconds
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
+                // Update notification - final state
+                if (notification && notification.parentNode) {
+                    updateProgress(uploadedImages); // Final update
+                    notification.style.background = uploadedImages === totalImages ? '#10b981' : '#f59e0b';
+                    
+                    // Update the main text
+                    if (mainText) {
+                        mainText.textContent = uploadedImages === totalImages 
+                            ? `✅ Successfully uploaded ${uploadedImages} images to Firebase!`
+                            : `⚠️ Uploaded ${uploadedImages}/${totalImages} images (some may have failed)`;
                     }
-                }, 5000);
+                    
+                    // Hide close button on completion
+                    if (closeButton) {
+                        closeButton.style.display = 'none';
+                    }
+                    
+                    // Remove notification after 5 seconds
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 5000);
+                }
             }
             
-            // Clear flag - automatic upload is complete
+            // Clear flag - automatic upload is complete or cancelled
             isAutoUploading = false;
             
             // Refresh display and scan for checkmarks
@@ -5331,10 +5388,17 @@ Please format this solution with clear step-by-step explanations and proper math
             const lines = content.split('\n');
             const questions = [];
             let currentQuestion = null;
-            let currentSubject = '';
-            // Subject activation only after pattern: ## <Subject> then ## SECTION-A
-            let pendingSubject = '';
-            let inSubjectSection = false;
+            // Helper function to determine subject based on question number
+            function getSubjectByQuestionNumber(questionNumber) {
+                if (questionNumber >= 1 && questionNumber <= 25) {
+                    return 'mathematics';
+                } else if (questionNumber >= 26 && questionNumber <= 50) {
+                    return 'physics';
+                } else if (questionNumber >= 51 && questionNumber <= 75) {
+                    return 'chemistry';
+                }
+                return 'unassigned';
+            }
             let debugContent = '';
             let inSolution = false;
             // Option capture state for inline options like "... (1) ... (2) ..."
@@ -5351,18 +5415,6 @@ Please format this solution with clear step-by-step explanations and proper math
                 
                 // Skip all content when in Quick Tip section until next question
                 if (inQuickTip) {
-                    // If a subject header appears inside a Quick Tip, activate it immediately
-                    const lt = line.toLowerCase();
-                    if (lt.startsWith('## ')) {
-                        const hdr = lt.replace('## ', '').trim();
-                        if (hdr === 'mathematics' || hdr === 'physics' || hdr === 'chemistry') {
-                            currentSubject = hdr;
-                            pendingSubject = hdr;
-                            debugContent += `<div style=\"color: #17a2b8; margin: 2px 0;\">Line ${i+1}: Subject header inside Quick Tip → set subject: ${currentSubject}</div>`;
-                            // keep skipping until next question
-                    continue;
-                        }
-                    }
                     const nextQuestionMatch = line.match(/^(\d+)\.\s*(.*)/);
                     if (nextQuestionMatch && !line.match(/^\d+\.\d/) && !/continued/i.test(nextQuestionMatch[2] || '')) {
                         inQuickTip = false;
@@ -5374,30 +5426,7 @@ Please format this solution with clear step-by-step explanations and proper math
                     }
                 }
                 
-                // Check for section breaks and subject activation pattern
                 const lowerLine = line.toLowerCase();
-                if (lowerLine.startsWith('## ')) {
-                    const headerText = lowerLine.replace('## ', '').trim();
-                    // Subject header encountered
-                    if (headerText === 'mathematics' || headerText === 'physics' || headerText === 'chemistry') {
-                        pendingSubject = headerText;
-                        currentSubject = pendingSubject;
-                        inSubjectSection = true;
-                        console.log(`Line ${i+1}: Activated subject: ${currentSubject}`);
-                        debugContent += `<div style=\"color: #007bff; margin: 2px 0;\">Line ${i+1}: Activated subject: ${currentSubject}</div>`;
-                        continue;
-                    }
-                    // SECTION-A header encountered, activate subject if pending
-                    if (/^section\s*-?\s*a\b/.test(headerText)) {
-                        if (pendingSubject) {
-                            currentSubject = pendingSubject;
-                            inSubjectSection = true;
-                            console.log(`Line ${i+1}: Activated subject section: ${currentSubject}`);
-                            debugContent += `<div style=\"color: #17a2b8; margin: 2px 0;\">Line ${i+1}: Activated subject section: ${currentSubject}</div>`;
-                            continue;
-                        }
-                    }
-                }
                 
                 // Check for new question - number followed by dot
                 let questionMatch = line.match(/^(\d+)\.\s*(.*)/);
@@ -5450,8 +5479,9 @@ Please format this solution with clear step-by-step explanations and proper math
                     if (questionTextResult.images && questionTextResult.images.length > 0) {
                         console.log(`📸 Q${parseInt(questionMatch[1])}: Extracted ${questionTextResult.images.length} image(s) from question text`);
                     }
+                    const questionNumber = parseInt(questionMatch[1]);
                     currentQuestion = {
-                        number: parseInt(questionMatch[1]),
+                        number: questionNumber,
                         text: questionTextResult.text,
                         textImages: questionTextResult.images, // Store extracted images
                         options: [],
@@ -5459,10 +5489,11 @@ Please format this solution with clear step-by-step explanations and proper math
                         answer: '',
                         solution: '',
                         solutionTextImages: [], // Initialize solution images array
-                        subject: (inSubjectSection && currentSubject) ? currentSubject : 'unassigned',
+                        subject: getSubjectByQuestionNumber(questionNumber),
                         type: 'mcq', // Default type, will be auto-detected
                         fullContent: questionTextResult.text
                     };
+                    console.log(`📝 Question ${questionNumber} assigned to subject: ${currentQuestion.subject}`);
                     inSolution = false;
                     inOptionCapture = false;
                     currentOptionNumber = 0;
@@ -5714,8 +5745,9 @@ Please format this solution with clear step-by-step explanations and proper math
                             
                             // Start new question
                             const newQuestionTextResult = extractAndCleanImages(nextQuestionMatch[2]);
+                            const newQuestionNumber = parseInt(nextQuestionMatch[1]);
                             currentQuestion = {
-                                number: parseInt(nextQuestionMatch[1]),
+                                number: newQuestionNumber,
                                 text: newQuestionTextResult.text,
                                 textImages: newQuestionTextResult.images, // Store extracted images
                                 options: [],
@@ -5723,10 +5755,11 @@ Please format this solution with clear step-by-step explanations and proper math
                                 answer: '',
                                 solution: '',
                                 solutionTextImages: [], // Initialize solution images array
-                                subject: (inSubjectSection && currentSubject) ? currentSubject : 'unassigned',
+                                subject: getSubjectByQuestionNumber(newQuestionNumber),
                                 type: 'mcq', // Default type, will be auto-detected
                                 fullContent: newQuestionTextResult.text
                             };
+                            console.log(`📝 Question ${newQuestionNumber} assigned to subject: ${currentQuestion.subject}`);
                             
                             debugContent += `<div style="color: #28a745; margin: 2px 0; font-weight: bold;">Line ${i+1}: Found question ${currentQuestion.number}: ${nextQuestionMatch[2].substring(0, 100)}...</div>`;
                         } else {
