@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "593555148862",
+    "project_id": "prepbharat",
+    "storage_bucket": "prepbharat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:593555148862:android:6489080219f4af9ea5c16f",
+        "android_client_info": {
+          "package_name": "com.chethan.prepbharat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBI1qHdGEqzcyft08DF_65Q5EkC9DND18k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -26,10 +26,19 @@
             ref,
             uploadBytesResumable,
             getDownloadURL,
-            deleteObject
+            deleteObject,
+            listAll,
+            list,
+            getBytes
         } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        import {
+            getAuth,
+            signInAnonymously,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-        const firebaseConfig = {
+        // Load Firebase config - try from google-services.json if available, otherwise use hardcoded config
+        let firebaseConfig = {
             apiKey: "AIzaSyDkRSU7sVKQXmQo4C-imX0aSeHXHhlH59E",
             authDomain: "prepbharat.firebaseapp.com",
             projectId: "prepbharat",
@@ -39,8 +48,60 @@
             measurementId: "G-7QGE8KDDTF"
         };
         
+        // Try to load from google-services.json if available (for consistency with Android)
+        // Note: google-services.json typically has Android/iOS config, but we can extract project info
+        async function loadFirebaseConfigFromGoogleServices() {
+            try {
+                const response = await fetch('/google-services.json');
+                if (response.ok) {
+                    const googleServices = await response.json();
+                    // Extract project info from google-services.json
+                    if (googleServices.project_info) {
+                        const projectInfo = googleServices.project_info;
+                        
+                        // Update config with project info from google-services.json
+                        // Keep web-specific values (apiKey, appId) from hardcoded config
+                        firebaseConfig = {
+                            apiKey: firebaseConfig.apiKey, // Keep web API key
+                            authDomain: `${projectInfo.project_id}.firebaseapp.com`,
+                            projectId: projectInfo.project_id,
+                            storageBucket: projectInfo.storage_bucket || `${projectInfo.project_id}.appspot.com`,
+                            messagingSenderId: projectInfo.project_number,
+                            appId: firebaseConfig.appId, // Keep web app ID
+                            measurementId: firebaseConfig.measurementId
+                        };
+                        
+                        console.log('✅ Loaded Firebase project info from google-services.json');
+                        console.log('   Project ID:', firebaseConfig.projectId);
+                        console.log('   Storage Bucket:', firebaseConfig.storageBucket);
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.log('ℹ️ google-services.json not found or not accessible, using hardcoded config');
+            }
+            return false;
+        }
+        
+        // Initialize Firebase immediately (will try to load from google-services.json if available)
         const app = initializeApp(firebaseConfig);
         const storage = getStorage(app);
+        const auth = getAuth(app);
+        
+        // Authenticate anonymously to get access token (required for Storage API)
+        let authToken = null;
+        signInAnonymously(auth)
+            .then((userCredential) => {
+                console.log('✅ Firebase anonymous authentication successful');
+                return userCredential.user.getIdToken();
+            })
+            .then((token) => {
+                authToken = token;
+                console.log('✅ Firebase access token obtained');
+            })
+            .catch((error) => {
+                console.error('❌ Firebase authentication error:', error);
+            });
 
         // Make firebase functions available globally
         window.firebaseStorage = {
@@ -48,12 +109,24 @@
             ref,
             deleteObject,
             uploadBytesResumable,
-            getDownloadURL
+            getDownloadURL,
+            listAll,
+            list,
+            getBytes,
+            auth,
+            getAuthToken: () => authToken
         };
+        
+        // Try to load config from google-services.json in background (for future use)
+        loadFirebaseConfigFromGoogleServices().then(loaded => {
+            if (loaded) {
+                console.log('ℹ️ Config loaded from google-services.json (will use on next page load)');
+            }
+        });
 
         // Helper function to get tutorial ID - make it globally available
         window.getTutorialIdForUpload = function(subject) {
-            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
             const tutorialIdField = document.getElementById(`tutorialId${suffix}`);
             return tutorialIdField ? tutorialIdField.value : 'tutorial';
         };
@@ -1769,6 +1842,424 @@
             box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
         }
         
+        /* Insert question button styling */
+        .insert-question-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 16px;
+            margin: 4px 0;
+            background: #10b981;
+            border: 2px dashed #059669;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+        
+        .insert-question-btn:hover {
+            background: #059669;
+            border-color: #047857;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+        }
+        
+        .insert-question-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+        
+        /* Firebase Directory Selector */
+        .firebase-directory-selector {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .hamburger-menu {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .hamburger-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: all 0.2s ease;
+        }
+        
+        .hamburger-btn:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .hamburger-btn.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+        
+        .firebase-directory-selector h3 {
+            margin: 0 0 12px 0;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .year-panel-toggle-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .year-panel-toggle-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .year-panel-toggle-btn.active {
+            background: var(--primary-hover);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .selection-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 16px;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .selection-banner.show {
+            display: flex;
+        }
+        
+        .selection-banner-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .selection-banner-label {
+            font-weight: 600;
+            opacity: 0.9;
+        }
+        
+        .selection-banner-value {
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: var(--radius-sm);
+        }
+        
+        .selection-banner-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Progress Bar */
+        .firebase-progress-bar {
+            height: 4px;
+            background: var(--border-color);
+            margin: 0 0 20px 0;
+            border-radius: 2px;
+            overflow: hidden;
+            display: none;
+            position: relative;
+        }
+        
+        .main-content > .firebase-progress-bar {
+            margin-bottom: 0;
+        }
+        
+        .firebase-progress-bar.show {
+            display: block;
+        }
+        
+        .firebase-progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            background-size: 200% 100%;
+            width: 0%;
+            border-radius: 2px;
+            animation: progressAnimation 1.5s ease-in-out infinite;
+            transition: width 0.3s ease;
+        }
+        
+        @keyframes progressAnimation {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+        
+        .firebase-progress-bar-indeterminate {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            background-size: 200% 100%;
+            width: 30%;
+            border-radius: 2px;
+            animation: indeterminateProgress 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes indeterminateProgress {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(400%);
+            }
+        }
+        
+        .directory-select-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .directory-select-row select {
+            width: 100px;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--background-color);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .directory-select-row button {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .directory-select-row button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .directory-select-row button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Sliding Year Panel */
+        .year-panel {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--surface-color);
+            border-right: 2px solid var(--border-color);
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .year-panel.open {
+            left: 0;
+        }
+        
+        .year-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .year-panel-header h3 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .year-panel-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+        }
+        
+        .year-panel-close:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .year-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .year-item {
+            padding: 12px 16px;
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .year-item:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+        }
+        
+        .year-item.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .year-item.loading {
+            opacity: 0.6;
+            cursor: wait;
+        }
+        
+        .year-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .year-item-name {
+            flex: 1;
+        }
+        
+        .year-item-expand {
+            font-size: 12px;
+            margin-left: 8px;
+            transition: transform 0.2s ease;
+        }
+        
+        .year-item.expanded .year-item-expand {
+            transform: rotate(90deg);
+        }
+        
+        .year-json-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            opacity: 0;
+            margin-top: 0;
+        }
+        
+        .year-item.expanded .year-json-list {
+            max-height: 500px;
+            opacity: 1;
+            margin-top: 8px;
+        }
+        
+        .json-file-item {
+            padding: 8px 12px 8px 32px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .json-file-item:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+        }
+        
+        .json-file-item.loading {
+            opacity: 0.6;
+            cursor: wait;
+        }
+        
+        .year-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .year-panel-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
         /* Red label styling for edit areas that need manual editing */
         .manual-edit-label {
             color: #dc3545 !important;
@@ -1829,7 +2320,7 @@
             box-shadow: var(--shadow-sm);
         }
         
-        #inlineMathRender, #inlinePhysicsRender, #inlineChemistryRender {
+        #inlineMathRender, #inlinePhysicsRender, #inlineChemistryRender, #inlineBiologyRender {
             overflow-y: auto;
             max-height: 60vh;
             min-height: 400px;
@@ -2575,6 +3066,42 @@
         .subject-tab.active .question-count {
             background: rgba(79, 172, 254, 0.3);
             color: #4facfe;
+        }
+        
+        /* Hide Biology tab when loading from Firebase */
+        .subject-tab.biology-hidden,
+        #tab-Biology.biology-hidden {
+            display: none !important;
+        }
+        
+        /* Update Firebase Button Styles */
+        #updateFirebaseBtn {
+            display: none;
+            padding: 12px 24px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+            transition: all 0.3s ease;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        #updateFirebaseBtn:hover:not(:disabled) {
+            background: #3d8bfe;
+            box-shadow: 0 6px 16px rgba(79, 172, 254, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        #updateFirebaseBtn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
         }
         
         
@@ -3568,6 +4095,55 @@
         
         <!-- Main Content Area -->
         <div class="main-content">
+        
+        <!-- Progress Bar -->
+        <div class="firebase-progress-bar" id="firebaseProgressBar">
+            <div class="firebase-progress-bar-indeterminate"></div>
+        </div>
+        
+        <!-- Firebase Directory Selector -->
+        <div class="firebase-directory-selector">
+            <div class="hamburger-menu">
+                <button class="hamburger-btn" id="yearPanelToggleBtn" onclick="toggleYearPanel()" title="Toggle Year Panel">
+                    ☰
+                </button>
+            </div>
+            <h3>📁 Select Firebase Directory</h3>
+            <div class="directory-select-row">
+                <button id="loadDirectoryBtn" onclick="loadFirebaseDirectory()" disabled>Load Directory</button>
+                <select id="firebaseDirectorySelect">
+                    <option value="">-- Select Directory --</option>
+                    <option value="KCET_JSON">KCET_JSON</option>
+                    <option value="JEE_MAIN">JEE_MAIN</option>
+                    <option value="questions">questions</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Selection Banner -->
+        <div class="selection-banner" id="selectionBanner">
+            <div class="selection-banner-item">
+                <span class="selection-banner-label">Year:</span>
+                <span class="selection-banner-value" id="selectedYearDisplay">--</span>
+            </div>
+            <div class="selection-banner-divider"></div>
+            <div class="selection-banner-item">
+                <span class="selection-banner-label">JSON File:</span>
+                <span class="selection-banner-value" id="selectedJsonDisplay">--</span>
+            </div>
+        </div>
+        
+        <!-- Year Panel (Sliding from left) -->
+        <div class="year-panel-overlay" id="yearPanelOverlay" onclick="closeYearPanel()"></div>
+        <div class="year-panel" id="yearPanel">
+            <div class="year-panel-header">
+                <h3 id="yearPanelTitle">Select Year</h3>
+                <button class="year-panel-close" onclick="closeYearPanel()">×</button>
+            </div>
+            <div class="year-list" id="yearList">
+                <!-- Years will be populated here -->
+            </div>
+        </div>
 
         <!-- Subject Tabs -->
         <div class="subject-tabs-container" id="subjectTabsContainer" style="display: none;">
@@ -3585,6 +4161,11 @@
                 <span>🧪</span>
                 <span>Chemistry</span>
                 <span class="question-count" id="count-Chemistry">0</span>
+            </button>
+            <button class="subject-tab" onclick="showSubject('Biology')" id="tab-Biology">
+                <span>🧬</span>
+                <span>Biology</span>
+                <span class="question-count" id="count-Biology">0</span>
             </button>
         </div>
         
@@ -3957,6 +4538,122 @@
                 </div>
             </div>
         </div>
+
+        <div id="subjectView-Biology" class="subject-view">
+            
+            <!-- Metadata Editor Section -->
+            <div class="metadata-editor">
+                <h2>Tutorial JSON Builder</h2>
+                <div class="row">
+                    <div class="field">
+                        <label>State:</label>
+                        <select id="state-biology">
+                            <option value="Karnataka" selected>Karnataka</option>
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Center">Center</option>
+                        </select>
+                        </div>
+                    <div class="field">
+                        <label>Board:</label>
+                        <select id="board-biology">
+                            <option value="KCET" selected>KCET</option>
+                            <option value="NEET">NEET</option>
+                            <option value="JEE Main">JEE Main</option>
+                            <option value="JEE Advanced">JEE Advanced</option>
+                            <option value="MH-CET">MH-CET</option>
+                            <option value="TN-Board">TN-Board</option>
+                        </select>
+                        </div>
+                    <div class="field">
+                        <label>Conducted By:</label>
+                        <input type="text" id="conductedBy-biology" value="KEA (Karnataka Examinations Authority)" readonly />
+                    </div>
+                    <div class="field">
+                        <label>Year:</label>
+                        <select id="year-biology">
+                            <option value="2025" selected>2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                        </select>
+                        </div>
+                    <div class="field">
+                        <label>Subject:</label>
+                        <select id="subject-biology">
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Physics">Physics</option>
+                            <option value="Chemistry">Chemistry</option>
+                            <option value="Biology" selected>Biology</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Tutorial ID:</label>
+                        <input type="text" id="tutorialId-biology" value="KCET_2025_Biology" readonly/>
+                        </div>
+                    <div class="field">
+                        <label>Day and Shift:</label>
+                        <input type="text" id="dayAndShift-biology" value="2 April 2025 Shift - 2" placeholder="e.g., 2 April 2025 Shift - 2"/>
+                        </div>
+                    </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Tutorial Title:</label>
+                        <input type="text" id="tutorialTitle-biology" value="KCET 2025 Biology"/>
+                        </div>
+                    <div class="field">
+                        <label>Authority Exam ID:</label>
+                        <input type="text" id="authorityExamId-biology" value="kar_kect"/>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <!-- Always show edit interface for Biology -->
+            <div id="inlineEditInterface-Biology" class="inline-edit-interface">
+                <div class="inline-panels-header">
+                    <!-- Viewer Toggle -->
+                    <div class="viewer-toggle" id="viewerToggle-Biology" style="display: none;">
+                        <button class="viewer-toggle-btn active" onclick="switchViewer('Biology', 'editor')">✏️ Edit</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Biology', 'json')">📄 JSON Viewer</button>
+                        <button class="viewer-toggle-btn" onclick="switchViewer('Biology', 'preview')">👁️ Live Preview</button>
+                        <button class="ai-batch-btn" onclick="batchAnalyzeAllSolutions('Biology')">
+                            🤖 Batch Analyzer
+                        </button>
+                    </div>
+                </div>
+                <div class="edit-interface-content">
+                    <div class="question-list-sidebar" id="questionList-Biology">
+                        <h4>📋 Questions</h4>
+                        <!-- Question list will be populated here -->
+                    </div>
+                    
+                    <!-- Question Editor Panel -->
+                    <div class="question-editor-panel" id="questionEditor-Biology" style="display: none;">
+                        <h4>✏️ Question Editor</h4>
+                        <div id="editQuestionsList-Biology">
+                            <!-- Editable question fields will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- JSON Viewer Panel -->
+                    <div class="json-viewer-panel" id="jsonViewer-Biology" style="display: none;">
+                        <h4>📄 JSON Data Structure</h4>
+                        <div class="json-content" id="jsonContent-Biology">
+                            <!-- JSON content will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="question-render-panel" id="questionRender-Biology" style="display: none;">
+                        <h4>📖 Live Preview</h4>
+                        <div id="inlineBiologyRender">
+                            <!-- Live render view will be shown here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         
     </div>
@@ -3964,6 +4661,7 @@
 
     <script>
         let allQuestions = [];
+        let biologyTabElement = null; // Store Biology tab element for restoration
         let questionAssignments = {};
         let originalMarkdownContent = '';
         
@@ -4735,6 +5433,743 @@ Please format this solution with clear step-by-step explanations and proper math
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
         document.getElementById('jsonFolderInput').addEventListener('change', handleJSONFolderSelect);
         
+        // Initialize: Hide subject-tabs-container by default
+        // It will only be shown when loading from .md files
+        const subjectTabsContainer = document.getElementById('subjectTabsContainer');
+        if (subjectTabsContainer) {
+            subjectTabsContainer.style.display = 'none';
+            console.log('🔒 subject-tabs-container hidden by default (will show only for .md files)');
+        }
+        
+        // Firebase Directory Selector Event Listener
+        document.getElementById('firebaseDirectorySelect').addEventListener('change', function() {
+            const select = document.getElementById('firebaseDirectorySelect');
+            const loadBtn = document.getElementById('loadDirectoryBtn');
+            loadBtn.disabled = !select.value;
+        });
+        
+        // Global variables for Firebase directory management
+        let currentFirebaseDirectory = '';
+        let currentYear = '';
+        let selectedJsonFileName = '';
+        let currentFirebaseJsonPath = null; // Store the Firebase path of the loaded JSON file
+        
+        // Toggle year panel
+        function toggleYearPanel() {
+            const yearPanel = document.getElementById('yearPanel');
+            const overlay = document.getElementById('yearPanelOverlay');
+            const toggleBtn = document.getElementById('yearPanelToggleBtn');
+            
+            if (yearPanel.classList.contains('open')) {
+                closeYearPanel();
+            } else {
+                openYearPanel();
+            }
+        }
+        
+        // Update selection banner
+        function updateSelectionBanner() {
+            const banner = document.getElementById('selectionBanner');
+            const yearDisplay = document.getElementById('selectedYearDisplay');
+            const jsonDisplay = document.getElementById('selectedJsonDisplay');
+            
+            if (currentYear || selectedJsonFileName) {
+                yearDisplay.textContent = currentYear || '--';
+                jsonDisplay.textContent = selectedJsonFileName || '--';
+                banner.classList.add('show');
+            } else {
+                banner.classList.remove('show');
+            }
+        }
+        
+        // Show progress bar
+        function showProgressBar() {
+            const progressBar = document.getElementById('firebaseProgressBar');
+            if (progressBar) {
+                progressBar.classList.add('show');
+            }
+        }
+        
+        // Hide progress bar
+        function hideProgressBar() {
+            const progressBar = document.getElementById('firebaseProgressBar');
+            if (progressBar) {
+                progressBar.classList.remove('show');
+            }
+        }
+        
+        // Load Firebase Directory and show year panel
+        async function loadFirebaseDirectory() {
+            const select = document.getElementById('firebaseDirectorySelect');
+            const directory = select.value;
+            
+            if (!directory) {
+                alert('Please select a directory');
+                return;
+            }
+            
+            currentFirebaseDirectory = directory;
+            
+            try {
+                // Show progress bar
+                showProgressBar();
+                
+                // Show loading state
+                const loadBtn = document.getElementById('loadDirectoryBtn');
+                loadBtn.disabled = true;
+                loadBtn.textContent = 'Loading...';
+                
+                // List all folders in the directory (these should be year folders)
+                const { storage, ref, listAll } = window.firebaseStorage;
+                const directoryRef = ref(storage, directory);
+                
+                console.log(`📁 Listing folders in: ${directory}`);
+                const result = await listAll(directoryRef);
+                
+                // Extract year folders (e.g., KCET_question_papers_2004)
+                const yearFolders = result.prefixes
+                    .map(prefix => {
+                        const name = prefix.name;
+                        // Extract year from folder name like "KCET_question_papers_2004"
+                        const yearMatch = name.match(/(\d{4})/);
+                        return yearMatch ? {
+                            year: yearMatch[1],
+                            folderName: name,
+                            fullPath: `${directory}/${name}`
+                        } : null;
+                    })
+                    .filter(item => item !== null)
+                    .sort((a, b) => parseInt(b.year) - parseInt(a.year)); // Sort descending (newest first)
+                
+                console.log(`✅ Found ${yearFolders.length} year folders:`, yearFolders);
+                
+                // Populate year panel
+                populateYearPanel(yearFolders);
+                
+                // Show year panel
+                openYearPanel();
+                
+                loadBtn.disabled = false;
+                loadBtn.textContent = 'Load Directory';
+                
+                // Hide progress bar
+                hideProgressBar();
+                
+            } catch (error) {
+                console.error('❌ Error loading directory:', error);
+                alert(`Error loading directory: ${error.message}`);
+                const loadBtn = document.getElementById('loadDirectoryBtn');
+                loadBtn.disabled = false;
+                loadBtn.textContent = 'Load Directory';
+                
+                // Hide progress bar on error
+                hideProgressBar();
+            }
+        }
+        
+        // Populate year panel with year folders
+        function populateYearPanel(yearFolders) {
+            const yearList = document.getElementById('yearList');
+            const yearPanelTitle = document.getElementById('yearPanelTitle');
+            
+            yearPanelTitle.textContent = `Select Year - ${currentFirebaseDirectory}`;
+            yearList.innerHTML = '';
+            
+            if (yearFolders.length === 0) {
+                yearList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">No year folders found</p>';
+                return;
+            }
+            
+            yearFolders.forEach(yearFolder => {
+                // Create year item container
+                const yearItem = document.createElement('div');
+                yearItem.className = 'year-item';
+                yearItem.dataset.year = yearFolder.year;
+                yearItem.dataset.fullPath = yearFolder.fullPath;
+                
+                // Create header with year name and expand icon
+                const yearHeader = document.createElement('div');
+                yearHeader.className = 'year-item-header';
+                
+                const yearName = document.createElement('span');
+                yearName.className = 'year-item-name';
+                yearName.textContent = yearFolder.year;
+                
+                const expandIcon = document.createElement('span');
+                expandIcon.className = 'year-item-expand';
+                expandIcon.textContent = '▶';
+                
+                yearHeader.appendChild(yearName);
+                yearHeader.appendChild(expandIcon);
+                yearItem.appendChild(yearHeader);
+                
+                // Create JSON file list container (initially hidden)
+                const jsonList = document.createElement('div');
+                jsonList.className = 'year-json-list';
+                yearItem.appendChild(jsonList);
+                
+                // Click handler to expand/collapse and load JSON files
+                yearItem.onclick = async (e) => {
+                    // Don't toggle if clicking on JSON file item or its children
+                    if (e.target.closest('.json-file-item')) {
+                        return;
+                    }
+                    
+                    const isExpanded = yearItem.classList.contains('expanded');
+                    
+                    if (isExpanded) {
+                        // Collapse
+                        yearItem.classList.remove('expanded');
+                        expandIcon.textContent = '▶';
+                    } else {
+                        // Expand and load JSON files
+                        yearItem.classList.add('expanded');
+                        expandIcon.textContent = '▼';
+                        
+                        // Load JSON files for this year
+                        await loadYearJSONFiles(yearFolder, jsonList);
+                    }
+                };
+                
+                yearList.appendChild(yearItem);
+            });
+        }
+        
+        // Open year panel
+        function openYearPanel() {
+            const yearPanel = document.getElementById('yearPanel');
+            const overlay = document.getElementById('yearPanelOverlay');
+            const toggleBtn = document.getElementById('yearPanelToggleBtn');
+            yearPanel.classList.add('open');
+            overlay.classList.add('show');
+            if (toggleBtn) {
+                toggleBtn.classList.add('active');
+            }
+        }
+        
+        // Close year panel
+        function closeYearPanel() {
+            const yearPanel = document.getElementById('yearPanel');
+            const overlay = document.getElementById('yearPanelOverlay');
+            const toggleBtn = document.getElementById('yearPanelToggleBtn');
+            yearPanel.classList.remove('open');
+            overlay.classList.remove('show');
+            if (toggleBtn) {
+                toggleBtn.classList.remove('active');
+            }
+        }
+        
+        // Load JSON files for a year and display them in the list
+        async function loadYearJSONFiles(yearFolder, jsonListContainer) {
+            // Clear previous content
+            jsonListContainer.innerHTML = '';
+            
+            // Show progress bar
+            showProgressBar();
+            
+            // Show loading state
+            const loadingMsg = document.createElement('div');
+            loadingMsg.textContent = 'Loading JSON files...';
+            loadingMsg.style.cssText = 'padding: 8px 12px; color: var(--text-secondary); font-size: 12px; font-style: italic;';
+            jsonListContainer.appendChild(loadingMsg);
+            
+            try {
+                console.log(`📂 Loading JSON files for year ${yearFolder.year} from ${yearFolder.fullPath}`);
+                
+                // List all files in the year folder
+                const { storage, ref, listAll } = window.firebaseStorage;
+                const yearFolderRef = ref(storage, yearFolder.fullPath);
+                
+                console.log(`🔍 Listing files in: ${yearFolder.fullPath}`);
+                const result = await listAll(yearFolderRef);
+                
+                console.log(`📋 Found ${result.items.length} items in folder`);
+                console.log(`📋 Items:`, result.items.map(item => item.name));
+                
+                // Clear loading message
+                jsonListContainer.innerHTML = '';
+                
+                if (result.items.length === 0) {
+                    const noFilesMsg = document.createElement('div');
+                    noFilesMsg.textContent = 'No JSON files found';
+                    noFilesMsg.style.cssText = 'padding: 8px 12px; color: var(--text-secondary); font-size: 12px; font-style: italic;';
+                    jsonListContainer.appendChild(noFilesMsg);
+                    return;
+                }
+                
+                // Filter and display JSON files
+                const jsonFiles = [];
+                for (const item of result.items) {
+                    const fileName = item.name.toLowerCase();
+                    
+                    // Only process .json files
+                    if (fileName.endsWith('.json')) {
+                        jsonFiles.push({
+                            ref: item,
+                            name: item.name,
+                            fullPath: `${yearFolder.fullPath}/${item.name}`,
+                            yearFolder: yearFolder
+                        });
+                    }
+                }
+                
+                if (jsonFiles.length === 0) {
+                    const noJsonMsg = document.createElement('div');
+                    noJsonMsg.textContent = 'No JSON files found';
+                    noJsonMsg.style.cssText = 'padding: 8px 12px; color: var(--text-secondary); font-size: 12px; font-style: italic;';
+                    jsonListContainer.appendChild(noJsonMsg);
+                    return;
+                }
+                
+                // Create JSON file items
+                jsonFiles.forEach(jsonFile => {
+                    const jsonItem = document.createElement('div');
+                    jsonItem.className = 'json-file-item';
+                    jsonItem.textContent = jsonFile.name;
+                    jsonItem.title = `Click to load: ${jsonFile.name}`;
+                    
+                    jsonItem.onclick = async (e) => {
+                        e.stopPropagation();
+                        await loadJSONFile(jsonFile);
+                    };
+                    
+                    jsonListContainer.appendChild(jsonItem);
+                });
+                
+                // Hide progress bar
+                hideProgressBar();
+                
+            } catch (error) {
+                console.error('❌ Error loading JSON files:', error);
+                jsonListContainer.innerHTML = '';
+                const errorMsg = document.createElement('div');
+                errorMsg.textContent = `Error: ${error.message}`;
+                errorMsg.style.cssText = 'padding: 8px 12px; color: #ef4444; font-size: 12px;';
+                jsonListContainer.appendChild(errorMsg);
+                
+                // Hide progress bar on error
+                hideProgressBar();
+            }
+        }
+        
+        // Force hide subject-tabs-container - called immediately when loading from Firebase
+        function forceHideSubjectTabs() {
+            const subjectTabsContainer = document.getElementById('subjectTabsContainer');
+            if (subjectTabsContainer) {
+                subjectTabsContainer.style.display = 'none';
+                console.log('🔒 ✅ Force hidden subject-tabs-container (Firebase load)');
+            }
+        }
+        
+        // Load a specific JSON file into the Tutorial JSON Builder
+        async function loadJSONFile(jsonFile) {
+            console.log(`📥 Loading JSON file: ${jsonFile.name}`);
+            
+            // IMMEDIATELY hide subject-tabs-container when loading from Firebase
+            forceHideSubjectTabs();
+            
+            // Show progress bar
+            showProgressBar();
+            
+            // Set selected JSON file name and update banner
+            selectedJsonFileName = jsonFile.name;
+            updateSelectionBanner();
+            
+            // Find the JSON file item and show loading state
+            const jsonItems = document.querySelectorAll('.json-file-item');
+            jsonItems.forEach(item => {
+                if (item.textContent === jsonFile.name) {
+                    item.classList.add('loading');
+                }
+            });
+            
+            try {
+                // Get download URL and fetch the file
+                const { getDownloadURL } = window.firebaseStorage;
+                const downloadURL = await getDownloadURL(jsonFile.ref);
+                
+                console.log(`   Download URL obtained: ${downloadURL.substring(0, 80)}...`);
+                
+                // Fetch the file
+                const response = await fetch(downloadURL, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+                }
+                
+                const jsonData = await response.json();
+                
+                // Handle array format
+                let data = jsonData;
+                if (Array.isArray(data) && data.length > 0) {
+                    console.log(`📦 JSON is an array, extracting first object`);
+                    data = data[0];
+                }
+                
+                console.log(`✅ Loaded JSON file:`, data);
+                
+                // Determine subject from filename
+                const fileName = jsonFile.name.toLowerCase();
+                const subjectMap = {
+                    'mathematics': ['mathematics', 'math'],
+                    'physics': ['physics'],
+                    'chemistry': ['chemistry', 'chem'],
+                    'biology': ['biology', 'bio']
+                };
+                
+                let matchedSubject = null;
+                for (const [subject, keywords] of Object.entries(subjectMap)) {
+                    if (keywords.some(keyword => fileName.includes(keyword))) {
+                        matchedSubject = subject;
+                        break;
+                    }
+                }
+                
+                // Store the Firebase path for updating later
+                currentFirebaseJsonPath = jsonFile.fullPath;
+                console.log(`💾 Stored Firebase path for update: ${currentFirebaseJsonPath}`);
+                
+                // Show update button if it exists
+                const updateBtn = document.getElementById('updateFirebaseBtn');
+                if (updateBtn) {
+                    updateBtn.style.display = 'block';
+                }
+                
+                // Load the JSON data into the Tutorial JSON Builder
+                if (matchedSubject) {
+                    await loadSubjectData(matchedSubject, data, jsonFile.yearFolder);
+                } else {
+                    // If subject can't be determined, try to load all subjects from the data
+                    console.log(`⚠️ Could not determine subject from filename, attempting to load all subjects`);
+                    await loadAllSubjectsFromJSON(data, jsonFile.yearFolder);
+                }
+                
+                // Remove loading state
+                jsonItems.forEach(item => {
+                    if (item.textContent === jsonFile.name) {
+                        item.classList.remove('loading');
+                    }
+                });
+                
+                // Close year panel after loading
+                closeYearPanel();
+                
+                // Hide progress bar
+                hideProgressBar();
+                
+            } catch (error) {
+                console.error(`❌ Error loading JSON file:`, error);
+                alert(`Error loading JSON file: ${error.message}`);
+                
+                // Remove loading state
+                jsonItems.forEach(item => {
+                    if (item.textContent === jsonFile.name) {
+                        item.classList.remove('loading');
+                    }
+                });
+                
+                // Hide progress bar on error
+                hideProgressBar();
+            }
+        }
+        
+        // Load all subjects from a single JSON file
+        async function loadAllSubjectsFromJSON(jsonData, yearFolder) {
+            // Set current year and update banner
+            currentYear = yearFolder.year;
+            updateSelectionBanner();
+            
+            // Try to extract subject data from the JSON structure
+            // This assumes the JSON might have a structure with subject keys or an array of questions with subject info
+            const subjectData = {
+                mathematics: null,
+                physics: null,
+                chemistry: null,
+                biology: null
+            };
+            
+            // Check if JSON has subject-specific keys
+            if (jsonData.mathematics || jsonData.physics || jsonData.chemistry || jsonData.biology) {
+                subjectData.mathematics = jsonData.mathematics || null;
+                subjectData.physics = jsonData.physics || null;
+                subjectData.chemistry = jsonData.chemistry || null;
+                subjectData.biology = jsonData.biology || null;
+            } else if (jsonData.questions && Array.isArray(jsonData.questions)) {
+                // If it's a single JSON with questions, try to determine subject from metadata
+                const subject = jsonData.subject ? jsonData.subject.toLowerCase() : null;
+                if (subject && subjectData.hasOwnProperty(subject)) {
+                    subjectData[subject] = jsonData;
+                } else {
+                    // Default to first available subject or mathematics
+                    subjectData.mathematics = jsonData;
+                }
+            } else {
+                // Single JSON file, try to determine subject from metadata
+                const subject = jsonData.subject ? jsonData.subject.toLowerCase() : 'mathematics';
+                if (subjectData.hasOwnProperty(subject)) {
+                    subjectData[subject] = jsonData;
+                } else {
+                    subjectData.mathematics = jsonData;
+                }
+            }
+            
+            // Populate UI directly with the JSON data
+            populateUIFromJSON(subjectData, true); // true = from Firebase
+            markWorkAsUnsaved();
+            alert(`✅ Successfully loaded JSON file for year ${currentYear}!`);
+        }
+        
+        // Load subject data (helper function) - UPDATED VERSION - DO NOT USE loadJSONFilesFromFirebase
+        async function loadSubjectData(subject, data, yearFolder) {
+            console.log(`🆕 NEW CODE PATH: Loading subject data for ${subject} from year ${yearFolder.year}`);
+            console.log(`🆕 This should NOT call loadJSONFilesFromFirebase - if you see that error, browser cache needs clearing!`);
+            
+            // Set current year and update banner
+            currentYear = yearFolder.year;
+            updateSelectionBanner();
+            
+            const subjectData = {
+                mathematics: null,
+                physics: null,
+                chemistry: null,
+                biology: null
+            };
+            
+            subjectData[subject] = data;
+            
+            console.log(`✅ Subject data prepared, calling populateUIFromJSON directly...`);
+            
+            // Populate UI directly with the JSON data - DO NOT call loadJSONFilesFromFirebase here!
+            populateUIFromJSON(subjectData, true); // true = from Firebase
+            markWorkAsUnsaved();
+            alert(`✅ Successfully loaded ${subject} JSON file for year ${currentYear}!`);
+        }
+        
+        // Select year and load JSON files (kept for backward compatibility, but now redirects to expand behavior)
+        async function selectYear(yearFolder) {
+            currentYear = yearFolder.year;
+            updateSelectionBanner();
+            
+            // Update active state
+            document.querySelectorAll('.year-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.textContent === yearFolder.year) {
+                    item.classList.add('active');
+                    item.classList.add('loading');
+                }
+            });
+            
+            try {
+                console.log(`📂 Loading JSON files for year ${yearFolder.year} from ${yearFolder.fullPath}`);
+                
+                // List all files in the year folder
+                const { storage, ref, listAll, getDownloadURL } = window.firebaseStorage;
+                const yearFolderRef = ref(storage, yearFolder.fullPath);
+                
+                console.log(`🔍 Listing files in: ${yearFolder.fullPath}`);
+                const result = await listAll(yearFolderRef);
+                
+                console.log(`📋 Found ${result.items.length} items in folder`);
+                console.log(`📋 Items:`, result.items.map(item => item.name));
+                console.log(`📋 Prefixes (subfolders):`, result.prefixes.map(prefix => prefix.name));
+                
+                if (result.items.length === 0) {
+                    console.warn(`⚠️ No files found in ${yearFolder.fullPath}`);
+                    console.warn(`⚠️ This might mean the path is incorrect or the folder is empty`);
+                    alert(`No files found in the selected year folder.\n\nPath: ${yearFolder.fullPath}\n\nPlease check:\n1. The folder path is correct\n2. Files exist in Firebase Storage\n3. You have proper permissions`);
+                    document.querySelectorAll('.year-item').forEach(item => {
+                        item.classList.remove('loading');
+                    });
+                    return;
+                }
+                
+                // Filter JSON files and map to subjects
+                const jsonFiles = {};
+                const subjectMap = {
+                    'mathematics': ['mathematics', 'math'],
+                    'physics': ['physics'],
+                    'chemistry': ['chemistry', 'chem'],
+                    'biology': ['biology', 'bio']
+                };
+                
+                // Process each file
+                for (const item of result.items) {
+                    const fileName = item.name.toLowerCase();
+                    
+                    // Only process .json files
+                    if (!fileName.endsWith('.json')) {
+                        console.log(`⏭️ Skipping non-JSON file: ${item.name}`);
+                        continue;
+                    }
+                    
+                    console.log(`🔍 Checking file: ${item.name} (lowercase: ${fileName})`);
+                    
+                    // Check which subject this file belongs to
+                    let matched = false;
+                    for (const [subject, keywords] of Object.entries(subjectMap)) {
+                        if (keywords.some(keyword => fileName.includes(keyword))) {
+                            console.log(`✅ Matched ${item.name} to subject: ${subject} (keyword: ${keywords.find(k => fileName.includes(k))})`);
+                            if (!jsonFiles[subject]) {
+                                // Store both reference and path info for direct URL access
+                                jsonFiles[subject] = {
+                                    ref: item,
+                                    name: item.name,
+                                    folderName: yearFolder.folderName,
+                                    fullPath: `${yearFolder.fullPath}/${item.name}`
+                                };
+                                matched = true;
+                            }
+                            break;
+                        }
+                    }
+                    
+                    if (!matched) {
+                        console.log(`⚠️ Could not match file ${item.name} to any subject`);
+                    }
+                }
+                
+                console.log(`✅ Found JSON files:`, jsonFiles);
+                console.log(`📊 Total subjects matched: ${Object.keys(jsonFiles).length}`);
+                
+                // Check if we found any JSON files
+                if (Object.keys(jsonFiles).length === 0) {
+                    const allFileNames = result.items.map(item => item.name).join(', ');
+                    console.error(`❌ No JSON files matched to subjects. All files found: ${allFileNames}`);
+                    alert(`No JSON files could be matched to subjects.\n\nFiles found in folder:\n${allFileNames}\n\nPlease ensure files contain subject keywords (mathematics, physics, chemistry, biology) in their names.`);
+                    document.querySelectorAll('.year-item').forEach(item => {
+                        item.classList.remove('loading');
+                    });
+                    return;
+                }
+                
+                // Load JSON files from URLs
+                await loadJSONFilesFromFirebase(jsonFiles);
+                
+                // Close year panel after loading
+                closeYearPanel();
+                
+                // Remove loading state
+                document.querySelectorAll('.year-item').forEach(item => {
+                    item.classList.remove('loading');
+                });
+                
+            } catch (error) {
+                console.error('❌ Error loading year data:', error);
+                alert(`Error loading year ${yearFolder.year}: ${error.message}`);
+                
+                // Remove loading state
+                document.querySelectorAll('.year-item').forEach(item => {
+                    item.classList.remove('loading');
+                });
+            }
+        }
+        
+        // Construct direct Firebase Storage URL from path
+        function getFirebaseStorageURL(filePath) {
+            // Firebase Storage REST API format:
+            // https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media
+            const bucket = 'prepbharat.firebasestorage.app';
+            const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, '/');
+            return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media`;
+        }
+        
+        // Wait for Firebase authentication token
+        async function waitForAuthToken(maxWait = 5000) {
+            const startTime = Date.now();
+            while (!window.firebaseStorage.getAuthToken() && (Date.now() - startTime) < maxWait) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return window.firebaseStorage.getAuthToken();
+        }
+        
+        // Load JSON files from Firebase Storage using SDK with authentication
+        async function loadJSONFilesFromFirebase(jsonFiles) {
+            // IMMEDIATELY hide subject-tabs-container when loading from Firebase
+            forceHideSubjectTabs();
+            
+            // Wait for authentication token (required for SDK to work properly)
+            console.log('🔐 Waiting for Firebase authentication...');
+            const token = await waitForAuthToken();
+            
+            if (!token) {
+                console.warn('⚠️ No auth token available, but continuing anyway...');
+            } else {
+                console.log('✅ Firebase authentication ready');
+            }
+            
+            const subjectData = {
+                mathematics: null,
+                physics: null,
+                chemistry: null,
+                biology: null
+            };
+            
+            // Use getDownloadURL to get signed URLs (bypasses CORS issues)
+            const loadPromises = Object.keys(jsonFiles).map(async (subject) => {
+                try {
+                    const fileInfo = jsonFiles[subject];
+                    const { getDownloadURL } = window.firebaseStorage;
+                    const fileRef = fileInfo.ref;
+                    
+                    console.log(`📥 Getting download URL for ${subject}: ${fileInfo.name}`);
+                    
+                    // Get signed download URL (this should work without CORS issues)
+                    const downloadURL = await getDownloadURL(fileRef);
+                    console.log(`   Download URL obtained: ${downloadURL.substring(0, 80)}...`);
+                    
+                    // Fetch the file using the signed URL
+                    const response = await fetch(downloadURL, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const jsonData = await response.json();
+                    
+                    // Handle array format
+                    let data = jsonData;
+                    if (Array.isArray(data) && data.length > 0) {
+                        console.log(`📦 ${subject} is an array, extracting first object`);
+                        data = data[0];
+                    }
+                    
+                    console.log(`✅ Loaded ${subject} from Firebase via signed URL:`, data);
+                    subjectData[subject] = data;
+                    
+                } catch (error) {
+                    console.error(`❌ Error loading ${subject} from Firebase:`, error);
+                    
+                    // If CORS error, provide helpful message
+                    if (error.message && (error.message.includes('CORS') || error.message.includes('blocked'))) {
+                        console.error(`\n⚠️ CORS Error: You need to run this from a web server, not file://\n` +
+                            `Run: python -m http.server 8000\n` +
+                            `Then open: http://localhost:8000/question_assigner.html`);
+                    }
+                }
+            });
+            
+            await Promise.all(loadPromises);
+            
+            // Populate UI with loaded data
+            if (Object.values(subjectData).some(data => data !== null)) {
+                populateUIFromJSON(subjectData, true); // true = from Firebase
+                markWorkAsUnsaved();
+                alert(`✅ Successfully loaded JSON files for year ${currentYear}!`);
+            } else {
+                alert('⚠️ No valid JSON files found in the selected year folder.');
+            }
+        }
+        
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
@@ -4850,7 +6285,8 @@ Please format this solution with clear step-by-step explanations and proper math
             Promise.all(loadPromises)
                 .then(() => {
                     console.log('✅ All JSON files loaded successfully');
-                    populateUIFromJSON(subjectData);
+                    // populateUIFromJSON will handle Biology tab removal for local JSON folder uploads
+                    populateUIFromJSON(subjectData, false); // false = not from Firebase, but also not .md
                     markWorkAsUnsaved();
                 })
                 .catch(error => {
@@ -4863,47 +6299,124 @@ Please format this solution with clear step-by-step explanations and proper math
         function safeSetValue(elementId, value) {
             const element = document.getElementById(elementId);
             if (element) {
+                // For select elements, check if option exists, if not add it
+                if (element.tagName === 'SELECT') {
+                    // Check if the value exists as an option
+                    const optionExists = Array.from(element.options).some(opt => opt.value === value);
+                    if (!optionExists && value) {
+                        // Add the option if it doesn't exist
+                        const option = document.createElement('option');
+                        option.value = value;
+                        option.textContent = value;
+                        element.appendChild(option);
+                    }
+                }
                 element.value = value;
             } else {
                 console.warn(`⚠️ Element not found: ${elementId}`);
             }
         }
         
+        // Manage Biology tab visibility in subject-tabs-container
+        function manageBiologyTabVisibility(show = false) {
+            const subjectTabsContainer = document.getElementById('subjectTabsContainer');
+            const biologyTab = document.getElementById('tab-Biology');
+            
+            if (!subjectTabsContainer) {
+                console.warn('⚠️ subject-tabs-container not found');
+                return;
+            }
+            
+            if (show) {
+                // Show Biology tab - restore if removed, or make visible if hidden
+                if (!biologyTab) {
+                    // Tab was removed, restore it
+                    if (biologyTabElement) {
+                        const restoredTab = biologyTabElement.cloneNode(true);
+                        subjectTabsContainer.appendChild(restoredTab);
+                        console.log('🔓 Restored Biology tab in subject-tabs-container (from .md file)');
+                    } else {
+                        console.warn('⚠️ Cannot restore Biology tab - element not stored');
+                    }
+                } else {
+                    // Tab exists, make sure it's visible
+                    biologyTab.style.display = 'flex';
+                    console.log('🔓 Showing Biology tab in subject-tabs-container (from .md file)');
+                }
+            } else {
+                // Hide Biology tab - remove from DOM
+                if (biologyTab && biologyTab.parentNode) {
+                    // Store a copy for restoration (only if not already stored)
+                    if (!biologyTabElement) {
+                        biologyTabElement = biologyTab.cloneNode(true);
+                    }
+                    // Remove the tab from DOM
+                    biologyTab.remove();
+                    console.log('🔒 Removed Biology tab from subject-tabs-container (from Firebase/local JSON)');
+                } else if (!biologyTab && biologyTabElement) {
+                    // Tab already removed, ensure it stays removed
+                    console.log('🔒 Biology tab already removed from subject-tabs-container');
+                }
+            }
+        }
+        
         // Populate the UI with data from loaded JSON files
-        function populateUIFromJSON(subjectData) {
+        function populateUIFromJSON(subjectData, isFromFirebase = false) {
             console.log('🎨 Populating UI from JSON data...');
+            
+            // Track data source globally
+            window.currentDataSource = isFromFirebase ? 'firebase' : 'local';
             
             // Clear existing data
             allQuestions = [];
             questionAssignments = {};
             
-            // Show UI panels FIRST (so form fields exist)
+            // Get references to UI elements
             const sidebarStats = document.getElementById('sidebarStats');
             const sidebarDownload = document.getElementById('sidebarDownload');
             const subjectTabsContainer = document.getElementById('subjectTabsContainer');
             
+            // IMPORTANT: Hide entire subject-tabs-container when loading from Firebase/local JSON
+            // The tabs should only appear when loading from .md files
+            if (isFromFirebase) {
+                // Hide the entire tabs container when loading from Firebase
+                if (subjectTabsContainer) {
+                    subjectTabsContainer.style.display = 'none';
+                    console.log('🔒 ✅ Hidden entire subject-tabs-container (loaded from Firebase)');
+                }
+            } else {
+                // For local JSON folder uploads, also hide tabs
+                if (subjectTabsContainer) {
+                    subjectTabsContainer.style.display = 'none';
+                    console.log('🔒 ✅ Hidden entire subject-tabs-container (loaded from local JSON folder)');
+                }
+            }
+            
+            // Show other UI panels
             if (sidebarStats) sidebarStats.style.display = 'block';
             if (sidebarDownload) sidebarDownload.style.display = 'block';
-            if (subjectTabsContainer) subjectTabsContainer.style.display = 'flex';
             
             // Don't show subject views yet - they will be shown by showSubject()
             // Just make sure they exist but are hidden
             const mathView = document.getElementById('subjectView-Mathematics');
             const physicsView = document.getElementById('subjectView-Physics');
             const chemistryView = document.getElementById('subjectView-Chemistry');
+            const biologyView = document.getElementById('subjectView-Biology');
             
             if (mathView) mathView.style.display = 'none';
             if (physicsView) physicsView.style.display = 'none';
             if (chemistryView) chemistryView.style.display = 'none';
+            if (biologyView) biologyView.style.display = 'none';
             
             // Load questions from each subject
             console.log('📦 Subject Data Structure:', {
                 mathematics: subjectData.mathematics ? 'Found' : 'Missing',
                 physics: subjectData.physics ? 'Found' : 'Missing',
-                chemistry: subjectData.chemistry ? 'Found' : 'Missing'
+                chemistry: subjectData.chemistry ? 'Found' : 'Missing',
+                biology: subjectData.biology ? 'Found' : 'Missing'
             });
             
-            ['mathematics', 'physics', 'chemistry'].forEach((subject, subjectIndex) => {
+            ['mathematics', 'physics', 'chemistry', 'biology'].forEach((subject, subjectIndex) => {
                 if (subjectData[subject]) {
                     console.log(`📊 ${subject} data:`, subjectData[subject]);
                     
@@ -4927,9 +6440,11 @@ Please format this solution with clear step-by-step explanations and proper math
                             }
                             
                             // Create question object (using array format for options, just like .md parsing)
+                            // Capitalize first letter of subject for consistency
+                            const subjectCapitalized = subject.charAt(0).toUpperCase() + subject.slice(1);
                             const question = {
                                 number: questionIndex,
-                                subject: subject,
+                                subject: subject, // Keep lowercase for internal consistency
                                 text: questionDetails.text || '',
                                 solution: questionDetails.solution || '',
                                 type: questionDetails.type || 'mcq',
@@ -4945,7 +6460,7 @@ Please format this solution with clear step-by-step explanations and proper math
                             
                             
                             allQuestions.push(question);
-                            questionAssignments[`Q${questionIndex}`] = subject;
+                            questionAssignments[`Q${questionIndex}`] = subjectCapitalized; // Use capitalized for assignment
                         });
                     } else {
                         console.warn(`⚠️ No questions array found for ${subject}`);
@@ -4965,67 +6480,230 @@ Please format this solution with clear step-by-step explanations and proper math
             // Update statistics
             updateStats();
             
-            // Wait a moment for DOM to be ready, then activate Mathematics
+            // Now populate form fields FIRST (before showing subject, so values aren't overwritten)
+            // Use longer timeout to ensure all views are rendered
             setTimeout(() => {
-                console.log('🎯 Calling showSubject(Mathematics)...');
-                showSubject('Mathematics');
+                console.log('🔍 Attempting to populate form fields...');
+                console.log('📦 Subject data available:', {
+                    mathematics: !!subjectData.mathematics,
+                    physics: !!subjectData.physics,
+                    chemistry: !!subjectData.chemistry
+                });
                 
-                // Auto-select first question
-                setTimeout(() => {
-                    console.log('🎯 Auto-selecting first question...');
-                    const firstQuestionBtn = document.querySelector('#questionList-Mathematics .question-item');
-                    if (firstQuestionBtn) {
-                        firstQuestionBtn.click();
-                        console.log('✅ First question selected');
-                    } else {
-                        console.warn('⚠️ First question button not found');
+                if (subjectData.mathematics) {
+                    console.log('📋 Mathematics data structure:', Object.keys(subjectData.mathematics));
+                }
+                
+                // Use the first available subject data to populate main form fields
+                // Priority: Mathematics > Physics > Chemistry > Biology
+                const mainData = subjectData.mathematics || subjectData.physics || subjectData.chemistry || subjectData.biology;
+                
+                if (mainData) {
+                    console.log('📝 Populating main form fields from JSON:', mainData);
+                    console.log('   State:', mainData.state);
+                    console.log('   Board:', mainData.board);
+                    console.log('   Year:', mainData.year);
+                    console.log('   Subject:', mainData.subject);
+                    console.log('   Authority Exam ID:', mainData.authorityExamId);
+                    console.log('   Day and Shift:', mainData.dayAndShift);
+                    console.log('   Tutorial ID:', mainData.tutorialId);
+                    console.log('   Tutorial Title:', mainData.tutorialTitle);
+                    
+                    // Update main form fields (used by all subjects)
+                    // These fields are in the Mathematics view (first visible view)
+                    const stateField = document.getElementById('state');
+                    const boardField = document.getElementById('board');
+                    const conductedByField = document.getElementById('conductedBy');
+                    const yearField = document.getElementById('year');
+                    const subjectField = document.getElementById('subject');
+                    const authorityExamIdField = document.getElementById('authorityExamId');
+                    const dayAndShiftField = document.getElementById('dayAndShift');
+                    
+                    console.log('🔍 Field elements found:', {
+                        state: !!stateField,
+                        board: !!boardField,
+                        conductedBy: !!conductedByField,
+                        year: !!yearField,
+                        subject: !!subjectField,
+                        authorityExamId: !!authorityExamIdField,
+                        dayAndShift: !!dayAndShiftField
+                    });
+                    
+                    if (stateField && mainData.state) {
+                        stateField.value = mainData.state;
+                        stateField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set state to: ${mainData.state}`);
                     }
-                }, 200);
-            }, 300);
-            
-            // Now populate form fields (after UI is rendered)
-            setTimeout(() => {
-                // Update Mathematics fields
+                    
+                    if (boardField && mainData.board) {
+                        boardField.value = mainData.board;
+                        boardField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set board to: ${mainData.board}`);
+                    }
+                    
+                    if (conductedByField && mainData.conductedBy) {
+                        conductedByField.value = mainData.conductedBy;
+                        conductedByField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set conductedBy to: ${mainData.conductedBy}`);
+                    }
+                    
+                    if (yearField && mainData.year) {
+                        yearField.value = mainData.year;
+                        yearField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set year to: ${mainData.year}`);
+                    }
+                    
+                    if (subjectField && mainData.subject) {
+                        const subjectValue = mainData.subject.charAt(0).toUpperCase() + mainData.subject.slice(1);
+                        subjectField.value = subjectValue;
+                        subjectField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set subject to: ${subjectValue}`);
+                    }
+                    
+                    if (authorityExamIdField && mainData.authorityExamId) {
+                        authorityExamIdField.value = mainData.authorityExamId;
+                        authorityExamIdField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set authorityExamId to: ${mainData.authorityExamId}`);
+                    }
+                    
+                    if (dayAndShiftField && mainData.dayAndShift) {
+                        dayAndShiftField.value = mainData.dayAndShift;
+                        dayAndShiftField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set dayAndShift to: ${mainData.dayAndShift}`);
+                    }
+                    
+                    // Update Tutorial Title field
+                    const tutorialTitleField = document.getElementById('tutorialTitle');
+                    if (tutorialTitleField && mainData.tutorialTitle) {
+                        tutorialTitleField.value = mainData.tutorialTitle;
+                        tutorialTitleField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set tutorialTitle to: ${mainData.tutorialTitle}`);
+                    }
+                    
+                    // Verify fields were set
+                    setTimeout(() => {
+                        console.log('✅ Field values after setting:');
+                        console.log('   State:', document.getElementById('state')?.value);
+                        console.log('   Board:', document.getElementById('board')?.value);
+                        console.log('   Year:', document.getElementById('year')?.value);
+                        console.log('   Subject:', document.getElementById('subject')?.value);
+                        console.log('   Authority Exam ID:', document.getElementById('authorityExamId')?.value);
+                        console.log('   Day and Shift:', document.getElementById('dayAndShift')?.value);
+                        console.log('   Tutorial Title:', document.getElementById('tutorialTitle')?.value);
+                        console.log('   Tutorial ID:', document.getElementById('tutorialId')?.value);
+                    }, 100);
+                    
+                    // Update tutorial description if available
+                    const tutorialDescriptionField = document.getElementById('tutorialDescription');
+                    if (tutorialDescriptionField && mainData.tutorialDescription) {
+                        tutorialDescriptionField.value = mainData.tutorialDescription;
+                    }
+                } else {
+                    console.warn('⚠️ No subject data available to populate form fields');
+                }
+                
+                // Update Mathematics-specific fields
                 if (subjectData.mathematics) {
                     const mathData = subjectData.mathematics;
+                    // Use tutorialId directly from JSON (don't regenerate)
                     safeSetValue('tutorialId', mathData.tutorialId || '');
                     safeSetValue('tutorialTitle', mathData.tutorialTitle || '');
-                    safeSetValue('board', mathData.board || '');
-                    safeSetValue('state', mathData.state || '');
-                    safeSetValue('conductedBy', mathData.conductedBy || '');
-                    safeSetValue('examType', mathData.authorityExamId || '');
+                    safeSetValue('authorityExamId', mathData.authorityExamId || '');
                     safeSetValue('dayAndShift', mathData.dayAndShift || '');
                 }
                 
-                // Update Physics fields
+                // Update Physics-specific fields
                 if (subjectData.physics) {
                     const physicsData = subjectData.physics;
+                    // Use tutorialId directly from JSON (don't regenerate)
                     safeSetValue('tutorialId-physics', physicsData.tutorialId || '');
                     safeSetValue('tutorialTitle-physics', physicsData.tutorialTitle || '');
-                    safeSetValue('board-physics', physicsData.board || '');
-                    safeSetValue('state-physics', physicsData.state || '');
-                    safeSetValue('conductedBy-physics', physicsData.conductedBy || '');
-                    safeSetValue('examType-physics', physicsData.authorityExamId || '');
+                    safeSetValue('authorityExamId-physics', physicsData.authorityExamId || '');
                     safeSetValue('dayAndShift-physics', physicsData.dayAndShift || '');
                 }
                 
-                // Update Chemistry fields
+                // Update Chemistry-specific fields
                 if (subjectData.chemistry) {
                     const chemData = subjectData.chemistry;
+                    // Use tutorialId directly from JSON (don't regenerate)
                     safeSetValue('tutorialId-chemistry', chemData.tutorialId || '');
                     safeSetValue('tutorialTitle-chemistry', chemData.tutorialTitle || '');
-                    safeSetValue('board-chemistry', chemData.board || '');
-                    safeSetValue('state-chemistry', chemData.state || '');
-                    safeSetValue('conductedBy-chemistry', chemData.conductedBy || '');
-                    safeSetValue('examType-chemistry', chemData.authorityExamId || '');
+                    safeSetValue('authorityExamId-chemistry', chemData.authorityExamId || '');
                     safeSetValue('dayAndShift-chemistry', chemData.dayAndShift || '');
                 }
+                
+                // Update Biology-specific fields
+                if (subjectData.biology) {
+                    const bioData = subjectData.biology;
+                    // Use tutorialId directly from JSON (don't regenerate)
+                    safeSetValue('tutorialId-biology', bioData.tutorialId || '');
+                    safeSetValue('tutorialTitle-biology', bioData.tutorialTitle || '');
+                    safeSetValue('authorityExamId-biology', bioData.authorityExamId || '');
+                    safeSetValue('dayAndShift-biology', bioData.dayAndShift || '');
+                }
+                
+                console.log('✅ All form fields populated from JSON data');
+                
+                // Determine which subject has data (for Firebase loads, show that subject)
+                let subjectToShow = 'Mathematics'; // default
+                if (subjectData.mathematics && subjectData.mathematics.questions && subjectData.mathematics.questions.length > 0) {
+                    subjectToShow = 'Mathematics';
+                } else if (subjectData.physics && subjectData.physics.questions && subjectData.physics.questions.length > 0) {
+                    subjectToShow = 'Physics';
+                } else if (subjectData.chemistry && subjectData.chemistry.questions && subjectData.chemistry.questions.length > 0) {
+                    subjectToShow = 'Chemistry';
+                } else if (subjectData.biology && subjectData.biology.questions && subjectData.biology.questions.length > 0) {
+                    subjectToShow = 'Biology';
+                }
+                
+                // NOW show subject AFTER fields are populated (so values aren't overwritten)
+                setTimeout(() => {
+                    console.log(`🎯 Calling showSubject(${subjectToShow})...`);
+                    showSubject(subjectToShow);
+                    
+                    // Show viewer toggle buttons (they're hidden by default)
+                    const viewerToggle = document.getElementById(`viewerToggle-${subjectToShow}`);
+                    if (viewerToggle) {
+                        viewerToggle.style.display = 'flex';
+                        console.log(`✅ Showing viewer toggle for ${subjectToShow}`);
+                    }
+                    
+                    // Populate editor fields for the loaded subject
+                    setTimeout(() => {
+                        console.log(`📝 Populating editor fields for ${subjectToShow}...`);
+                        populateInlineEditFields(subjectToShow);
+                        
+                        // Auto-select first question and load into editor
+                        setTimeout(() => {
+                            console.log('🎯 Auto-selecting first question...');
+                            const firstQuestionBtn = document.querySelector(`#questionList-${subjectToShow} .question-item`);
+                            if (firstQuestionBtn) {
+                                firstQuestionBtn.click();
+                                console.log('✅ First question selected');
+                                
+                                // After question is selected, switch to Live Preview
+                                setTimeout(() => {
+                                    console.log('👁️ Switching to Live Preview...');
+                                    switchViewer(subjectToShow, 'preview');
+                                    console.log('✅ Live Preview loaded');
+                                }, 300);
+                            } else {
+                                console.warn('⚠️ First question button not found');
+                                // Still try to show Live Preview even if no questions
+                                setTimeout(() => {
+                                    switchViewer(subjectToShow, 'preview');
+                                }, 300);
+                            }
+                        }, 200);
+                    }, 200);
+                }, 100);
             }, 100);
             
             alert(`✅ Successfully loaded ${allQuestions.length} questions!\n\n` +
                   `📊 Mathematics: ${allQuestions.filter(q => q.subject === 'mathematics').length} questions\n` +
                   `⚛️ Physics: ${allQuestions.filter(q => q.subject === 'physics').length} questions\n` +
-                  `🧪 Chemistry: ${allQuestions.filter(q => q.subject === 'chemistry').length} questions`);
+                  `⚛️ Chemistry: ${allQuestions.filter(q => q.subject === 'chemistry').length} questions\n` +
+                  `🧬 Biology: ${allQuestions.filter(q => q.subject === 'biology').length} questions`);
         }
         
         // Function to extract image URLs from text
@@ -5329,25 +7007,37 @@ Please format this solution with clear step-by-step explanations and proper math
             const stateField = document.getElementById('state');
             const conductedByField = document.getElementById('conductedBy');
             
-            // Determine board and other details based on subject
-            // Since all questions are from JEE Main, all subjects use JEE Main
-            let board, state, conductedBy, examType;
+            // Get board and other details from form fields (don't hardcode - use existing values from JSON)
+            // Use subject-specific fields if they exist, otherwise use main fields
+            const boardSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+            const stateSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+            const conductedBySuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+            const authoritySuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
             
-            if (subject === 'Mathematics') {
-                board = 'JEE Main';
-                state = 'Center';
-                conductedBy = 'National Testing Agency (NTA)';
-                examType = 'JEE Main';
-            } else if (subject === 'Physics') {
-                board = 'JEE Main';
-                state = 'Center';
-                conductedBy = 'National Testing Agency (NTA)';
-                examType = 'JEE Main';
-            } else if (subject === 'Chemistry') {
-                board = 'JEE Main';
-                state = 'Center';
-                conductedBy = 'National Testing Agency (NTA)';
-                examType = 'JEE Main';
+            // Try to get values from subject-specific fields first, then fall back to main fields
+            const subjectBoardField = document.getElementById(`board${boardSuffix}`);
+            const subjectStateField = document.getElementById(`state${stateSuffix}`);
+            const subjectConductedByField = document.getElementById(`conductedBy${conductedBySuffix}`);
+            const subjectAuthorityField = document.getElementById(`authorityExamId${authoritySuffix}`);
+            
+            // Get values from fields (they should already be populated from JSON)
+            let board = subjectBoardField ? subjectBoardField.value : (boardField ? boardField.value : 'KCET');
+            let state = subjectStateField ? subjectStateField.value : (stateField ? stateField.value : 'Karnataka');
+            let conductedBy = subjectConductedByField ? subjectConductedByField.value : (conductedByField ? conductedByField.value : 'KEA (Karnataka Examinations Authority)');
+            let examType = subjectAuthorityField ? subjectAuthorityField.value : 'kar_kect';
+            
+            // If fields are empty, use defaults (but prefer values from JSON)
+            if (!board || board === '') {
+                board = 'KCET'; // Default, but should be set from JSON
+            }
+            if (!state || state === '') {
+                state = 'Karnataka'; // Default, but should be set from JSON
+            }
+            if (!conductedBy || conductedBy === '') {
+                conductedBy = 'KEA (Karnataka Examinations Authority)'; // Default, but should be set from JSON
+            }
+            if (!examType || examType === '') {
+                examType = 'kar_kect'; // Default, but should be set from JSON
             }
             
             const date = dateField ? dateField.value : '';
@@ -5356,36 +7046,28 @@ Please format this solution with clear step-by-step explanations and proper math
             
             console.log(`Tab switch to ${subject}: Board="${board}", Year="${year}", ExamType="${examType}"`);
             
-            // Update Board field (subject-specific)
-            const boardSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
-            const subjectBoardField = document.getElementById(`board${boardSuffix}`);
-            if (subjectBoardField) {
+            // Update Board field (subject-specific) - only if it's different from current value
+            if (subjectBoardField && subjectBoardField.value !== board) {
                 subjectBoardField.value = board;
             }
             
-            // Update State field (subject-specific)
-            const stateSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
-            const subjectStateField = document.getElementById(`state${stateSuffix}`);
-            if (subjectStateField) {
+            // Update State field (subject-specific) - only if it's different from current value
+            if (subjectStateField && subjectStateField.value !== state) {
                 subjectStateField.value = state;
             }
             
-            // Update Conducted By field (subject-specific)
-            const conductedBySuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
-            const subjectConductedByField = document.getElementById(`conductedBy${conductedBySuffix}`);
-            if (subjectConductedByField) {
+            // Update Conducted By field (subject-specific) - only if it's different from current value
+            if (subjectConductedByField && subjectConductedByField.value !== conductedBy) {
                 subjectConductedByField.value = conductedBy;
             }
             
-            // Update Authority Exam ID field (subject-specific)
-            const authoritySuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
-            const subjectAuthorityField = document.getElementById(`authorityExamId${authoritySuffix}`);
-            if (subjectAuthorityField) {
+            // Update Authority Exam ID field (subject-specific) - only if it's different from current value
+            if (subjectAuthorityField && subjectAuthorityField.value !== examType) {
                 subjectAuthorityField.value = examType;
             }
             
             // Update Day and Shift field (subject-specific)
-            const dayShiftSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const dayShiftSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
             const subjectDayShiftField = document.getElementById(`dayAndShift${dayShiftSuffix}`);
             if (subjectDayShiftField) {
                 // Get the current day and shift value from the main field
@@ -5404,7 +7086,7 @@ Please format this solution with clear step-by-step explanations and proper math
             }
             
             // Update Tutorial Title field (subject-specific)
-            const titleSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const titleSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
             const subjectTutorialTitleField = document.getElementById(`tutorialTitle${titleSuffix}`);
             if (subjectTutorialTitleField) {
                 subjectTutorialTitleField.value = newTitle;
@@ -5419,7 +7101,7 @@ Please format this solution with clear step-by-step explanations and proper math
         
         function updateTutorialId(subject, board, year) {
             // Get the Day and Shift field value
-            const dayShiftSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const dayShiftSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
             const dayShiftField = document.getElementById(`dayAndShift${dayShiftSuffix}`);
             
             let tutorialId = '';
@@ -5439,27 +7121,66 @@ Please format this solution with clear step-by-step explanations and proper math
                     const subjectId = subject.toLowerCase();
                     
                     // Convert board to lowercase and replace spaces with underscores
-                    const boardId = board.toLowerCase().replace(/\s+/g, '_');
+                    // Safety check: if board is undefined, try to get from form fields
+                    let actualBoard = board;
+                    if (!actualBoard) {
+                        const boardSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+                        const boardField = document.getElementById(`board${boardSuffix}`);
+                        actualBoard = boardField ? boardField.value : 'KCET';
+                    }
+                    const boardId = actualBoard ? actualBoard.toLowerCase().replace(/\s+/g, '_') : 'kcet';
                     
                     // Generate tutorial ID: board_day_month_year_subject_shift_shiftNumber
                     tutorialId = `${boardId}_${day}_${month}_${year}_${subjectId}_shift_${shift}`;
                 } else {
                     // Fallback to old format if parsing fails
-                    const boardId = board.replace(/\s+/g, '_');
+                    // Safety check: if board or year is undefined, try to get from form fields
+                    let actualBoard = board;
+                    let actualYear = year;
+                    
+                    if (!actualBoard) {
+                        const boardSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+                        const boardField = document.getElementById(`board${boardSuffix}`);
+                        actualBoard = boardField ? boardField.value : 'KCET';
+                    }
+                    
+                    if (!actualYear) {
+                        const yearSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+                        const yearField = document.getElementById(`year${yearSuffix}`);
+                        actualYear = yearField ? yearField.value : '2025';
+                    }
+                    
+                    const boardId = actualBoard ? actualBoard.replace(/\s+/g, '_') : 'KCET';
                     const subjectId = subject.toLowerCase();
-                    tutorialId = `${boardId}_${year}_${subjectId}`;
+                    tutorialId = `${boardId}_${actualYear}_${subjectId}`;
                 }
             } else {
                 // Fallback to old format if no day and shift value
-                const boardId = board.replace(/\s+/g, '_');
+                // Safety check: if board or year is undefined, try to get from form fields
+                let actualBoard = board;
+                let actualYear = year;
+                
+                if (!actualBoard) {
+                    const boardSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+                    const boardField = document.getElementById(`board${boardSuffix}`);
+                    actualBoard = boardField ? boardField.value : 'KCET';
+                }
+                
+                if (!actualYear) {
+                    const yearSuffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+                    const yearField = document.getElementById(`year${yearSuffix}`);
+                    actualYear = yearField ? yearField.value : '2025';
+                }
+                
+                const boardId = actualBoard ? actualBoard.replace(/\s+/g, '_') : 'KCET';
                 const subjectId = subject.toLowerCase();
-                tutorialId = `${boardId}_${year}_${subjectId}`;
+                tutorialId = `${boardId}_${actualYear}_${subjectId}`;
             }
             
             console.log(`Updating Tutorial ID for ${subject}: Board="${board}", Year="${year}", DayShift="${dayShiftField ? dayShiftField.value : 'N/A'}", ID="${tutorialId}"`);
             
             // Update Tutorial ID field based on subject
-            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : '-chemistry';
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
             const tutorialIdField = document.getElementById(`tutorialId${suffix}`);
             if (tutorialIdField) {
                 tutorialIdField.value = tutorialId;
@@ -5949,6 +7670,7 @@ Please format this solution with clear step-by-step explanations and proper math
             populateQuestionList('Mathematics');
             populateQuestionList('Physics');
             populateQuestionList('Chemistry');
+            populateQuestionList('Biology');
             
             // Update button styling for manual editing indicators
             updateQuestionButtonStyling();
@@ -6425,7 +8147,13 @@ Please format this solution with clear step-by-step explanations and proper math
             populateInlineEditFields('Physics');
             populateInlineEditFields('Chemistry');
             
-            document.getElementById('subjectTabsContainer').style.display = 'flex';
+            // Show subject-tabs-container when loading from .md files
+            // displayQuestions() is ONLY called when loading from .md files
+            const subjectTabsContainer = document.getElementById('subjectTabsContainer');
+            if (subjectTabsContainer) {
+                subjectTabsContainer.style.display = 'flex';
+                console.log('🔓 ✅ Showing subject-tabs-container (from .md file)');
+            }
         }
         
         function assignSubject(questionIndex, subject) {
@@ -6463,6 +8191,14 @@ Please format this solution with clear step-by-step explanations and proper math
                        (detectedSubject === 'chemistry');
             }).length;
             
+            const biology = allQuestions.filter(q => {
+                const assignedSubject = questionAssignments[q.number];
+                const detectedSubject = q.subject;
+                return assignedSubject === 'Biology' || 
+                       (detectedSubject === 'biology' && !assignedSubject) ||
+                       (detectedSubject === 'biology');
+            }).length;
+            
             // Update sidebar statistics
             document.getElementById('sidebar-total-questions').textContent = total;
             
@@ -6470,9 +8206,13 @@ Please format this solution with clear step-by-step explanations and proper math
             document.getElementById('count-Mathematics').textContent = math;
             document.getElementById('count-Physics').textContent = physics;
             document.getElementById('count-Chemistry').textContent = chemistry;
+            const biologyCountEl = document.getElementById('count-Biology');
+            if (biologyCountEl) {
+                biologyCountEl.textContent = biology;
+            }
             
             // Calculate extracted questions (questions that have been assigned or detected)
-            const extracted = math + physics + chemistry;
+            const extracted = math + physics + chemistry + biology;
             document.getElementById('sidebar-extracted-questions').textContent = extracted;
             
             // Show sidebar stats and download section
@@ -6592,11 +8332,16 @@ Please format this solution with clear step-by-step explanations and proper math
             });
             console.log(`Sample questions:`, allQuestions.slice(0, 5).map(q => ({number: q.number, subject: q.subject})));
             
-            // Update main tab buttons
-            document.querySelectorAll('.subject-tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`tab-${subject}`).classList.add('active');
+            // Update main tab buttons (if tabs are visible)
+            const tabButton = document.getElementById(`tab-${subject}`);
+            if (tabButton) {
+                document.querySelectorAll('.subject-tab').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                tabButton.classList.add('active');
+            } else {
+                console.log(`Tab button for ${subject} not found (tabs may be hidden)`);
+            }
             
             // Hide all subject views
             document.querySelectorAll('.subject-view').forEach(view => {
@@ -6636,8 +8381,12 @@ Please format this solution with clear step-by-step explanations and proper math
                     console.log(`Set render panel display to block for ${subject}`);
                     
                     // Force the same initialization as Mathematics
-                    const renderContainer = document.getElementById(subject === 'Mathematics' ? 'inlineMathRender' : 
-                                                                  subject === 'Physics' ? 'inlinePhysicsRender' : 'inlineChemistryRender');
+                    const renderContainer = document.getElementById(
+                        subject === 'Mathematics' ? 'inlineMathRender' : 
+                        subject === 'Physics' ? 'inlinePhysicsRender' : 
+                        subject === 'Chemistry' ? 'inlineChemistryRender' :
+                        'inlineBiologyRender'
+                    );
                     if (renderContainer) {
                         // Force layout recalculation
                         renderContainer.offsetHeight;
@@ -7553,7 +9302,9 @@ Please format this solution with clear step-by-step explanations and proper math
             });
             
             const renderContainerId = subject === 'Mathematics' ? 'inlineMathRender' :
-                                    subject === 'Physics' ? 'inlinePhysicsRender' : 'inlineChemistryRender';
+                                    subject === 'Physics' ? 'inlinePhysicsRender' : 
+                                    subject === 'Chemistry' ? 'inlineChemistryRender' :
+                                    'inlineBiologyRender';
             document.getElementById(renderContainerId).innerHTML = renderHtml;
             
             
@@ -7584,7 +9335,10 @@ Please format this solution with clear step-by-step explanations and proper math
                 return;
             }
             
-            subjectQuestions.forEach((question, index) => {
+            // Sort questions by number to detect gaps
+            const sortedQuestions = [...subjectQuestions].sort((a, b) => a.number - b.number);
+            
+            sortedQuestions.forEach((question, index) => {
                 // Create container for question item with buttons
                 const questionContainer = document.createElement('div');
                 questionContainer.className = 'question-item-container';
@@ -7605,7 +9359,10 @@ Please format this solution with clear step-by-step explanations and proper math
                 }
                 
                 questionItem.textContent = `${question.number}`;
-                questionItem.onclick = () => selectQuestion(subject, index);
+                questionItem.onclick = () => {
+                    const originalIndex = subjectQuestions.findIndex(q => q.number === question.number);
+                    selectQuestion(subject, originalIndex);
+                };
                 questionHeader.appendChild(questionItem);
                 
                 // Expand/collapse button
@@ -7613,6 +9370,11 @@ Please format this solution with clear step-by-step explanations and proper math
                 expandButton.className = 'question-expand-btn';
                 expandButton.innerHTML = '▼';
                 expandButton.title = 'Show options';
+                
+                // Button container for Add and Delete (hidden by default)
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'question-actions-container';
+                
                 expandButton.onclick = (e) => {
                     e.stopPropagation();
                     const isExpanded = buttonContainer.classList.contains('expanded');
@@ -7626,10 +9388,6 @@ Please format this solution with clear step-by-step explanations and proper math
                 };
                 questionHeader.appendChild(expandButton);
                 questionContainer.appendChild(questionHeader);
-                
-                // Button container for Add and Delete (hidden by default)
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'question-actions-container';
                 
                 // Add button
                 const addButton = document.createElement('button');
@@ -7656,8 +9414,30 @@ Please format this solution with clear step-by-step explanations and proper math
                 questionContainer.appendChild(buttonContainer);
                 questionListContainer.appendChild(questionContainer);
                 
+                // Check for gap after this question
+                if (index < sortedQuestions.length - 1) {
+                    const currentNumber = question.number;
+                    const nextNumber = sortedQuestions[index + 1].number;
+                    
+                    // If there's a gap (e.g., 55 -> 57, or 55 -> 60), add insert buttons for all missing numbers
+                    if (nextNumber - currentNumber > 1) {
+                        // Add insert buttons for all missing numbers in the gap
+                        for (let missingNum = currentNumber + 1; missingNum < nextNumber; missingNum++) {
+                            const insertBtn = document.createElement('button');
+                            insertBtn.className = 'insert-question-btn';
+                            insertBtn.textContent = `+ Add Q${missingNum}`;
+                            insertBtn.title = `Insert question ${missingNum} between ${currentNumber} and ${nextNumber}`;
+                            insertBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                insertQuestion(subject, missingNum);
+                            };
+                            questionListContainer.appendChild(insertBtn);
+                        }
+                    }
+                }
+                
                 // Debug: Log the mapping between question number and index
-                if (index < 5 || index >= subjectQuestions.length - 5) { // Log first 5 and last 5
+                if (index < 5 || index >= sortedQuestions.length - 5) { // Log first 5 and last 5
                     console.log(`Sidebar mapping: index=${index}, questionNumber=${question.number}, subject=${subject}`);
                 }
             });
@@ -7751,6 +9531,100 @@ Please format this solution with clear step-by-step explanations and proper math
             
             // Mark as unsaved
             markWorkAsUnsaved();
+        }
+        
+        // Function to insert a question at a specific question number (for gap filling)
+        function insertQuestion(subject, questionNumber) {
+            console.log(`Inserting question ${questionNumber} for subject ${subject}`);
+            
+            // Create a new question object with default values
+            const newQuestion = {
+                number: questionNumber,
+                subject: subject.toLowerCase(),
+                text: '',
+                solution: '',
+                type: 'mcq',
+                options: ['(1) ', '(2) ', '(3) ', '(4) '],
+                answer: '1',
+                correctAnswer: '1',
+                correctAnswerText: '',
+                textImages: [],
+                solutionTextImages: [],
+                questionImages: [],
+                solutionImages: [],
+                optionImages: [[], [], [], []]
+            };
+            
+            // Find the correct position to insert (maintain sorted order by number)
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            const insertIndex = allQuestions.findIndex(q => {
+                if (q.subject === subject.toLowerCase()) {
+                    return q.number > questionNumber;
+                }
+                return false;
+            });
+            
+            // If no question with higher number found, insert at the end of subject questions
+            if (insertIndex === -1) {
+                // Find the last question of this subject
+                let lastSubjectIndex = -1;
+                for (let i = allQuestions.length - 1; i >= 0; i--) {
+                    if (allQuestions[i].subject === subject.toLowerCase()) {
+                        lastSubjectIndex = i;
+                        break;
+                    }
+                }
+                if (lastSubjectIndex !== -1) {
+                    allQuestions.splice(lastSubjectIndex + 1, 0, newQuestion);
+                } else {
+                    allQuestions.push(newQuestion);
+                }
+            } else {
+                allQuestions.splice(insertIndex, 0, newQuestion);
+            }
+            
+            // Update question assignments
+            questionAssignments[`Q${questionNumber}`] = subject.toLowerCase();
+            
+            // Re-sort all questions by number
+            allQuestions.sort((a, b) => {
+                // First sort by subject
+                if (a.subject !== b.subject) {
+                    const subjectOrder = { 'mathematics': 0, 'physics': 1, 'chemistry': 2 };
+                    return (subjectOrder[a.subject] || 99) - (subjectOrder[b.subject] || 99);
+                }
+                // Then sort by number within subject
+                return a.number - b.number;
+            });
+            
+            // Refresh the question list
+            populateQuestionList(subject);
+            
+            // Find the index of the newly inserted question in the subject's question list
+            const updatedSubjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            const newQuestionIndex = updatedSubjectQuestions.findIndex(q => q.number === questionNumber);
+            
+            // Select the newly inserted question
+            if (newQuestionIndex !== -1) {
+                // selectQuestion will handle displaying the editor
+                selectQuestion(subject, newQuestionIndex);
+                
+                // Ensure Edit tab is active
+                const toggleButtons = document.querySelectorAll(`#viewerToggle-${subject} .viewer-toggle-btn`);
+                if (toggleButtons.length > 0) {
+                    // Remove active class from all buttons
+                    toggleButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to Edit button (first button)
+                    if (toggleButtons[0]) {
+                        toggleButtons[0].classList.add('active');
+                    }
+                }
+            }
+            
+            // Update statistics
+            updateStats();
+            
+            console.log(`✅ Successfully inserted question ${questionNumber} for ${subject}`);
         }
         
         // Function to delete a question
@@ -10511,8 +12385,226 @@ Please format this solution with clear step-by-step explanations and proper math
         window.addEventListener('load', function() {
             initializeMetadataEditors();
         });
+        
+        // Update Firebase JSON function
+        async function updateFirebaseJSON() {
+            if (!currentFirebaseJsonPath) {
+                alert('❌ No Firebase file path found. Please load a JSON file from Firebase first.');
+                return;
+            }
+            
+            if (!window.currentDataSource || window.currentDataSource !== 'firebase') {
+                alert('❌ This function is only available for files loaded from Firebase.');
+                return;
+            }
+            
+            // Determine which subject has data
+            let subjectToUpdate = 'Mathematics';
+            const mathQuestions = allQuestions.filter(q => q.subject === 'mathematics');
+            const physicsQuestions = allQuestions.filter(q => q.subject === 'physics');
+            const chemistryQuestions = allQuestions.filter(q => q.subject === 'chemistry');
+            const biologyQuestions = allQuestions.filter(q => q.subject === 'biology');
+            
+            if (mathQuestions.length > 0) subjectToUpdate = 'Mathematics';
+            else if (physicsQuestions.length > 0) subjectToUpdate = 'Physics';
+            else if (chemistryQuestions.length > 0) subjectToUpdate = 'Chemistry';
+            else if (biologyQuestions.length > 0) subjectToUpdate = 'Biology';
+            
+            // Confirm update
+            if (!confirm(`Are you sure you want to update the JSON file in Firebase?\n\nFile: ${selectedJsonFileName}\nPath: ${currentFirebaseJsonPath}\n\nThis will overwrite the existing file.`)) {
+                return;
+            }
+            
+            try {
+                // Show loading state
+                const updateBtn = document.getElementById('updateFirebaseBtn');
+                const originalText = updateBtn ? updateBtn.textContent : 'Update';
+                if (updateBtn) {
+                    updateBtn.disabled = true;
+                    updateBtn.textContent = '⏳ Updating...';
+                }
+                
+                // Generate JSON from current data
+                const jsonData = generateJSONForSubject(subjectToUpdate);
+                const jsonString = JSON.stringify(jsonData, null, 2);
+                
+                // Convert JSON string to Blob
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                // Upload to Firebase Storage
+                const { storage, ref, uploadBytesResumable } = window.firebaseStorage;
+                const storageRef = ref(storage, currentFirebaseJsonPath);
+                
+                console.log(`📤 Uploading JSON to Firebase: ${currentFirebaseJsonPath}`);
+                
+                const uploadTask = uploadBytesResumable(storageRef, blob);
+                
+                uploadTask.on(
+                    'state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log(`Upload progress: ${Math.round(progress)}%`);
+                        if (updateBtn) {
+                            updateBtn.textContent = `⏳ Uploading... ${Math.round(progress)}%`;
+                        }
+                    },
+                    (error) => {
+                        console.error('❌ Upload error:', error);
+                        alert(`❌ Failed to update JSON file:\n${error.message}`);
+                        if (updateBtn) {
+                            updateBtn.disabled = false;
+                            updateBtn.textContent = originalText;
+                        }
+                    },
+                    () => {
+                        console.log('✅ JSON file updated successfully!');
+                        alert(`✅ Successfully updated JSON file in Firebase!\n\nFile: ${selectedJsonFileName}`);
+                        if (updateBtn) {
+                            updateBtn.disabled = false;
+                            updateBtn.textContent = originalText;
+                        }
+                        markWorkAsUnsaved(false); // Mark as saved
+                    }
+                );
+                
+            } catch (error) {
+                console.error('❌ Error updating Firebase JSON:', error);
+                alert(`❌ Error updating JSON file:\n${error.message}`);
+                const updateBtn = document.getElementById('updateFirebaseBtn');
+                if (updateBtn) {
+                    updateBtn.disabled = false;
+                    updateBtn.textContent = 'Update';
+                }
+            }
+        }
+        
+        // Generate JSON for a specific subject (similar to generateJSONContent but returns object)
+        function generateJSONForSubject(subject) {
+            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
+            
+            if (subjectQuestions.length === 0) {
+                throw new Error(`No questions found for ${subject}`);
+            }
+            
+            // Get metadata values from form inputs
+            const getFormValue = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.value : '';
+            };
+            
+            const suffix = subject === 'Mathematics' ? '' : subject === 'Physics' ? '-physics' : subject === 'Chemistry' ? '-chemistry' : '-biology';
+            const tutorialId = getFormValue(`tutorialId${suffix}`);
+            const tutorialTitle = getFormValue(`tutorialTitle${suffix}`);
+            const tutorialDescription = getFormValue(`tutorialDescription${suffix}`);
+            const authorityExamId = getFormValue(`authorityExamId${suffix}`);
+            const state = getFormValue(`state${suffix}`);
+            const board = getFormValue(`board${suffix}`);
+            const conductedBy = getFormValue(`conductedBy${suffix}`);
+            const year = getFormValue(`year${suffix}`);
+            const subjectValue = getFormValue(`subject${suffix}`);
+            const dayAndShift = getFormValue(`dayAndShift${suffix}`);
+            
+            // Create JSON in the specified format
+            const jsonData = [
+                {
+                    "tutorialId": tutorialId || `${board || 'KCET'}_${year || '2025'}_${subject}`,
+                    "tutorialTitle": tutorialTitle || `${board || 'KCET'} ${year || '2025'} ${subject}`,
+                    "tutorialDescription": tutorialDescription || "",
+                    "authorityExamId": authorityExamId || "kar_kect",
+                    "state": state || "Karnataka",
+                    "board": board || "KCET",
+                    "conductedBy": conductedBy || "KEA (Karnataka Examinations Authority)",
+                    "year": year || "2025",
+                    "subject": subjectValue || subject,
+                    "dayAndShift": dayAndShift || "2 April 2025 Shift - 2",
+                    "questions": subjectQuestions.map((question, index) => {
+                        // Clean [Image] text from textImages array
+                        const cleanedTextImages = (question.textImages || []).map(item => {
+                            if (typeof item === 'string') {
+                                return item;
+                            } else if (item && typeof item === 'object') {
+                                return {
+                                    ...item,
+                                    text: item.text ? removeImageTextFromPreview(item.text) : item.text
+                                };
+                            }
+                            return item;
+                        });
+                        
+                        // Clean [Image] text from solutionTextImages array
+                        const cleanedSolutionTextImages = (question.solutionTextImages || []).map(item => {
+                            if (typeof item === 'string') {
+                                return item;
+                            } else if (item && typeof item === 'object') {
+                                return {
+                                    ...item,
+                                    text: item.text ? removeImageTextFromPreview(item.text) : item.text
+                                };
+                            }
+                            return item;
+                        });
+                        
+                        // Handle option images - convert array format to object format if needed
+                        const getOptionImage = (optIndex) => {
+                            if (!question.optionImages) return null;
+                            const optImg = question.optionImages[optIndex];
+                            if (Array.isArray(optImg) && optImg.length > 0) {
+                                return typeof optImg[0] === 'string' ? optImg[0] : (optImg[0].image || null);
+                            }
+                            return typeof optImg === 'string' ? optImg : (optImg?.image || null);
+                        };
+                        
+                        return {
+                            "questionIndex": question.number.toString(),
+                            "questionId": `2025${subject.charAt(0)}Q${question.number}`,
+                            "questionDetails": [
+                                {
+                                    "text": removeImageTextFromPreview(question.text || ''),
+                                    "textImages": cleanedTextImages,
+                                    "possibleAnswers": {
+                                        "A": {
+                                            "text": removeImageTextFromPreview(question.options && question.options[0] ? question.options[0].replace(/^\(\d+\)\s*/, '').trim() : ''),
+                                            "image": getOptionImage(0)
+                                        },
+                                        "B": {
+                                            "text": removeImageTextFromPreview(question.options && question.options[1] ? question.options[1].replace(/^\(\d+\)\s*/, '').trim() : ''),
+                                            "image": getOptionImage(1)
+                                        },
+                                        "C": {
+                                            "text": removeImageTextFromPreview(question.options && question.options[2] ? question.options[2].replace(/^\(\d+\)\s*/, '').trim() : ''),
+                                            "image": getOptionImage(2)
+                                        },
+                                        "D": {
+                                            "text": removeImageTextFromPreview(question.options && question.options[3] ? question.options[3].replace(/^\(\d+\)\s*/, '').trim() : ''),
+                                            "image": getOptionImage(3)
+                                        }
+                                    },
+                                    "correctAnswer": question.answer || '',
+                                    "correctAnswerText": removeImageTextFromPreview(question.options && question.answer && question.options[parseInt(question.answer) - 1] ? 
+                                        question.options[parseInt(question.answer) - 1].replace(/^\(\d+\)\s*/, '').trim() : ''),
+                                    "solution": removeImageTextFromPreview(question.solution || ''),
+                                    "solutionTextImages": cleanedSolutionTextImages,
+                                    "type": question.type || "mcq",
+                                    "metadata": {
+                                        "subject": subject.toLowerCase(),
+                                        "number": question.number || (index + 1)
+                                    }
+                                }
+                            ]
+                        };
+                    })
+                }
+            ];
+            
+            return jsonData;
+        }
     </script>
         </div> <!-- Close main-content -->
+        
+        <!-- Update Firebase Button -->
+        <button id="updateFirebaseBtn" onclick="updateFirebaseJSON()">
+            🔄 Update Firebase
+        </button>
     </div> <!-- Close container -->
 </body>
 </html>
