@@ -568,6 +568,12 @@
         // Flag to track if automatic upload is in progress
         let isAutoUploading = false;
         
+        // Flag to prevent automatic preview switch after upload (make it globally accessible)
+        window.skipAutoPreviewSwitch = false;
+        
+        // Flag to track if we're in single question view mode (prevents populateInlineEditFields from overwriting)
+        let isSingleQuestionViewMode = false;
+        
         // Upload all extracted images from questions to Firebase
         window.uploadAllExtractedImages = async function uploadAllExtractedImages() {
             console.log('🚀 uploadAllExtractedImages() called');
@@ -1256,18 +1262,6 @@
             line-height: 1.6;
         }
         
-        .container {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            max-width: 1800px;
-            margin: 20px auto;
-            background: var(--surface-color);
-            box-shadow: var(--shadow-lg);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-        }
-        
         .sidebar {
             width: 100%;
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
@@ -1277,6 +1271,8 @@
             position: relative;
             z-index: 1000;
             box-sizing: border-box;
+            height: fit-content;
+            display: inline-block;
         }
         
         /* Custom scrollbar for sidebar */
@@ -1366,6 +1362,10 @@
         .sidebar-section {
             flex: 1;
             min-width: 200px;
+        }
+        
+        .markdown-converter-section {
+            background: transparent;
         }
         
         .upload-section {
@@ -1874,23 +1874,27 @@
         
         /* Firebase Directory Selector */
         .firebase-directory-selector {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
+            background: transparent;
+            border: none;
             border-radius: var(--radius-md);
             padding: 16px;
             margin-bottom: 20px;
-            box-shadow: var(--shadow-sm);
+            box-shadow: none;
         }
         
         .hamburger-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1001;
+            padding: 12px;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            margin-bottom: 8px;
         }
         
         .hamburger-btn {
-            background: transparent;
+            background: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-sm);
             padding: 8px 12px;
@@ -1903,6 +1907,7 @@
             width: 40px;
             height: 40px;
             transition: all 0.2s ease;
+            box-shadow: var(--shadow-md);
         }
         
         .hamburger-btn:hover {
@@ -1919,7 +1924,7 @@
         
         .firebase-directory-selector h3 {
             margin: 0 0 12px 0;
-            color: var(--text-primary);
+            color: white;
             font-size: 16px;
             font-weight: 600;
         }
@@ -1991,6 +1996,37 @@
             background: rgba(255, 255, 255, 0.3);
         }
         
+        .selection-banner-close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 4px 8px;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 8px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        
+        .selection-banner-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+        
+        .selection-banner-close-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        
         /* Progress Bar */
         .firebase-progress-bar {
             height: 4px;
@@ -2054,7 +2090,8 @@
         }
         
         .directory-select-row select {
-            width: 100px;
+            width: 200px;
+            min-width: 200px;
             padding: 10px 12px;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-sm);
@@ -2066,7 +2103,7 @@
         
         .directory-select-row button {
             padding: 10px 20px;
-            background: var(--primary-color);
+            background: #059669;
             color: white;
             border: none;
             border-radius: var(--radius-sm);
@@ -2076,23 +2113,29 @@
         }
         
         .directory-select-row button:hover {
-            background: var(--primary-hover);
+            background: #047857;
             transform: translateY(-1px);
             box-shadow: var(--shadow-md);
         }
         
         .directory-select-row button:disabled {
-            background: #ccc;
+            background: #9ca3af;
             cursor: not-allowed;
             transform: none;
+        }
+        
+        #selectYearBtn:hover {
+            background: #047857;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
         
         /* Sliding Year Panel */
         .year-panel {
             position: fixed;
-            left: -300px;
+            left: -75vw;
             top: 0;
-            width: 280px;
+            width: 75vw;
             height: 100vh;
             background: var(--surface-color);
             border-right: 2px solid var(--border-color);
@@ -2160,21 +2203,21 @@
             font-weight: 500;
             color: var(--text-primary);
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
+            align-items: stretch;
         }
         
         .year-item:hover {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
+            background: #f3f4f6;
+            color: var(--text-primary);
+            border-color: #d1d5db;
             transform: translateX(4px);
         }
         
         .year-item.active {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
+            background: #e5e7eb;
+            color: var(--text-primary);
+            border-color: #d1d5db;
             box-shadow: var(--shadow-md);
         }
         
@@ -2210,16 +2253,22 @@
             transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
             opacity: 0;
             margin-top: 0;
+            padding: 0;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .year-item.expanded .year-json-list {
             max-height: 500px;
             opacity: 1;
-            margin-top: 8px;
+            margin-top: 4px;
+            padding: 0;
+            text-align: left;
         }
         
         .json-file-item {
-            padding: 8px 12px 8px 32px;
+            padding: 8px 12px 8px 40px;
             background: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-sm);
@@ -2228,6 +2277,15 @@
             font-size: 13px;
             color: var(--text-secondary);
             margin-bottom: 4px;
+            margin-left: 0;
+            margin-right: auto;
+            text-align: left;
+            width: fit-content;
+            min-width: 0;
+            display: block;
+            box-sizing: border-box;
+            white-space: nowrap;
+            max-width: 100%;
         }
         
         .json-file-item:hover {
@@ -2294,12 +2352,13 @@
             overflow-x: visible;
             box-sizing: border-box;
             width: 100%;
-            max-width: 100%;
+            max-width: 1200px;
             min-width: 0;
             display: flex;
             flex-direction: column;
             position: relative;
             box-shadow: var(--shadow-sm);
+            margin: 0 auto;
         }
         
         .question-render-panel {
@@ -2574,6 +2633,8 @@
         
         .question-edit-item {
             width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
@@ -2619,6 +2680,22 @@
             background: var(--surface-color);
             color: var(--text-primary);
             transition: all 0.3s ease;
+        }
+        
+        .question-edit-item {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .edit-field {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .edit-field textarea,
+        .edit-field input {
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .question-edit-input:focus {
@@ -2754,6 +2831,141 @@
         .ai-batch-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+        
+        .upload-json-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+        
+        .upload-json-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+        }
+        
+        .upload-json-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Upload Dialog Modal Styles */
+        .upload-dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .upload-dialog-overlay.show {
+            display: flex;
+        }
+        
+        .upload-dialog {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .upload-dialog-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .upload-dialog-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .upload-dialog-field label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .upload-dialog-field select,
+        .upload-dialog-field input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .upload-dialog-field select:focus,
+        .upload-dialog-field input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .upload-dialog-json-preview {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .upload-dialog-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .upload-dialog-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-dialog-btn-primary {
+            background: #059669;
+            color: white;
+        }
+        
+        .upload-dialog-btn-primary:hover {
+            background: #047857;
+        }
+        
+        .upload-dialog-btn-secondary {
+            background: #e5e7eb;
+            color: var(--text-primary);
+        }
+        
+        .upload-dialog-btn-secondary:hover {
+            background: #d1d5db;
         }
         
         /* Math Table Styles - for converted markdown tables */
@@ -3073,38 +3285,6 @@
         #tab-Biology.biology-hidden {
             display: none !important;
         }
-        
-        /* Update Firebase Button Styles */
-        #updateFirebaseBtn {
-            display: none;
-            padding: 12px 24px;
-            background: #4facfe;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
-            transition: all 0.3s ease;
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-        
-        #updateFirebaseBtn:hover:not(:disabled) {
-            background: #3d8bfe;
-            box-shadow: 0 6px 16px rgba(79, 172, 254, 0.4);
-            transform: translateY(-2px);
-        }
-        
-        #updateFirebaseBtn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-        
-        
         .subject-view.active {
             display: block;
         }
@@ -3322,6 +3502,19 @@
             background: var(--background-color);
             color: var(--text-secondary);
             cursor: not-allowed;
+        }
+        
+        /* Day and Shift field - reduced width and only for JEE Main */
+        #dayAndShift,
+        #dayAndShift-physics,
+        #dayAndShift-chemistry,
+        #dayAndShift-biology {
+            width: 250px;
+            max-width: 250px;
+        }
+        
+        .day-and-shift-hidden {
+            display: none !important;
         }
         
         .metadata-editor > label {
@@ -4014,84 +4207,51 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Left Sidebar -->
-        <div class="sidebar">
-            <!-- Header, Upload, and Summary Row -->
-            <div class="header-upload-row">
-                <!-- Title and Upload Section (300px) -->
-                <div class="title-upload-container">
-                    <div class="sidebar-header">
-                        <h1>📚 Markdown to Json Converter</h1>
-                        <p>Professional Question Management</p>
-        </div>
-        
-        <div class="upload-section">
-                        <h3>📁 Upload File</h3>
-                        <p>Select your markdown file or JSON folder containing questions</p>
-            <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
-            <input type="file" id="jsonFolderInput" class="file-input" accept=".json" multiple style="display: none;">
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="upload-btn" onclick="document.getElementById('fileInput').click()" style="flex: 1;">
-                    📄 Choose MD File
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <!-- Side by Side Container -->
+        <div style="display: flex; gap: 50px; align-items: flex-start; height: fit-content;">
+            <!-- Firebase Directory Selector in Left Sidebar -->
+            <div class="firebase-directory-selector" style="flex: 1;">
+                <h3>📁 Select Firebase Directory</h3>
+                <div class="directory-select-row">
+                    <select id="firebaseDirectorySelect">
+                        <option value="">-- Select Directory --</option>
+                        <option value="KCET_JSON">KCET_JSON</option>
+                        <option value="JEE_MAIN">JEE_MAIN</option>
+                        <option value="questions">questions</option>
+                    </select>
+                    <button id="loadDirectoryBtn" onclick="loadFirebaseDirectory()" disabled>Load Directory</button>
+                </div>
+                <button id="selectYearBtn" onclick="toggleYearPanel()" style="width: fit-content; margin-top: 12px; padding: 10px 20px; background: #059669; color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    Select year and paper
                 </button>
-                <button class="upload-btn" onclick="document.getElementById('jsonFolderInput').click()" style="flex: 1; background: #059669;">
-                    📂 Load JSON Folder
-            </button>
             </div>
-                    </div>
-        </div>
-        
-                <!-- Summary Section (remaining space) -->
-                <div class="summary-section">
-                    <div class="sidebar-stats" id="sidebarStats" style="display: none;">
-                        <h3>📊 Summary</h3>
-                        <div class="stats-summary">
-                            <div class="stat-item">
-                                <span class="stat-label">Total Questions</span>
-                                <span class="stat-number" id="sidebar-total-questions">0</span>
-            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Extracted</span>
-                                <span class="stat-number" id="sidebar-extracted-questions">0</span>
-            </div>
-            </div>
-                    </div>
-                    
-                    <!-- Horizontal Divider -->
-                    <div class="horizontal-divider"></div>
-                    
-                    <!-- Download Section -->
-                    <div class="sidebar-download" id="sidebarDownload" style="display: none;">
-                        <h3>💾 Download JSON</h3>
-                        <div class="download-buttons">
-                            <button class="download-btn" onclick="downloadSubjectJSON('Mathematics')" id="download-math">
-                                <span>🔢</span>
-                                <span>Mathematics</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                            <button class="download-btn" onclick="downloadSubjectJSON('Physics')" id="download-physics">
-                                <span>⚛️</span>
-                                <span>Physics</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                            <button class="download-btn" onclick="downloadSubjectJSON('Chemistry')" id="download-chemistry">
-                                <span>🧪</span>
-                                <span>Chemistry</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                            <button class="download-all-btn" onclick="downloadAllSubjectsJSON()">
-                                <span>📦</span>
-                                <span>Download All</span>
-                                <span class="download-icon">⬇️</span>
-                            </button>
-                        </div>
-                    </div>
-            </div>
-        </div>
-
             
+            <!-- Markdown to Json Converter Section (Right Side of Select Firebase Directory) -->
+            <div class="markdown-converter-section" style="flex: 1;">
+                <div class="sidebar-header">
+                    <h1>📚 Markdown to Json Converter</h1>
+                    <p>Professional Question Management</p>
+                </div>
+                
+                <div class="upload-section" style="margin-top: 20px;">
+                    <h3>📁 Upload File</h3>
+                    <p>Select your markdown file or JSON folder containing questions</p>
+                    <input type="file" id="fileInput" class="file-input" accept=".md,.txt">
+                    <input type="file" id="jsonFolderInput" class="file-input" accept=".json" multiple style="display: none;">
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="upload-btn" onclick="document.getElementById('fileInput').click()" style="flex: 1;">
+                            📄 Choose MD File
+                        </button>
+                        <button class="upload-btn" onclick="document.getElementById('jsonFolderInput').click()" style="flex: 1; background: #059669;">
+                            📂 Load JSON Folder
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
         
         <!-- Main Content Area -->
         <div class="main-content">
@@ -4101,24 +4261,7 @@
             <div class="firebase-progress-bar-indeterminate"></div>
         </div>
         
-        <!-- Firebase Directory Selector -->
-        <div class="firebase-directory-selector">
-            <div class="hamburger-menu">
-                <button class="hamburger-btn" id="yearPanelToggleBtn" onclick="toggleYearPanel()" title="Toggle Year Panel">
-                    ☰
-                </button>
-            </div>
-            <h3>📁 Select Firebase Directory</h3>
-            <div class="directory-select-row">
-                <button id="loadDirectoryBtn" onclick="loadFirebaseDirectory()" disabled>Load Directory</button>
-                <select id="firebaseDirectorySelect">
-                    <option value="">-- Select Directory --</option>
-                    <option value="KCET_JSON">KCET_JSON</option>
-                    <option value="JEE_MAIN">JEE_MAIN</option>
-                    <option value="questions">questions</option>
-                </select>
-            </div>
-        </div>
+        
         
         <!-- Selection Banner -->
         <div class="selection-banner" id="selectionBanner">
@@ -4130,6 +4273,9 @@
             <div class="selection-banner-item">
                 <span class="selection-banner-label">JSON File:</span>
                 <span class="selection-banner-value" id="selectedJsonDisplay">--</span>
+                <button class="selection-banner-close-btn" onclick="unloadJSON()" title="Unload JSON">
+                    ✕
+                </button>
             </div>
         </div>
         
@@ -4208,7 +4354,7 @@
                         </div>
                     <div class="field">
                         <label>Board:</label>
-                        <select id="board">
+                        <select id="board" onchange="setConductedByFromBoard(this.value, 'conductedBy')">
                             <option value="KCET" selected>KCET</option>
                             <option value="NEET">NEET</option>
                             <option value="JEE Main">JEE Main</option>
@@ -4219,7 +4365,13 @@
                         </div>
                     <div class="field">
                         <label>Conducted By:</label>
-                        <input type="text" id="conductedBy" value="KEA (Karnataka Examinations Authority)" readonly />
+                        <select id="conductedBy">
+                            <option value="">Select</option>
+                            <option value="KCET — Karnataka Examinations Authority (KEA)">KCET — Karnataka Examinations Authority (KEA)</option>
+                            <option value="JEE Main — National Testing Agency (NTA)">JEE Main — National Testing Agency (NTA)</option>
+                            <option value="JEE Advanced — Indian Institutes of Technology (IITs)">JEE Advanced — Indian Institutes of Technology (IITs)</option>
+                            <option value="NEET — National Testing Agency (NTA)">NEET — National Testing Agency (NTA)</option>
+                        </select>
                     </div>
                     <div class="field">
                         <label>Year:</label>
@@ -4273,6 +4425,9 @@
                         <button class="ai-batch-btn" onclick="batchAnalyzeAllSolutions('Mathematics')">
                             🤖 Batch Analyzer
                         </button>
+                        <button class="upload-json-btn" onclick="openUploadDialog('Mathematics')">
+                            📤 Upload
+                        </button>
                     </div>
                 </div>
                 <div class="edit-interface-content">
@@ -4324,7 +4479,7 @@
                         </div>
                     <div class="field">
                         <label>Board:</label>
-                        <select id="board-physics">
+                        <select id="board-physics" onchange="setConductedByFromBoard(this.value, 'conductedBy-physics')">
                             <option value="KCET" selected>KCET</option>
                             <option value="NEET">NEET</option>
                             <option value="JEE Main">JEE Main</option>
@@ -4335,7 +4490,13 @@
                         </div>
                     <div class="field">
                         <label>Conducted By:</label>
-                        <input type="text" id="conductedBy-physics" value="KEA (Karnataka Examinations Authority)" readonly />
+                        <select id="conductedBy-physics">
+                            <option value="">Select</option>
+                            <option value="KCET — Karnataka Examinations Authority (KEA)">KCET — Karnataka Examinations Authority (KEA)</option>
+                            <option value="JEE Main — National Testing Agency (NTA)">JEE Main — National Testing Agency (NTA)</option>
+                            <option value="JEE Advanced — Indian Institutes of Technology (IITs)">JEE Advanced — Indian Institutes of Technology (IITs)</option>
+                            <option value="NEET — National Testing Agency (NTA)">NEET — National Testing Agency (NTA)</option>
+                        </select>
                     </div>
                     <div class="field">
                         <label>Year:</label>
@@ -4389,6 +4550,9 @@
                         <button class="ai-batch-btn" onclick="batchAnalyzeAllSolutions('Physics')">
                             🤖 Batch Analyzer
                         </button>
+                        <button class="upload-json-btn" onclick="openUploadDialog('Physics')">
+                            📤 Upload
+                        </button>
                     </div>
                 </div>
                 <div class="edit-interface-content">
@@ -4440,7 +4604,7 @@
                         </div>
                     <div class="field">
                         <label>Board:</label>
-                        <select id="board-chemistry">
+                        <select id="board-chemistry" onchange="setConductedByFromBoard(this.value, 'conductedBy-chemistry')">
                             <option value="KCET" selected>KCET</option>
                             <option value="NEET">NEET</option>
                             <option value="JEE Main">JEE Main</option>
@@ -4451,7 +4615,13 @@
                         </div>
                     <div class="field">
                         <label>Conducted By:</label>
-                        <input type="text" id="conductedBy-chemistry" value="KEA (Karnataka Examinations Authority)" readonly />
+                        <select id="conductedBy-chemistry">
+                            <option value="">Select</option>
+                            <option value="KCET — Karnataka Examinations Authority (KEA)">KCET — Karnataka Examinations Authority (KEA)</option>
+                            <option value="JEE Main — National Testing Agency (NTA)">JEE Main — National Testing Agency (NTA)</option>
+                            <option value="JEE Advanced — Indian Institutes of Technology (IITs)">JEE Advanced — Indian Institutes of Technology (IITs)</option>
+                            <option value="NEET — National Testing Agency (NTA)">NEET — National Testing Agency (NTA)</option>
+                        </select>
                     </div>
                     <div class="field">
                         <label>Year:</label>
@@ -4505,6 +4675,9 @@
                         <button class="ai-batch-btn" onclick="batchAnalyzeAllSolutions('Chemistry')">
                             🤖 Batch Analyzer
                         </button>
+                        <button class="upload-json-btn" onclick="openUploadDialog('Chemistry')">
+                            📤 Upload
+                        </button>
                     </div>
                 </div>
                 <div class="edit-interface-content">
@@ -4556,7 +4729,7 @@
                         </div>
                     <div class="field">
                         <label>Board:</label>
-                        <select id="board-biology">
+                        <select id="board-biology" onchange="setConductedByFromBoard(this.value, 'conductedBy-biology')">
                             <option value="KCET" selected>KCET</option>
                             <option value="NEET">NEET</option>
                             <option value="JEE Main">JEE Main</option>
@@ -4567,7 +4740,13 @@
                         </div>
                     <div class="field">
                         <label>Conducted By:</label>
-                        <input type="text" id="conductedBy-biology" value="KEA (Karnataka Examinations Authority)" readonly />
+                        <select id="conductedBy-biology">
+                            <option value="">Select</option>
+                            <option value="KCET — Karnataka Examinations Authority (KEA)">KCET — Karnataka Examinations Authority (KEA)</option>
+                            <option value="JEE Main — National Testing Agency (NTA)">JEE Main — National Testing Agency (NTA)</option>
+                            <option value="JEE Advanced — Indian Institutes of Technology (IITs)">JEE Advanced — Indian Institutes of Technology (IITs)</option>
+                            <option value="NEET — National Testing Agency (NTA)">NEET — National Testing Agency (NTA)</option>
+                        </select>
                     </div>
                     <div class="field">
                         <label>Year:</label>
@@ -4620,6 +4799,9 @@
                         <button class="viewer-toggle-btn" onclick="switchViewer('Biology', 'preview')">👁️ Live Preview</button>
                         <button class="ai-batch-btn" onclick="batchAnalyzeAllSolutions('Biology')">
                             🤖 Batch Analyzer
+                        </button>
+                        <button class="upload-json-btn" onclick="openUploadDialog('Biology')">
+                            📤 Upload
                         </button>
                     </div>
                 </div>
@@ -5458,7 +5640,7 @@ Please format this solution with clear step-by-step explanations and proper math
         function toggleYearPanel() {
             const yearPanel = document.getElementById('yearPanel');
             const overlay = document.getElementById('yearPanelOverlay');
-            const toggleBtn = document.getElementById('yearPanelToggleBtn');
+            const toggleBtn = document.getElementById('selectYearBtn');
             
             if (yearPanel.classList.contains('open')) {
                 closeYearPanel();
@@ -5480,6 +5662,92 @@ Please format this solution with clear step-by-step explanations and proper math
             } else {
                 banner.classList.remove('show');
             }
+        }
+        
+        // Clear all data (internal function without confirmation)
+        function clearAllData() {
+            // Clear global variables
+            currentYear = '';
+            selectedJsonFileName = '';
+            currentFirebaseJsonPath = null;
+            window.currentDataSource = null;
+            
+            // Clear questions and assignments
+            allQuestions = [];
+            questionAssignments = {};
+            
+            // Hide subject tabs container
+            const subjectTabsContainer = document.getElementById('subjectTabsContainer');
+            if (subjectTabsContainer) {
+                subjectTabsContainer.style.display = 'none';
+            }
+            
+            // Hide subject views
+            document.querySelectorAll('.subject-view').forEach(view => {
+                view.style.display = 'none';
+                view.classList.remove('active');
+            });
+            
+            // Hide sidebar stats and download
+            const sidebarStats = document.getElementById('sidebarStats');
+            const sidebarDownload = document.getElementById('sidebarDownload');
+            if (sidebarStats) sidebarStats.style.display = 'none';
+            if (sidebarDownload) sidebarDownload.style.display = 'none';
+            
+            // Clear question lists
+            ['Mathematics', 'Physics', 'Chemistry', 'Biology'].forEach(subject => {
+                const questionList = document.getElementById(`questionList-${subject}`);
+                if (questionList) {
+                    questionList.innerHTML = '<h4>📋 Questions</h4>';
+                }
+                
+                // Clear editor panels
+                const editorPanel = document.getElementById(`questionEditor-${subject}`);
+                const jsonPanel = document.getElementById(`jsonViewer-${subject}`);
+                const renderPanel = document.getElementById(`questionRender-${subject}`);
+                if (editorPanel) editorPanel.innerHTML = '<h4>✏️ Question Editor</h4><div id="editQuestionsList-' + subject + '"></div>';
+                if (jsonPanel) jsonPanel.innerHTML = '<h4>📄 JSON Data Structure</h4><div class="json-content" id="jsonContent-' + subject + '"></div>';
+                if (renderPanel) {
+                    const renderContainer = document.getElementById(
+                        subject === 'Mathematics' ? 'inlineMathRender' : 
+                        subject === 'Physics' ? 'inlinePhysicsRender' : 
+                        subject === 'Chemistry' ? 'inlineChemistryRender' :
+                        'inlineBiologyRender'
+                    );
+                    if (renderContainer) renderContainer.innerHTML = '';
+                }
+            });
+            
+            // Reset form fields to defaults
+            const formFields = ['state', 'board', 'conductedBy', 'year', 'subject', 'tutorialId', 'dayAndShift', 'tutorialTitle', 'authorityExamId'];
+            formFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    if (field.tagName === 'SELECT') {
+                        field.selectedIndex = 0;
+                    } else {
+                        field.value = '';
+                    }
+                }
+            });
+            
+            // Update banner (will hide it since values are cleared)
+            updateSelectionBanner();
+            
+            // Mark as saved (no unsaved work)
+            markWorkAsUnsaved(false);
+        }
+        
+        // Unload JSON - Clear loaded data and reset UI (with confirmation)
+        function unloadJSON() {
+            if (!confirm('Are you sure you want to unload the current JSON file? This will clear all loaded data.')) {
+                return;
+            }
+            
+            clearAllData();
+            
+            console.log('✅ JSON unloaded successfully');
+            alert('✅ JSON file unloaded. All data has been cleared.');
         }
         
         // Show progress bar
@@ -5639,7 +5907,7 @@ Please format this solution with clear step-by-step explanations and proper math
         function openYearPanel() {
             const yearPanel = document.getElementById('yearPanel');
             const overlay = document.getElementById('yearPanelOverlay');
-            const toggleBtn = document.getElementById('yearPanelToggleBtn');
+            const toggleBtn = document.getElementById('selectYearBtn');
             yearPanel.classList.add('open');
             overlay.classList.add('show');
             if (toggleBtn) {
@@ -5651,7 +5919,7 @@ Please format this solution with clear step-by-step explanations and proper math
         function closeYearPanel() {
             const yearPanel = document.getElementById('yearPanel');
             const overlay = document.getElementById('yearPanelOverlay');
-            const toggleBtn = document.getElementById('yearPanelToggleBtn');
+            const toggleBtn = document.getElementById('selectYearBtn');
             yearPanel.classList.remove('open');
             overlay.classList.remove('show');
             if (toggleBtn) {
@@ -5685,31 +5953,63 @@ Please format this solution with clear step-by-step explanations and proper math
                 
                 console.log(`📋 Found ${result.items.length} items in folder`);
                 console.log(`📋 Items:`, result.items.map(item => item.name));
+                console.log(`📋 Prefixes (subfolders):`, result.prefixes.map(prefix => prefix.name));
                 
                 // Clear loading message
                 jsonListContainer.innerHTML = '';
                 
-                if (result.items.length === 0) {
-                    const noFilesMsg = document.createElement('div');
-                    noFilesMsg.textContent = 'No JSON files found';
-                    noFilesMsg.style.cssText = 'padding: 8px 12px; color: var(--text-secondary); font-size: 12px; font-style: italic;';
-                    jsonListContainer.appendChild(noFilesMsg);
-                    return;
-                }
-                
-                // Filter and display JSON files
+                // Filter and display JSON files (from root of year folder)
                 const jsonFiles = [];
+                console.log(`🔍 Processing ${result.items.length} items in root of year folder...`);
                 for (const item of result.items) {
                     const fileName = item.name.toLowerCase();
+                    console.log(`  - Checking item: ${item.name} (lowercase: ${fileName})`);
                     
                     // Only process .json files
                     if (fileName.endsWith('.json')) {
+                        console.log(`  ✅ Found JSON file in root: ${item.name}`);
                         jsonFiles.push({
                             ref: item,
                             name: item.name,
                             fullPath: `${yearFolder.fullPath}/${item.name}`,
-                            yearFolder: yearFolder
+                            yearFolder: yearFolder,
+                            subfolder: '' // File is in root of year folder
                         });
+                    } else {
+                        console.log(`  ⏭️ Skipping non-JSON file: ${item.name}`);
+                    }
+                }
+                console.log(`📊 Found ${jsonFiles.length} JSON files in root of year folder`);
+                
+                // Also check subdirectories (prefixes) for JSON files
+                console.log(`🔍 Checking ${result.prefixes.length} subdirectories for JSON files...`);
+                for (const prefix of result.prefixes) {
+                    const subfolderPath = `${yearFolder.fullPath}/${prefix.name}`;
+                    console.log(`📁 Checking subdirectory: ${subfolderPath}`);
+                    
+                    try {
+                        const subfolderRef = ref(storage, subfolderPath);
+                        const subfolderResult = await listAll(subfolderRef);
+                        
+                        console.log(`📋 Found ${subfolderResult.items.length} items in ${prefix.name}`);
+                        
+                        for (const item of subfolderResult.items) {
+                            const fileName = item.name.toLowerCase();
+                            
+                            // Only process .json files
+                            if (fileName.endsWith('.json')) {
+                                jsonFiles.push({
+                                    ref: item,
+                                    name: item.name,
+                                    fullPath: `${subfolderPath}/${item.name}`,
+                                    yearFolder: yearFolder,
+                                    subfolder: prefix.name // Track which subfolder this file is in
+                                });
+                                console.log(`✅ Found JSON file in subfolder: ${prefix.name}/${item.name}`);
+                            }
+                        }
+                    } catch (subfolderError) {
+                        console.warn(`⚠️ Error listing subdirectory ${prefix.name}:`, subfolderError);
                     }
                 }
                 
@@ -5721,12 +6021,19 @@ Please format this solution with clear step-by-step explanations and proper math
                     return;
                 }
                 
+                console.log(`✅ Total JSON files found: ${jsonFiles.length} (including subdirectories)`);
+                
                 // Create JSON file items
                 jsonFiles.forEach(jsonFile => {
                     const jsonItem = document.createElement('div');
                     jsonItem.className = 'json-file-item';
-                    jsonItem.textContent = jsonFile.name;
-                    jsonItem.title = `Click to load: ${jsonFile.name}`;
+                    
+                    // Show subfolder name if file is in a subdirectory
+                    const displayName = jsonFile.subfolder 
+                        ? `${jsonFile.subfolder}/${jsonFile.name}` 
+                        : jsonFile.name;
+                    jsonItem.textContent = displayName;
+                    jsonItem.title = `Click to load: ${jsonFile.fullPath}`;
                     
                     jsonItem.onclick = async (e) => {
                         e.stopPropagation();
@@ -5833,12 +6140,6 @@ Please format this solution with clear step-by-step explanations and proper math
                 // Store the Firebase path for updating later
                 currentFirebaseJsonPath = jsonFile.fullPath;
                 console.log(`💾 Stored Firebase path for update: ${currentFirebaseJsonPath}`);
-                
-                // Show update button if it exists
-                const updateBtn = document.getElementById('updateFirebaseBtn');
-                if (updateBtn) {
-                    updateBtn.style.display = 'block';
-                }
                 
                 // Load the JSON data into the Tutorial JSON Builder
                 if (matchedSubject) {
@@ -5978,16 +6279,6 @@ Please format this solution with clear step-by-step explanations and proper math
                 console.log(`📋 Items:`, result.items.map(item => item.name));
                 console.log(`📋 Prefixes (subfolders):`, result.prefixes.map(prefix => prefix.name));
                 
-                if (result.items.length === 0) {
-                    console.warn(`⚠️ No files found in ${yearFolder.fullPath}`);
-                    console.warn(`⚠️ This might mean the path is incorrect or the folder is empty`);
-                    alert(`No files found in the selected year folder.\n\nPath: ${yearFolder.fullPath}\n\nPlease check:\n1. The folder path is correct\n2. Files exist in Firebase Storage\n3. You have proper permissions`);
-                    document.querySelectorAll('.year-item').forEach(item => {
-                        item.classList.remove('loading');
-                    });
-                    return;
-                }
-                
                 // Filter JSON files and map to subjects
                 const jsonFiles = {};
                 const subjectMap = {
@@ -5997,7 +6288,7 @@ Please format this solution with clear step-by-step explanations and proper math
                     'biology': ['biology', 'bio']
                 };
                 
-                // Process each file
+                // Process files directly in year folder
                 for (const item of result.items) {
                     const fileName = item.name.toLowerCase();
                     
@@ -6020,7 +6311,8 @@ Please format this solution with clear step-by-step explanations and proper math
                                     ref: item,
                                     name: item.name,
                                     folderName: yearFolder.folderName,
-                                    fullPath: `${yearFolder.fullPath}/${item.name}`
+                                    fullPath: `${yearFolder.fullPath}/${item.name}`,
+                                    subfolder: '' // File is in root of year folder
                                 };
                                 matched = true;
                             }
@@ -6033,14 +6325,62 @@ Please format this solution with clear step-by-step explanations and proper math
                     }
                 }
                 
+                // Also check subdirectories (prefixes) for JSON files
+                console.log(`🔍 Checking ${result.prefixes.length} subdirectories for JSON files...`);
+                for (const prefix of result.prefixes) {
+                    const subfolderPath = `${yearFolder.fullPath}/${prefix.name}`;
+                    console.log(`📁 Checking subdirectory: ${subfolderPath}`);
+                    
+                    try {
+                        const subfolderRef = ref(storage, subfolderPath);
+                        const subfolderResult = await listAll(subfolderRef);
+                        
+                        console.log(`📋 Found ${subfolderResult.items.length} items in ${prefix.name}`);
+                        
+                        for (const item of subfolderResult.items) {
+                            const fileName = item.name.toLowerCase();
+                            
+                            // Only process .json files
+                            if (!fileName.endsWith('.json')) {
+                                continue;
+                            }
+                            
+                            console.log(`🔍 Checking file in subfolder: ${prefix.name}/${item.name} (lowercase: ${fileName})`);
+                            
+                            // Check which subject this file belongs to
+                            for (const [subject, keywords] of Object.entries(subjectMap)) {
+                                if (keywords.some(keyword => fileName.includes(keyword))) {
+                                    console.log(`✅ Matched ${prefix.name}/${item.name} to subject: ${subject}`);
+                                    // Only use subfolder file if we don't already have a file for this subject
+                                    if (!jsonFiles[subject]) {
+                                        jsonFiles[subject] = {
+                                            ref: item,
+                                            name: item.name,
+                                            folderName: yearFolder.folderName,
+                                            fullPath: `${subfolderPath}/${item.name}`,
+                                            subfolder: prefix.name
+                                        };
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (subfolderError) {
+                        console.warn(`⚠️ Error listing subdirectory ${prefix.name}:`, subfolderError);
+                    }
+                }
+                
                 console.log(`✅ Found JSON files:`, jsonFiles);
                 console.log(`📊 Total subjects matched: ${Object.keys(jsonFiles).length}`);
                 
                 // Check if we found any JSON files
                 if (Object.keys(jsonFiles).length === 0) {
                     const allFileNames = result.items.map(item => item.name).join(', ');
-                    console.error(`❌ No JSON files matched to subjects. All files found: ${allFileNames}`);
-                    alert(`No JSON files could be matched to subjects.\n\nFiles found in folder:\n${allFileNames}\n\nPlease ensure files contain subject keywords (mathematics, physics, chemistry, biology) in their names.`);
+                    const allSubfolders = result.prefixes.map(prefix => prefix.name).join(', ');
+                    console.error(`❌ No JSON files matched to subjects.`);
+                    console.error(`Files in root: ${allFileNames || 'none'}`);
+                    console.error(`Subfolders found: ${allSubfolders || 'none'}`);
+                    alert(`No JSON files could be matched to subjects.\n\nFiles found in folder:\n${allFileNames || 'none'}\n\nSubfolders: ${allSubfolders || 'none'}\n\nPlease ensure files contain subject keywords (mathematics, physics, chemistry, biology) in their names.`);
                     document.querySelectorAll('.year-item').forEach(item => {
                         item.classList.remove('loading');
                     });
@@ -6173,6 +6513,13 @@ Please format this solution with clear step-by-step explanations and proper math
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
+                // Clear all existing data first to ensure fresh start when loading .md file
+                console.log('🧹 Clearing existing data before loading .md file...');
+                clearAllData();
+                
+                // Track data source as .md file
+                window.currentDataSource = 'md';
+                
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const content = e.target.result;
@@ -6473,6 +6820,9 @@ Please format this solution with clear step-by-step explanations and proper math
             console.log(`✅ Loaded total ${allQuestions.length} questions`);
             console.log('All questions:', allQuestions);
             console.log('Question assignments:', questionAssignments);
+
+// Sync Conducted By based on current board selections
+syncConductedByAll();
             
             // Sort questions by number
             allQuestions.sort((a, b) => a.number - b.number);
@@ -6545,6 +6895,9 @@ Please format this solution with clear step-by-step explanations and proper math
                         conductedByField.value = mainData.conductedBy;
                         conductedByField.dispatchEvent(new Event('change', { bubbles: true }));
                         console.log(`✅ Set conductedBy to: ${mainData.conductedBy}`);
+                    } else if (conductedByField && boardField) {
+                        // Fallback: derive from board if not provided
+                        setConductedByFromBoard(boardField.value, 'conductedBy');
                     }
                     
                     if (yearField && mainData.year) {
@@ -6566,10 +6919,11 @@ Please format this solution with clear step-by-step explanations and proper math
                         console.log(`✅ Set authorityExamId to: ${mainData.authorityExamId}`);
                     }
                     
-                    if (dayAndShiftField && mainData.dayAndShift) {
-                        dayAndShiftField.value = mainData.dayAndShift;
+                    // Set dayAndShift - empty if not present
+                    if (dayAndShiftField) {
+                        dayAndShiftField.value = mainData.dayAndShift || '';
                         dayAndShiftField.dispatchEvent(new Event('change', { bubbles: true }));
-                        console.log(`✅ Set dayAndShift to: ${mainData.dayAndShift}`);
+                        console.log(`✅ Set dayAndShift to: ${mainData.dayAndShift || '(empty)'}`);
                     }
                     
                     // Update Tutorial Title field
@@ -6578,6 +6932,14 @@ Please format this solution with clear step-by-step explanations and proper math
                         tutorialTitleField.value = mainData.tutorialTitle;
                         tutorialTitleField.dispatchEvent(new Event('change', { bubbles: true }));
                         console.log(`✅ Set tutorialTitle to: ${mainData.tutorialTitle}`);
+                    }
+                    
+                    // Update Tutorial ID field (main field, not subject-specific)
+                    const tutorialIdField = document.getElementById('tutorialId');
+                    if (tutorialIdField && mainData.tutorialId) {
+                        tutorialIdField.value = mainData.tutorialId;
+                        tutorialIdField.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log(`✅ Set tutorialId to: ${mainData.tutorialId}`);
                     }
                     
                     // Verify fields were set
@@ -6609,6 +6971,7 @@ Please format this solution with clear step-by-step explanations and proper math
                     safeSetValue('tutorialId', mathData.tutorialId || '');
                     safeSetValue('tutorialTitle', mathData.tutorialTitle || '');
                     safeSetValue('authorityExamId', mathData.authorityExamId || '');
+                    // Set dayAndShift to empty if not present
                     safeSetValue('dayAndShift', mathData.dayAndShift || '');
                 }
                 
@@ -6619,6 +6982,7 @@ Please format this solution with clear step-by-step explanations and proper math
                     safeSetValue('tutorialId-physics', physicsData.tutorialId || '');
                     safeSetValue('tutorialTitle-physics', physicsData.tutorialTitle || '');
                     safeSetValue('authorityExamId-physics', physicsData.authorityExamId || '');
+                    // Set dayAndShift to empty if not present
                     safeSetValue('dayAndShift-physics', physicsData.dayAndShift || '');
                 }
                 
@@ -6629,6 +6993,7 @@ Please format this solution with clear step-by-step explanations and proper math
                     safeSetValue('tutorialId-chemistry', chemData.tutorialId || '');
                     safeSetValue('tutorialTitle-chemistry', chemData.tutorialTitle || '');
                     safeSetValue('authorityExamId-chemistry', chemData.authorityExamId || '');
+                    // Set dayAndShift to empty if not present
                     safeSetValue('dayAndShift-chemistry', chemData.dayAndShift || '');
                 }
                 
@@ -6639,6 +7004,7 @@ Please format this solution with clear step-by-step explanations and proper math
                     safeSetValue('tutorialId-biology', bioData.tutorialId || '');
                     safeSetValue('tutorialTitle-biology', bioData.tutorialTitle || '');
                     safeSetValue('authorityExamId-biology', bioData.authorityExamId || '');
+                    // Set dayAndShift to empty if not present
                     safeSetValue('dayAndShift-biology', bioData.dayAndShift || '');
                 }
                 
@@ -6666,6 +7032,8 @@ Please format this solution with clear step-by-step explanations and proper math
                     if (viewerToggle) {
                         viewerToggle.style.display = 'flex';
                         console.log(`✅ Showing viewer toggle for ${subjectToShow}`);
+                        // Ensure Edit is selected by default
+                        switchViewer(subjectToShow, 'editor');
                     }
                     
                     // Populate editor fields for the loaded subject
@@ -6681,18 +7049,27 @@ Please format this solution with clear step-by-step explanations and proper math
                                 firstQuestionBtn.click();
                                 console.log('✅ First question selected');
                                 
-                                // After question is selected, switch to Live Preview
-                                setTimeout(() => {
-                                    console.log('👁️ Switching to Live Preview...');
-                                    switchViewer(subjectToShow, 'preview');
-                                    console.log('✅ Live Preview loaded');
-                                }, 300);
+                                // After question is selected, switch to Live Preview (unless skipAutoPreviewSwitch is set)
+                                if (!skipAutoPreviewSwitch) {
+                                    setTimeout(() => {
+                                        console.log('👁️ Switching to Live Preview...');
+                                        switchViewer(subjectToShow, 'preview');
+                                        console.log('✅ Live Preview loaded');
+                                    }, 300);
+                                } else {
+                                    console.log('⏭️ Skipping automatic preview switch (upload context)');
+                                    window.skipAutoPreviewSwitch = false; // Reset flag
+                                }
                             } else {
                                 console.warn('⚠️ First question button not found');
-                                // Still try to show Live Preview even if no questions
-                                setTimeout(() => {
-                                    switchViewer(subjectToShow, 'preview');
-                                }, 300);
+                                // Still try to show Live Preview even if no questions (unless skipAutoPreviewSwitch is set)
+                                if (!skipAutoPreviewSwitch) {
+                                    setTimeout(() => {
+                                        switchViewer(subjectToShow, 'preview');
+                                    }, 300);
+                                } else {
+                                    window.skipAutoPreviewSwitch = false; // Reset flag
+                                }
                             }
                         }, 200);
                     }, 200);
@@ -6955,10 +7332,14 @@ Please format this solution with clear step-by-step explanations and proper math
                 stateField.value = examDetails.state;
             }
             
-            // Update Conducted By
+            // Update Conducted By (fallback to board mapping if missing)
             const conductedByField = document.getElementById('conductedBy');
             if (conductedByField) {
-                conductedByField.value = examDetails.conductedBy;
+                if (examDetails.conductedBy) {
+                    conductedByField.value = examDetails.conductedBy;
+                } else {
+                    setConductedByFromBoard(examDetails.board || boardField.value, 'conductedBy');
+                }
             }
             
             // Update Date
@@ -7023,7 +7404,7 @@ Please format this solution with clear step-by-step explanations and proper math
             // Get values from fields (they should already be populated from JSON)
             let board = subjectBoardField ? subjectBoardField.value : (boardField ? boardField.value : 'KCET');
             let state = subjectStateField ? subjectStateField.value : (stateField ? stateField.value : 'Karnataka');
-            let conductedBy = subjectConductedByField ? subjectConductedByField.value : (conductedByField ? conductedByField.value : 'KEA (Karnataka Examinations Authority)');
+            let conductedBy = subjectConductedByField ? subjectConductedByField.value : (conductedByField ? conductedByField.value : '');
             let examType = subjectAuthorityField ? subjectAuthorityField.value : 'kar_kect';
             
             // If fields are empty, use defaults (but prefer values from JSON)
@@ -7033,8 +7414,11 @@ Please format this solution with clear step-by-step explanations and proper math
             if (!state || state === '') {
                 state = 'Karnataka'; // Default, but should be set from JSON
             }
-            if (!conductedBy || conductedBy === '') {
-                conductedBy = 'KEA (Karnataka Examinations Authority)'; // Default, but should be set from JSON
+            if ((!conductedBy || conductedBy === '') && board) {
+                conductedBy = getConductedByForBoard(board);
+                if (subjectConductedByField && conductedBy) {
+                    setConductedByFromBoard(board, `conductedBy${conductedBySuffix}`);
+                }
             }
             if (!examType || examType === '') {
                 examType = 'kar_kect'; // Default, but should be set from JSON
@@ -8199,13 +8583,28 @@ Please format this solution with clear step-by-step explanations and proper math
                        (detectedSubject === 'biology');
             }).length;
             
-            // Update sidebar statistics
-            document.getElementById('sidebar-total-questions').textContent = total;
+            // Update sidebar statistics (if elements exist)
+            const sidebarTotalEl = document.getElementById('sidebar-total-questions');
+            if (sidebarTotalEl) {
+                sidebarTotalEl.textContent = total;
+            }
             
             // Update main tab statistics
-            document.getElementById('count-Mathematics').textContent = math;
-            document.getElementById('count-Physics').textContent = physics;
-            document.getElementById('count-Chemistry').textContent = chemistry;
+            const mathCountEl = document.getElementById('count-Mathematics');
+            if (mathCountEl) {
+                mathCountEl.textContent = math;
+            }
+            
+            const physicsCountEl = document.getElementById('count-Physics');
+            if (physicsCountEl) {
+                physicsCountEl.textContent = physics;
+            }
+            
+            const chemistryCountEl = document.getElementById('count-Chemistry');
+            if (chemistryCountEl) {
+                chemistryCountEl.textContent = chemistry;
+            }
+            
             const biologyCountEl = document.getElementById('count-Biology');
             if (biologyCountEl) {
                 biologyCountEl.textContent = biology;
@@ -8213,11 +8612,21 @@ Please format this solution with clear step-by-step explanations and proper math
             
             // Calculate extracted questions (questions that have been assigned or detected)
             const extracted = math + physics + chemistry + biology;
-            document.getElementById('sidebar-extracted-questions').textContent = extracted;
+            const sidebarExtractedEl = document.getElementById('sidebar-extracted-questions');
+            if (sidebarExtractedEl) {
+                sidebarExtractedEl.textContent = extracted;
+            }
             
-            // Show sidebar stats and download section
-            document.getElementById('sidebarStats').style.display = 'block';
-            document.getElementById('sidebarDownload').style.display = 'block';
+            // Show sidebar stats and download section (if elements exist)
+            const sidebarStatsEl = document.getElementById('sidebarStats');
+            if (sidebarStatsEl) {
+                sidebarStatsEl.style.display = 'block';
+            }
+            
+            const sidebarDownloadEl = document.getElementById('sidebarDownload');
+            if (sidebarDownloadEl) {
+                sidebarDownloadEl.style.display = 'block';
+            }
         }
         
         function updateAssignmentsDisplay() {
@@ -8980,6 +9389,12 @@ Please format this solution with clear step-by-step explanations and proper math
         
         
         function populateInlineEditFields(subject) {
+            // Don't populate if we're in single question view mode
+            if (isSingleQuestionViewMode) {
+                console.log(`Skipping populateInlineEditFields for ${subject} - single question view mode is active`);
+                return;
+            }
+            
             const subjectQuestions = allQuestions.filter(q => {
                 const assignedSubject = questionAssignments[q.number];
                 const detectedSubject = q.subject;
@@ -9359,9 +9774,10 @@ Please format this solution with clear step-by-step explanations and proper math
                 }
                 
                 questionItem.textContent = `${question.number}`;
+                // Use the index from forEach directly - it's already correct for the sorted array
                 questionItem.onclick = () => {
-                    const originalIndex = subjectQuestions.findIndex(q => q.number === question.number);
-                    selectQuestion(subject, originalIndex);
+                    console.log(`Clicked question ${question.number}, using index ${index} from sorted array`);
+                    selectQuestion(subject, index);
                 };
                 questionHeader.appendChild(questionItem);
                 
@@ -9696,29 +10112,60 @@ Please format this solution with clear step-by-step explanations and proper math
         function selectQuestion(subject, questionIndex) {
             console.log(`=== SELECTING QUESTION ===`);
             console.log(`Subject: ${subject}, Question Index: ${questionIndex}`);
+            console.log(`Total allQuestions: ${allQuestions.length}`);
             
-            // Debug: Show the actual question being selected
-            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
-            if (subjectQuestions[questionIndex]) {
-                const questionNumber = subjectQuestions[questionIndex].number;
-                console.log(`Selected question details:`, {
-                    index: questionIndex,
-                    questionNumber: questionNumber,
-                    totalQuestions: subjectQuestions.length
-                });
+            // Filter and sort questions the same way as populateQuestionList does
+            const subjectLower = subject.toLowerCase();
+            const subjectQuestions = allQuestions.filter(q => {
+                const qSubject = q.subject ? q.subject.toLowerCase() : '';
+                const matches = qSubject === subjectLower;
+                if (!matches && questionIndex === 0) {
+                    // Debug first few questions to see what subjects they have
+                    console.log(`Question ${q.number} has subject: "${q.subject}" (looking for "${subjectLower}")`);
+                }
+                return matches;
+            });
+            const sortedSubjectQuestions = [...subjectQuestions].sort((a, b) => a.number - b.number);
+            
+            console.log(`Filtered ${subjectQuestions.length} questions for ${subject}`);
+            console.log(`Sorted questions:`, sortedSubjectQuestions.map(q => ({number: q.number, subject: q.subject})));
+            
+            // Validate index
+            if (questionIndex < 0 || questionIndex >= sortedSubjectQuestions.length) {
+                console.error(`Invalid question index ${questionIndex} for ${subject}. Total questions: ${sortedSubjectQuestions.length}`);
+                console.error(`Available indices: 0 to ${sortedSubjectQuestions.length - 1}`);
+                return;
             }
+            
+            const question = sortedSubjectQuestions[questionIndex];
+            const questionNumber = question.number;
+            
+            console.log(`✅ Selected question details:`, {
+                index: questionIndex,
+                questionNumber: questionNumber,
+                totalQuestions: sortedSubjectQuestions.length,
+                questionText: question.text ? question.text.substring(0, 50) + '...' : 'No text',
+                question: question
+            });
             
             // Remove active class from all question items
             const questionItems = document.querySelectorAll(`#questionList-${subject} .question-item`);
             console.log(`Found ${questionItems.length} question items for ${subject}`);
             questionItems.forEach(item => item.classList.remove('active'));
             
-            // Add active class to selected question
-            if (questionItems[questionIndex]) {
-                questionItems[questionIndex].classList.add('active');
-                console.log(`Activated question item at index ${questionIndex}`);
+            // Find the button by question number instead of index (more reliable)
+            const questionButton = Array.from(questionItems).find(btn => parseInt(btn.textContent.trim()) === questionNumber);
+            if (questionButton) {
+                questionButton.classList.add('active');
+                console.log(`Activated question item for Question ${questionNumber}`);
             } else {
-                console.log(`Question item at index ${questionIndex} not found!`);
+                // Fallback: try by index
+                if (questionItems[questionIndex]) {
+                    questionItems[questionIndex].classList.add('active');
+                    console.log(`Activated question item at index ${questionIndex} (fallback)`);
+                } else {
+                    console.warn(`Question item for Question ${questionNumber} not found!`);
+                }
             }
             
             // Show the viewer toggle and render panels
@@ -9750,20 +10197,45 @@ Please format this solution with clear step-by-step explanations and proper math
             // renderPanel already declared above
             const toggleButtons = document.querySelectorAll(`#viewerToggle-${subject} .viewer-toggle-btn`);
             
-            // Check if JSON viewer is active (has active class on second button)
+            // Check which viewer is active
             const isJsonViewerActive = toggleButtons[1] && toggleButtons[1].classList.contains('active');
+            const isPreviewActive = toggleButtons[2] && toggleButtons[2].classList.contains('active');
+            const isEditorActive = toggleButtons[0] && toggleButtons[0].classList.contains('active');
             
-            if (isJsonViewerActive) {
+            // If skipAutoPreviewSwitch is set, force Edit view and reset flag
+            const skipAuto = window.skipAutoPreviewSwitch || false;
+            if (skipAuto) {
+                switchViewer(subject, 'editor');
+                window.skipAutoPreviewSwitch = false; // Reset flag
+                // Still need to generate the editor content
+                editorPanel.style.display = 'block';
+                jsonPanel.style.display = 'none';
+                if (renderPanel) renderPanel.style.display = 'block';
+                generateQuestionEditor(subject, questionIndex);
+            } else if (!isJsonViewerActive && !isPreviewActive && !isEditorActive) {
+                // If no viewer is active, default to Edit (editor)
+                switchViewer(subject, 'editor');
+                editorPanel.style.display = 'block';
+                jsonPanel.style.display = 'none';
+                if (renderPanel) renderPanel.style.display = 'block';
+                generateQuestionEditor(subject, questionIndex);
+            } else if (isJsonViewerActive) {
                 // JSON viewer is active - show JSON panel and render panel
                 editorPanel.style.display = 'none';
                 jsonPanel.style.display = 'flex';
-                renderPanel.style.display = 'block';
+                if (renderPanel) renderPanel.style.display = 'block';
                 generateJSONContent(subject);
+            } else if (isPreviewActive) {
+                // Preview is active
+                editorPanel.style.display = 'none';
+                jsonPanel.style.display = 'none';
+                if (renderPanel) renderPanel.style.display = 'block';
+                generateFullPreview(subject);
             } else {
                 // Question editor is active - show editor panel and render panel
                 editorPanel.style.display = 'block';
                 jsonPanel.style.display = 'none';
-                renderPanel.style.display = 'block';
+                if (renderPanel) renderPanel.style.display = 'block';
                 generateQuestionEditor(subject, questionIndex);
             }
             
@@ -9856,15 +10328,22 @@ Please format this solution with clear step-by-step explanations and proper math
             const containerIdMap = {
                 'Mathematics': 'inlineMathRender',
                 'Physics': 'inlinePhysicsRender', 
-                'Chemistry': 'inlineChemistryRender'
+                'Chemistry': 'inlineChemistryRender',
+                'Biology': 'inlineBiologyRender'
             };
             
-            const renderContainer = document.getElementById(containerIdMap[subject]);
-            console.log(`Container ID: ${containerIdMap[subject]}`);
+            const renderContainerId = containerIdMap[subject];
+            if (!renderContainerId) {
+                console.error(`No container ID mapped for subject: ${subject}`);
+                return;
+            }
+            
+            const renderContainer = document.getElementById(renderContainerId);
+            console.log(`Container ID: ${renderContainerId} for subject ${subject}`);
             console.log(`Render container found:`, renderContainer);
             
             if (!renderContainer) {
-                console.log(`ERROR: Render container not found for ${subject}!`);
+                console.error(`ERROR: Render container "${renderContainerId}" not found for ${subject}!`);
                 return;
             }
             
@@ -10114,12 +10593,49 @@ Please format this solution with clear step-by-step explanations and proper math
         }
         
         function generateQuestionEditor(subject, questionIndex) {
-            const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
-            const question = subjectQuestions[questionIndex];
+            console.log(`=== GENERATING QUESTION EDITOR ===`);
+            console.log(`Subject: ${subject}, Question Index: ${questionIndex}`);
             
-            if (!question) return;
+            // Filter and sort questions the same way as populateQuestionList and selectQuestion
+            const subjectLower = subject.toLowerCase();
+            const subjectQuestions = allQuestions.filter(q => {
+                const qSubject = q.subject ? q.subject.toLowerCase() : '';
+                return qSubject === subjectLower;
+            });
+            const sortedSubjectQuestions = [...subjectQuestions].sort((a, b) => a.number - b.number);
+            
+            console.log(`Filtered ${subjectQuestions.length} questions for editor in ${subject}`);
+            console.log(`Sorted questions for editor:`, sortedSubjectQuestions.map(q => q.number));
+            
+            if (questionIndex < 0 || questionIndex >= sortedSubjectQuestions.length) {
+                console.error(`Invalid question index ${questionIndex} for editor. Total: ${sortedSubjectQuestions.length}`);
+                return;
+            }
+            
+            const question = sortedSubjectQuestions[questionIndex];
+            
+            if (!question) {
+                console.error(`Question not found at index ${questionIndex} for subject ${subject}. Total questions: ${sortedSubjectQuestions.length}`);
+                return;
+            }
+            
+            console.log(`✅ Generating editor for Question ${question.number} (index ${questionIndex}) in ${subject}`);
+            console.log(`Question text preview:`, question.text ? question.text.substring(0, 100) : 'No text');
             
             const editorContainer = document.getElementById(`editQuestionsList-${subject}`);
+            if (!editorContainer) {
+                console.error(`❌ Editor container not found: editQuestionsList-${subject}`);
+                return;
+            }
+            
+            // Set flag to prevent populateInlineEditFields from overwriting
+            isSingleQuestionViewMode = true;
+            
+            // Clear the container completely before adding the single question
+            editorContainer.innerHTML = '';
+            console.log(`Cleared editor container, about to add Question ${question.number}`);
+            
+            // Generate HTML for only the selected question
             editorContainer.innerHTML = `
                 <div class="question-edit-item">
                     <h5>Question ${question.number}</h5>
@@ -10330,41 +10846,53 @@ Please format this solution with clear step-by-step explanations and proper math
                     </div>
                 </div>
             `;
+            
+            console.log(`✅ Editor HTML set for Question ${question.number}. Container has ${editorContainer.children.length} children.`);
+            console.log(`Editor container innerHTML length: ${editorContainer.innerHTML.length} characters`);
         }
         
         function generateQuestionRender(subject, questionIndex) {
             console.log(`=== GENERATING SINGLE QUESTION RENDER ===`);
             console.log(`Subject: ${subject}, Question Index: ${questionIndex}`);
             
+            // Filter and sort questions the same way as populateQuestionList and selectQuestion
             const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
-            console.log(`Filtered questions for ${subject}: ${subjectQuestions.length}`);
+            const sortedSubjectQuestions = [...subjectQuestions].sort((a, b) => a.number - b.number);
+            console.log(`Filtered questions for ${subject}: ${sortedSubjectQuestions.length}`);
             
-            if (subjectQuestions.length === 0) {
+            if (sortedSubjectQuestions.length === 0) {
                 console.log(`No questions found for ${subject}, returning early`);
                 return;
             }
             
-            if (questionIndex < 0 || questionIndex >= subjectQuestions.length) {
+            if (questionIndex < 0 || questionIndex >= sortedSubjectQuestions.length) {
                 console.log(`Invalid question index ${questionIndex} for ${subject}, using index 0`);
                 questionIndex = 0;
             }
             
-            const question = subjectQuestions[questionIndex];
+            const question = sortedSubjectQuestions[questionIndex];
             console.log(`Rendering single question: ${question.number} at index ${questionIndex}`);
             
             // Map subject names to correct container IDs
             const containerIdMap = {
                 'Mathematics': 'inlineMathRender',
                 'Physics': 'inlinePhysicsRender', 
-                'Chemistry': 'inlineChemistryRender'
+                'Chemistry': 'inlineChemistryRender',
+                'Biology': 'inlineBiologyRender'
             };
             
-            const renderContainer = document.getElementById(containerIdMap[subject]);
-            console.log(`Container ID: ${containerIdMap[subject]}`);
+            const renderContainerId = containerIdMap[subject];
+            if (!renderContainerId) {
+                console.error(`No container ID mapped for subject: ${subject}`);
+                return;
+            }
+            
+            const renderContainer = document.getElementById(renderContainerId);
+            console.log(`Container ID: ${renderContainerId} for subject ${subject}`);
             console.log(`Render container found:`, renderContainer);
             
             if (!renderContainer) {
-                console.log(`ERROR: Render container not found for ${subject}!`);
+                console.error(`ERROR: Render container "${renderContainerId}" not found for ${subject}!`);
                 return;
             }
             
@@ -11906,9 +12434,45 @@ Please format this solution with clear step-by-step explanations and proper math
                 const authorityExamIdInput = document.getElementById(`authorityExamId${suffix}`);
                 
                 if (stateSelect && boardSelect && yearSelect && subjectSelect) {
+                    // Function to toggle Day and Shift visibility based on board (available globally)
+                    if (typeof window.toggleDayAndShiftVisibility === 'undefined') {
+                        window.toggleDayAndShiftVisibility = function(boardValue) {
+                            const isJEEMain = boardValue && (
+                                boardValue.toLowerCase().includes('jee') && 
+                                boardValue.toLowerCase().includes('main')
+                            );
+                            
+                            // Get all Day and Shift fields and their parent field containers
+                            const dayShiftFields = [
+                                { field: document.getElementById('dayAndShift'), container: document.getElementById('dayAndShift')?.closest('.field') },
+                                { field: document.getElementById('dayAndShift-physics'), container: document.getElementById('dayAndShift-physics')?.closest('.field') },
+                                { field: document.getElementById('dayAndShift-chemistry'), container: document.getElementById('dayAndShift-chemistry')?.closest('.field') },
+                                { field: document.getElementById('dayAndShift-biology'), container: document.getElementById('dayAndShift-biology')?.closest('.field') }
+                            ];
+                            
+                            dayShiftFields.forEach(({ field, container }) => {
+                                if (container) {
+                                    if (isJEEMain) {
+                                        container.classList.remove('day-and-shift-hidden');
+                                        container.style.display = '';
+                                    } else {
+                                        container.classList.add('day-and-shift-hidden');
+                                        container.style.display = 'none';
+                                    }
+                                }
+                            });
+                        };
+                    }
+                    
                     // Add event listeners for dropdowns
                     stateSelect.addEventListener('change', () => updateMetadata(suffix));
-                    boardSelect.addEventListener('change', () => updateMetadata(suffix));
+                    boardSelect.addEventListener('change', () => {
+                        updateMetadata(suffix);
+                        // Toggle Day and Shift visibility for this subject's board
+                        if (window.toggleDayAndShiftVisibility) {
+                            window.toggleDayAndShiftVisibility(boardSelect.value);
+                        }
+                    });
                     yearSelect.addEventListener('change', () => updateMetadata(suffix));
                     subjectSelect.addEventListener('change', () => updateMetadata(suffix));
                     
@@ -11921,6 +12485,11 @@ Please format this solution with clear step-by-step explanations and proper math
                             const mainDayShiftField = document.getElementById('dayAndShift');
                             const year = mainYearField ? mainYearField.value : '2025';
                             const dayAndShift = mainDayShiftField ? mainDayShiftField.value : '';
+                            
+                            // Toggle Day and Shift visibility based on board
+                            if (window.toggleDayAndShiftVisibility) {
+                                window.toggleDayAndShiftVisibility(mainBoardValue);
+                            }
                             
                             // Sync to Physics board field
                             const physicsBoardField = document.getElementById('board-physics');
@@ -11952,6 +12521,12 @@ Please format this solution with clear step-by-step explanations and proper math
                             
                             console.log(`✅ Synced board value "${mainBoardValue}" to all subject fields and updated tutorial IDs`);
                         });
+                        
+                        // Initialize Day and Shift visibility on page load
+                        const initialBoard = boardSelect.value;
+                        if (window.toggleDayAndShiftVisibility) {
+                            window.toggleDayAndShiftVisibility(initialBoard);
+                        }
                         
                         // Sync year field changes
                         yearSelect.addEventListener('change', function() {
@@ -12385,99 +12960,6 @@ Please format this solution with clear step-by-step explanations and proper math
         window.addEventListener('load', function() {
             initializeMetadataEditors();
         });
-        
-        // Update Firebase JSON function
-        async function updateFirebaseJSON() {
-            if (!currentFirebaseJsonPath) {
-                alert('❌ No Firebase file path found. Please load a JSON file from Firebase first.');
-                return;
-            }
-            
-            if (!window.currentDataSource || window.currentDataSource !== 'firebase') {
-                alert('❌ This function is only available for files loaded from Firebase.');
-                return;
-            }
-            
-            // Determine which subject has data
-            let subjectToUpdate = 'Mathematics';
-            const mathQuestions = allQuestions.filter(q => q.subject === 'mathematics');
-            const physicsQuestions = allQuestions.filter(q => q.subject === 'physics');
-            const chemistryQuestions = allQuestions.filter(q => q.subject === 'chemistry');
-            const biologyQuestions = allQuestions.filter(q => q.subject === 'biology');
-            
-            if (mathQuestions.length > 0) subjectToUpdate = 'Mathematics';
-            else if (physicsQuestions.length > 0) subjectToUpdate = 'Physics';
-            else if (chemistryQuestions.length > 0) subjectToUpdate = 'Chemistry';
-            else if (biologyQuestions.length > 0) subjectToUpdate = 'Biology';
-            
-            // Confirm update
-            if (!confirm(`Are you sure you want to update the JSON file in Firebase?\n\nFile: ${selectedJsonFileName}\nPath: ${currentFirebaseJsonPath}\n\nThis will overwrite the existing file.`)) {
-                return;
-            }
-            
-            try {
-                // Show loading state
-                const updateBtn = document.getElementById('updateFirebaseBtn');
-                const originalText = updateBtn ? updateBtn.textContent : 'Update';
-                if (updateBtn) {
-                    updateBtn.disabled = true;
-                    updateBtn.textContent = '⏳ Updating...';
-                }
-                
-                // Generate JSON from current data
-                const jsonData = generateJSONForSubject(subjectToUpdate);
-                const jsonString = JSON.stringify(jsonData, null, 2);
-                
-                // Convert JSON string to Blob
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                
-                // Upload to Firebase Storage
-                const { storage, ref, uploadBytesResumable } = window.firebaseStorage;
-                const storageRef = ref(storage, currentFirebaseJsonPath);
-                
-                console.log(`📤 Uploading JSON to Firebase: ${currentFirebaseJsonPath}`);
-                
-                const uploadTask = uploadBytesResumable(storageRef, blob);
-                
-                uploadTask.on(
-                    'state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        console.log(`Upload progress: ${Math.round(progress)}%`);
-                        if (updateBtn) {
-                            updateBtn.textContent = `⏳ Uploading... ${Math.round(progress)}%`;
-                        }
-                    },
-                    (error) => {
-                        console.error('❌ Upload error:', error);
-                        alert(`❌ Failed to update JSON file:\n${error.message}`);
-                        if (updateBtn) {
-                            updateBtn.disabled = false;
-                            updateBtn.textContent = originalText;
-                        }
-                    },
-                    () => {
-                        console.log('✅ JSON file updated successfully!');
-                        alert(`✅ Successfully updated JSON file in Firebase!\n\nFile: ${selectedJsonFileName}`);
-                        if (updateBtn) {
-                            updateBtn.disabled = false;
-                            updateBtn.textContent = originalText;
-                        }
-                        markWorkAsUnsaved(false); // Mark as saved
-                    }
-                );
-                
-            } catch (error) {
-                console.error('❌ Error updating Firebase JSON:', error);
-                alert(`❌ Error updating JSON file:\n${error.message}`);
-                const updateBtn = document.getElementById('updateFirebaseBtn');
-                if (updateBtn) {
-                    updateBtn.disabled = false;
-                    updateBtn.textContent = 'Update';
-                }
-            }
-        }
-        
         // Generate JSON for a specific subject (similar to generateJSONContent but returns object)
         function generateJSONForSubject(subject) {
             const subjectQuestions = allQuestions.filter(q => q.subject === subject.toLowerCase());
@@ -12598,13 +13080,648 @@ Please format this solution with clear step-by-step explanations and proper math
             
             return jsonData;
         }
+        
+        // Upload Dialog Functions
+        let currentUploadSubject = null;
+        
+        function openUploadDialog(subject) {
+            console.log('Opening upload dialog for subject:', subject);
+            currentUploadSubject = subject;
+            const dialog = document.getElementById('uploadDialogOverlay');
+            const jsonPreview = document.getElementById('uploadJsonPreview');
+            
+            if (!dialog) {
+                console.error('Upload dialog overlay not found!');
+                alert('Upload dialog not found. Please refresh the page.');
+                return;
+            }
+            
+            if (!jsonPreview) {
+                console.error('JSON preview element not found!');
+                alert('JSON preview element not found. Please refresh the page.');
+                return;
+            }
+            
+            try {
+                const jsonData = generateJSONForSubject(subject);
+                const jsonString = JSON.stringify(jsonData, null, 2);
+                jsonPreview.textContent = jsonString;
+            } catch (error) {
+                console.error('Error generating JSON:', error);
+                jsonPreview.textContent = `Error generating JSON: ${error.message}`;
+                alert(`Error: ${error.message}`);
+                return;
+            }
+            
+            // Load available boards and years
+            loadBoardsForUpload();
+            dialog.classList.add('show');
+            console.log('Dialog should now be visible');
+        }
+        
+        function closeUploadDialog() {
+            const dialog = document.getElementById('uploadDialogOverlay');
+            dialog.classList.remove('show');
+            currentUploadSubject = null;
+            // Reset form
+            document.getElementById('uploadBoardSelect').value = '';
+            document.getElementById('uploadBoardCustom').value = '';
+            document.getElementById('uploadYearSelect').value = '';
+            document.getElementById('uploadYearCustom').value = '';
+            document.getElementById('uploadYearSelect').innerHTML = '<option value="">-- Select Year --</option>';
+            document.getElementById('uploadShiftOrDay').value = '';
+            // Reset button state
+            document.querySelectorAll('.upload-dialog-btn-primary').forEach(btn => {
+                btn.disabled = false;
+                if (btn.textContent.includes('Upload')) {
+                    btn.textContent = 'Upload as new file';
+                }
+                if (btn.textContent.includes('Update')) {
+                    btn.textContent = 'Update existing file';
+                }
+            });
+        }
+        
+        async function loadBoardsForUpload() {
+            // Load boards from Firebase directories
+            const { storage, ref, listAll } = window.firebaseStorage;
+            try {
+                const rootRef = ref(storage, '');
+                const result = await listAll(rootRef);
+                
+                const boardSelect = document.getElementById('uploadBoardSelect');
+                const existingBoards = Array.from(boardSelect.options).map(opt => opt.value);
+                
+                result.prefixes.forEach(prefix => {
+                    const boardName = prefix.name;
+                    if (boardName && !existingBoards.includes(boardName)) {
+                        const option = document.createElement('option');
+                        option.value = boardName;
+                        option.textContent = boardName;
+                        boardSelect.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading boards:', error);
+            }
+        }
+        
+        async function handleBoardSelectChange() {
+            const boardSelect = document.getElementById('uploadBoardSelect');
+            const boardCustom = document.getElementById('uploadBoardCustom');
+            const yearSelect = document.getElementById('uploadYearSelect');
+            
+            if (boardSelect.value) {
+                // Clear custom input when selecting from dropdown
+                boardCustom.value = '';
+                // Load years for selected board
+                await loadYearsForBoard(boardSelect.value);
+            } else {
+                // Clear year dropdown when board is deselected
+                yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+            }
+        }
+        
+        function handleCustomBoardInput() {
+            const boardCustom = document.getElementById('uploadBoardCustom');
+            const boardSelect = document.getElementById('uploadBoardSelect');
+            
+            if (boardCustom.value && boardCustom.value.trim()) {
+                const customValue = boardCustom.value.trim();
+                // Check if already exists in dropdown
+                const existingOption = Array.from(boardSelect.options).find(opt => opt.value === customValue);
+                
+                if (!existingOption) {
+                    // Add custom board to dropdown
+                    const option = document.createElement('option');
+                    option.value = customValue;
+                    option.textContent = customValue + ' (custom)';
+                    boardSelect.appendChild(option);
+                }
+                
+                // Select the custom board
+                boardSelect.value = customValue;
+                // Load years for the custom board
+                loadYearsForBoard(customValue);
+            }
+        }
+
+        // Map board to conducted by
+        function getConductedByForBoard(boardValue) {
+            // Normalize board string to catch underscores / dashes / spaces
+            const normalized = (boardValue || '')
+                .toLowerCase()
+                .replace(/[_-]+/g, ' ')
+                .trim();
+
+            const map = {
+                'kcet': 'KCET — Karnataka Examinations Authority (KEA)',
+                'neet': 'NEET — National Testing Agency (NTA)',
+                'jee main': 'JEE Main — National Testing Agency (NTA)',
+                'jee advanced': 'JEE Advanced — Indian Institutes of Technology (IITs)',
+            };
+
+            // Exact match first
+            if (map[normalized]) return map[normalized];
+
+            // Fallback includes
+            if (normalized.includes('kcet')) return map['kcet'];
+            if (normalized.includes('neet')) return map['neet'];
+            if (normalized.includes('jee main')) return map['jee main'];
+            if (normalized.includes('jee advanced')) return map['jee advanced'];
+
+            return '';
+        }
+
+        // Set Conducted By based on board selection
+        function setConductedByFromBoard(boardValue, conductedBySelectId) {
+            const conductedByValue = getConductedByForBoard(boardValue);
+            const conductedBySelect = document.getElementById(conductedBySelectId);
+            if (!conductedBySelect) return;
+
+            if (conductedByValue) {
+                // Try direct value match first
+                conductedBySelect.value = conductedByValue;
+                if (conductedBySelect.value === conductedByValue) return;
+
+                // Fallback: find option by text match (case-insensitive, ignoring dashes)
+                const target = conductedByValue.toLowerCase().replace(/[-–—]/g, '').trim();
+                const match = Array.from(conductedBySelect.options).find(opt =>
+                    opt.textContent.toLowerCase().replace(/[-–—]/g, '').trim() === target
+                );
+                if (match) {
+                    conductedBySelect.value = match.value;
+                    return;
+                }
+            }
+
+            // If nothing matched, default to first option
+            if (conductedBySelect.options.length > 0) {
+                conductedBySelect.selectedIndex = 0;
+            }
+        }
+
+        // Sync all Conducted By fields from their boards
+        function syncConductedByAll() {
+            const pairs = [
+                { boardId: 'board', conductedById: 'conductedBy' },
+                { boardId: 'board-physics', conductedById: 'conductedBy-physics' },
+                { boardId: 'board-chemistry', conductedById: 'conductedBy-chemistry' },
+                { boardId: 'board-biology', conductedById: 'conductedBy-biology' },
+            ];
+            pairs.forEach(({ boardId, conductedById }) => {
+                const b = document.getElementById(boardId);
+                if (b) setConductedByFromBoard(b.value, conductedById);
+            });
+        }
+
+        // Auto-sync Conducted By on load for existing board selections
+        window.addEventListener('DOMContentLoaded', () => {
+            syncConductedByAll();
+        });
+
+        // Update existing JSON in the same Firebase path it was loaded from
+        async function updateExistingJSON() {
+            if (!currentFirebaseJsonPath) {
+                alert('❌ No loaded Firebase JSON path found. Please load a JSON file from Firebase first.');
+                return;
+            }
+
+            const subject = currentUploadSubject || getCurrentSubject() || 'Mathematics';
+
+            try {
+                // Show loading state
+                const buttons = document.querySelectorAll('.upload-dialog-btn-primary');
+                buttons.forEach(btn => {
+                    if (btn.textContent.includes('Update')) {
+                        btn.disabled = true;
+                        btn.textContent = 'Updating...';
+                    }
+                });
+
+                // Generate JSON
+                const jsonData = generateJSONForSubject(subject);
+                const jsonString = JSON.stringify(jsonData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+
+                // Upload to the exact same path
+                const { storage, ref, uploadBytesResumable } = window.firebaseStorage;
+                const storageRef = ref(storage, currentFirebaseJsonPath);
+
+                console.log(`📤 Updating JSON to Firebase at existing path: ${currentFirebaseJsonPath}`);
+
+                await uploadBytesResumable(storageRef, blob);
+
+                alert(`✅ Successfully updated existing JSON file!\n\nPath: ${currentFirebaseJsonPath}`);
+                closeUploadDialog();
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert(`❌ Error updating JSON: ${error.message}`);
+            } finally {
+                // Restore button state
+                const buttons = document.querySelectorAll('.upload-dialog-btn-primary');
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    if (btn.textContent.includes('Upload')) btn.textContent = 'Upload as new file';
+                    if (btn.textContent.includes('Update')) btn.textContent = 'Update existing file';
+                });
+            }
+        }
+        
+        async function loadYearsForBoard(boardName) {
+            const { storage, ref, listAll } = window.firebaseStorage;
+            const yearSelect = document.getElementById('uploadYearSelect');
+            yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+            
+            try {
+                const boardRef = ref(storage, boardName);
+                const result = await listAll(boardRef);
+                
+                const years = [];
+                result.prefixes.forEach(prefix => {
+                    const name = prefix.name;
+                    const yearMatch = name.match(/(\d{4})/);
+                    if (yearMatch) {
+                        years.push({
+                            year: yearMatch[1],
+                            folderName: name
+                        });
+                    }
+                });
+                
+                // Sort years descending
+                years.sort((a, b) => parseInt(b.year) - parseInt(a.year));
+                
+                years.forEach(yearData => {
+                    const option = document.createElement('option');
+                    option.value = yearData.folderName;
+                    option.textContent = yearData.year;
+                    yearSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading years:', error);
+            }
+        }
+        
+        function handleYearSelectChange() {
+            const yearSelect = document.getElementById('uploadYearSelect');
+            const yearCustom = document.getElementById('uploadYearCustom');
+            
+            if (yearSelect.value) {
+                // Clear custom input when selecting from dropdown
+                yearCustom.value = '';
+            }
+        }
+        
+        // Helper function to generate correct folder name format based on board
+        function generateYearFolderName(boardName, year) {
+            // Extract base board name (remove any existing suffixes)
+            let baseBoard = boardName;
+            
+            // Remove common suffixes if present
+            baseBoard = baseBoard.replace(/_JSON_question_papers.*$/i, '');
+            baseBoard = baseBoard.replace(/_question_papers.*$/i, '');
+            baseBoard = baseBoard.replace(/_papers.*$/i, '');
+            baseBoard = baseBoard.replace(/_JSON.*$/i, '');
+            
+            // Normalize board name
+            const normalizedBoard = baseBoard.trim().toUpperCase();
+            
+            // Generate folder name based on board type
+            if (normalizedBoard === 'KCET' || normalizedBoard.startsWith('KCET')) {
+                return `KCET_question_papers_${year}`;
+            } else if (normalizedBoard === 'JEE_MAIN' || normalizedBoard === 'JEE MAIN' || normalizedBoard.startsWith('JEE_MAIN') || normalizedBoard.startsWith('JEE MAIN')) {
+                return `JEE_Main_papers_${year}`;
+            } else {
+                // Default format for other boards
+                return `${baseBoard}_question_papers_${year}`;
+            }
+        }
+        
+        function handleCustomYearInput() {
+            const yearCustom = document.getElementById('uploadYearCustom');
+            const yearSelect = document.getElementById('uploadYearSelect');
+            const boardSelect = document.getElementById('uploadBoardSelect');
+            
+            if (yearCustom.value && yearCustom.value.trim()) {
+                const inputValue = yearCustom.value.trim();
+                // Extract year from input (look for 4-digit year)
+                const yearMatch = inputValue.match(/(\d{4})/);
+                const year = yearMatch ? yearMatch[1] : inputValue;
+                
+                // Validate year is numeric
+                if (!/^\d{4}$/.test(year)) {
+                    return; // Don't add invalid year
+                }
+                
+                const boardName = boardSelect.value || 'questions';
+                
+                // Create folder name format using helper function
+                const folderName = generateYearFolderName(boardName, year);
+                
+                // Check if already exists in dropdown
+                const existingOption = Array.from(yearSelect.options).find(opt => opt.value === folderName);
+                
+                if (!existingOption) {
+                    // Add custom year to dropdown
+                    const option = document.createElement('option');
+                    option.value = folderName;
+                    option.textContent = year + ' (custom)';
+                    yearSelect.appendChild(option);
+                }
+                
+                // Select the custom year
+                yearSelect.value = folderName;
+            }
+        }
+        
+        async function uploadJSONToFirebase() {
+            if (!currentUploadSubject) {
+                alert('❌ No subject selected');
+                return;
+            }
+            
+            const boardSelect = document.getElementById('uploadBoardSelect');
+            const yearSelect = document.getElementById('uploadYearSelect');
+            
+            // Validate required fields
+            if (!boardSelect.value || !boardSelect.value.trim()) {
+                alert('❌ Please select or enter a Board directory');
+                return;
+            }
+            
+            if (!yearSelect.value || !yearSelect.value.trim()) {
+                alert('❌ Please select or enter a Year');
+                return;
+            }
+            
+            try {
+                // Show loading state
+                const uploadBtn = document.querySelector('.upload-dialog-btn-primary');
+                const originalText = uploadBtn.textContent;
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+                
+                // Generate JSON
+                const jsonData = generateJSONForSubject(currentUploadSubject);
+                const jsonString = JSON.stringify(jsonData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                // Create file name
+                const subjectLower = currentUploadSubject.toLowerCase();
+                const yearMatch = yearSelect.value.match(/(\d{4})/);
+                const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
+                
+                // Get board name for file naming (extract base board name)
+                let boardNameForFile = boardSelect.value;
+                // Remove common suffixes to get base board name
+                boardNameForFile = boardNameForFile.replace(/_JSON.*$/i, '');
+                boardNameForFile = boardNameForFile.replace(/_question_papers.*$/i, '');
+                boardNameForFile = boardNameForFile.replace(/_papers.*$/i, '');
+                boardNameForFile = boardNameForFile.toLowerCase();
+                
+                // Get Shift or Day from upload dialog (optional) - this takes precedence
+                const shiftOrDayInput = document.getElementById('uploadShiftOrDay');
+                let shiftOrDayValue = shiftOrDayInput ? shiftOrDayInput.value.trim() : '';
+                
+                // Format shift/day value: "2 april shift2" -> "2_april_shift2" for folder
+                // For filename: "2 april shift2" -> "_2_april_shift_2" (with shift number separated)
+                let shiftOrDayFolder = '';
+                let shiftOrDayFileNamePart = '';
+                if (shiftOrDayValue) {
+                    // Parse shift/day value to extract components
+                    // Example: "2 april shift2" -> day=2, month=april, shift=2
+                    const shiftDayMatch = shiftOrDayValue.match(/(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+shift\s*(\d+)/i);
+                    
+                    if (shiftDayMatch) {
+                        const day = shiftDayMatch[1];
+                        const month = shiftDayMatch[2].toLowerCase();
+                        const shift = shiftDayMatch[3];
+                        
+                        // Folder format: "2_april_shift2"
+                        shiftOrDayFolder = `${day}_${month}_shift${shift}`;
+                        
+                        // Filename format: "_2_april_shift_2" (shift number separated with underscore)
+                        shiftOrDayFileNamePart = `_${day}_${month}_shift_${shift}`;
+                    } else {
+                        // If format doesn't match, just convert to lowercase with underscores
+                        shiftOrDayFolder = shiftOrDayValue.toLowerCase().replace(/\s+/g, '_');
+                        shiftOrDayFileNamePart = `_${shiftOrDayFolder}`;
+                    }
+                }
+                
+                // Fallback: Get Day and Shift field value from form (only if upload dialog shift/day is not provided)
+                let dayShiftFileNamePart = '';
+                if (!shiftOrDayValue) {
+                    const dayShiftSuffix = currentUploadSubject === 'Mathematics' ? '' : 
+                                          currentUploadSubject === 'Physics' ? '-physics' : 
+                                          currentUploadSubject === 'Chemistry' ? '-chemistry' : 
+                                          '-biology';
+                    const dayShiftField = document.getElementById(`dayAndShift${dayShiftSuffix}`);
+                    const dayShiftFieldContainer = dayShiftField ? dayShiftField.closest('.field') : null;
+                    
+                    // Check if Day and Shift field is visible (only for JEE Main)
+                    const isDayShiftVisible = dayShiftFieldContainer && 
+                                             !dayShiftFieldContainer.classList.contains('day-and-shift-hidden') &&
+                                             dayShiftFieldContainer.style.display !== 'none';
+                    
+                    // Parse day and shift from dayAndShift field ONLY if it's visible
+                    if (isDayShiftVisible && dayShiftField && dayShiftField.value && dayShiftField.value.trim()) {
+                        const dayAndShiftValue = dayShiftField.value.trim();
+                        // Parse format: "2 April 2025 Shift - 1" or "3 April 2025 Shift - 1"
+                        const dayShiftMatch = dayAndShiftValue.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+Shift\s*-\s*(\d+)/i);
+                        if (dayShiftMatch) {
+                            const day = dayShiftMatch[1];
+                            const month = dayShiftMatch[2].toLowerCase();
+                            const shift = dayShiftMatch[4];
+                            dayShiftFileNamePart = `_${day}_${month}_shift_${shift}`;
+                        }
+                    }
+                }
+                
+                // Use shift/day from upload dialog first, then fallback to form field, then A1
+                const fileNameSuffix = shiftOrDayFileNamePart || dayShiftFileNamePart || '_A1';
+                const fileName = `${year}_${boardNameForFile}_${subjectLower}${fileNameSuffix}.json`;
+                
+                // Extract base board name for constructing year folder
+                let baseBoardName = boardSelect.value;
+                // Remove common suffixes to get base board name
+                baseBoardName = baseBoardName.replace(/_JSON.*$/i, '');
+                baseBoardName = baseBoardName.replace(/_question_papers.*$/i, '');
+                baseBoardName = baseBoardName.replace(/_papers.*$/i, '');
+                
+                // Construct year folder name using helper function (ensures correct format)
+                let yearFolder = yearSelect.value;
+                // If year folder doesn't match expected format, reconstruct it
+                if (!yearFolder.includes('_question_papers_') && !yearFolder.includes('_papers_')) {
+                    // Reconstruct year folder name using helper function
+                    yearFolder = generateYearFolderName(baseBoardName, year);
+                } else {
+                    // Even if it has the pattern, ensure it uses the correct format
+                    yearFolder = generateYearFolderName(baseBoardName, year);
+                }
+                
+                // Create Firebase path: BoardDirectory/YearFolder/ShiftOrDay/FileName (if shift/day provided)
+                // Or: BoardDirectory/YearFolder/FileName (if no shift/day)
+                // Use original board directory as selected (e.g., KCET_JSON)
+                let firebasePath;
+                if (shiftOrDayFolder) {
+                    // Include shift/day folder in path
+                    firebasePath = `${boardSelect.value}/${yearFolder}/${shiftOrDayFolder}/${fileName}`;
+                } else {
+                    // No shift/day folder
+                    firebasePath = `${boardSelect.value}/${yearFolder}/${fileName}`;
+                }
+                
+                // Upload to Firebase
+                const { storage, ref, uploadBytesResumable } = window.firebaseStorage;
+                const storageRef = ref(storage, firebasePath);
+                
+                console.log(`📤 Uploading JSON to Firebase: ${firebasePath}`);
+                console.log(`📄 File name: ${fileName}`);
+                
+                // Upload the file
+                await uploadBytesResumable(storageRef, blob);
+                
+                // Save subject before closing dialog (closeUploadDialog sets currentUploadSubject to null)
+                const uploadedSubject = currentUploadSubject;
+                
+                alert(`✅ Successfully uploaded JSON file!\n\nPath: ${firebasePath}\nFile: ${fileName}`);
+                closeUploadDialog();
+                
+                // Switch to Edit view after successful upload (with delay to ensure DOM is ready)
+                if (uploadedSubject) {
+                    // Set flag to prevent automatic preview switch
+                    window.skipAutoPreviewSwitch = true;
+                    
+                    // First, ensure Edit button is active BEFORE showSubject runs
+                    const viewerToggle = document.getElementById(`viewerToggle-${uploadedSubject}`);
+                    if (viewerToggle) {
+                        viewerToggle.style.display = 'flex';
+                        const toggleButtons = viewerToggle.querySelectorAll('.viewer-toggle-btn');
+                        if (toggleButtons.length > 0) {
+                            // Remove active from all buttons and set Edit as active
+                            toggleButtons.forEach(btn => btn.classList.remove('active'));
+                            toggleButtons[0].classList.add('active');
+                        }
+                    }
+                    
+                    // Check if subject view is already shown
+                    const subjectViewElement = document.getElementById(`subjectView-${uploadedSubject}`);
+                    const isSubjectAlreadyShown = subjectViewElement && subjectViewElement.style.display === 'block';
+                    
+                    if (!isSubjectAlreadyShown) {
+                        // Only call showSubject if subject is not already shown
+                        showSubject(uploadedSubject);
+                    }
+                    
+                    // Switch to Edit view with longer delay to ensure all showSubject timeouts complete
+                    setTimeout(() => {
+                        // Directly manipulate buttons to ensure Edit is selected
+                        const toggleButtons = document.querySelectorAll(`#viewerToggle-${uploadedSubject} .viewer-toggle-btn`);
+                        if (toggleButtons.length > 0) {
+                            // Remove active from all buttons
+                            toggleButtons.forEach(btn => btn.classList.remove('active'));
+                            // Add active to Edit button (first button)
+                            toggleButtons[0].classList.add('active');
+                        }
+                        
+                        // Now call switchViewer to update panels
+                        switchViewer(uploadedSubject, 'editor');
+                        console.log(`✅ Switched to Edit view for ${uploadedSubject} after upload`);
+                        
+                        // Force it again after a bit more delay to override any other switches
+                        setTimeout(() => {
+                            // Directly set Edit button as active again
+                            const toggleButtons = document.querySelectorAll(`#viewerToggle-${uploadedSubject} .viewer-toggle-btn`);
+                            if (toggleButtons.length > 0) {
+                                toggleButtons.forEach(btn => btn.classList.remove('active'));
+                                toggleButtons[0].classList.add('active');
+                            }
+                            switchViewer(uploadedSubject, 'editor');
+                        }, 400);
+                    }, 800);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert(`❌ Error uploading JSON: ${error.message}\n\nPlease check:\n1. Firebase connection\n2. File path is correct\n3. You have upload permissions`);
+            } finally {
+                // Restore button state
+                document.querySelectorAll('.upload-dialog-btn-primary').forEach(btn => {
+                    btn.disabled = false;
+                    if (btn.textContent.includes('Upload')) btn.textContent = 'Upload as new file';
+                    if (btn.textContent.includes('Update')) btn.textContent = 'Update existing file';
+                });
+            }
+        }
+        
+        // Close dialog on overlay click
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.getElementById('uploadDialogOverlay');
+            if (overlay) {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) {
+                        closeUploadDialog();
+                    }
+                });
+            }
+        });
     </script>
         </div> <!-- Close main-content -->
-        
-        <!-- Update Firebase Button -->
-        <button id="updateFirebaseBtn" onclick="updateFirebaseJSON()">
-            🔄 Update Firebase
-        </button>
     </div> <!-- Close container -->
+    
+    <!-- Upload Dialog Modal -->
+    <div class="upload-dialog-overlay" id="uploadDialogOverlay">
+        <div class="upload-dialog">
+            <div class="upload-dialog-content">
+                <!-- 1. JSON File Preview (shown first) -->
+                <div class="upload-dialog-field">
+                    <label>JSON File Preview:</label>
+                    <div class="upload-dialog-json-preview" id="uploadJsonPreview"></div>
+                </div>
+                
+                <!-- 2. Board Directory Selection -->
+                <div class="upload-dialog-field">
+                    <label>Board Directory: <span style="color: red;">*</span></label>
+                    <select id="uploadBoardSelect" onchange="handleBoardSelectChange()">
+                        <option value="">-- Select Board --</option>
+                        <option value="KCET_JSON">KCET_JSON</option>
+                        <option value="JEE_MAIN">JEE_MAIN</option>
+                        <option value="questions">questions</option>
+                    </select>
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                        <span>Or type custom board name:</span>
+                        <input type="text" id="uploadBoardCustom" placeholder="Enter custom board name" style="width: 100%; margin-top: 4px;" onkeyup="handleCustomBoardInput()">
+                    </div>
+                </div>
+                
+                <!-- 3. Year Selection -->
+                <div class="upload-dialog-field">
+                    <label>Year: <span style="color: red;">*</span></label>
+                    <select id="uploadYearSelect" onchange="handleYearSelectChange()">
+                        <option value="">-- Select Year --</option>
+                    </select>
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                        <span>Or type custom year:</span>
+                        <input type="text" id="uploadYearCustom" placeholder="Enter custom year (e.g., 2025)" style="width: 100%; margin-top: 4px;" onkeyup="handleCustomYearInput()">
+                    </div>
+                </div>
+                
+                <!-- 4. Shift or Day (Optional) -->
+                <div class="upload-dialog-field">
+                    <label>Shift or Day: <span style="color: #6c757d; font-size: 12px;">(Optional)</span></label>
+                    <input type="text" id="uploadShiftOrDay" placeholder="e.g., 2 april shift2" style="width: 100%; margin-top: 4px;">
+                    <div style="margin-top: 4px; font-size: 11px; color: var(--text-secondary);">
+                        If provided, creates a subdirectory. Format: "2 april shift2" → folder: "2_april_shift2", filename includes "_2_april_shift_2"
+                    </div>
+                </div>
+            </div>
+            <div class="upload-dialog-actions">
+                <button class="upload-dialog-btn upload-dialog-btn-secondary" onclick="closeUploadDialog()">Cancel</button>
+                <button class="upload-dialog-btn upload-dialog-btn-primary" onclick="updateExistingJSON()">Update existing file</button>
+                <button class="upload-dialog-btn upload-dialog-btn-primary" onclick="uploadJSONToFirebase()">Upload as new file</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
